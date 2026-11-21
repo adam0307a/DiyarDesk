@@ -24,6 +24,11 @@ https://github.com/user-attachments/assets/0be337c1-53e9-4989-a391-da87cc2528e3
 https://github.com/user-attachments/assets/1b5ced02-b424-4204-97c8-ed7ba797de0c
 
 
+
+
+https://github.com/user-attachments/assets/36224867-04a2-4d6a-b534-13024cdc575b
+
+
 ![DiyarDesk Settings & Theme Browser](docs/images/settings.webp)
 
 | Sahara Desert | Polar Night |
