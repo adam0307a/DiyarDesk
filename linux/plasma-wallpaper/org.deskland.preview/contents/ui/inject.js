@@ -166,6 +166,7 @@
     'software-world': 'software-world.html',
     'thinking-orbs': 'thinking-orbs.html',
     papercut: 'papercut.html',
+    quietsnow: 'quietsnow.html',
   };
 
   var CUSTOM_DIR = HOME + '/.config/deskland/themes';

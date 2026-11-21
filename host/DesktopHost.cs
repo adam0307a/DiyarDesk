@@ -1329,12 +1329,13 @@ class SettingsForm : Form
 class WallpaperForm : Form
 {
     readonly WebView2 web;
-    readonly System.Windows.Forms.Timer iconTimer, fgTimer;
+    readonly System.Windows.Forms.Timer iconTimer, fgTimer, winTimer;
     readonly string pageDir;
     readonly IconReader reader = new IconReader();
     Rectangle screen;
     IntPtr parentHwnd, insertAfter;
     string lastIcons = "";
+    string lastWindows = "";
     int lastPause = -1;
     bool manualPause, lowMode, disableAutoPause, shuttingDown, allowMoveIcons;
     long lastMoveIconsMs;
@@ -1377,6 +1378,9 @@ class WallpaperForm : Form
         fgTimer = new System.Windows.Forms.Timer();
         fgTimer.Interval = lowMode ? 1000 : 500;
         fgTimer.Tick += delegate { PollForeground(); };
+        winTimer = new System.Windows.Forms.Timer();
+        winTimer.Interval = lowMode ? 320 : 120;
+        winTimer.Tick += delegate { PollWindows(); };
     }
 
     public void SetManualPause(bool v) { manualPause = v; PollForeground(); }
@@ -1399,6 +1403,7 @@ class WallpaperForm : Form
         lowMode = v;
         iconTimer.Interval = v ? 1500 : 400;
         fgTimer.Interval = v ? 1000 : 500;
+        winTimer.Interval = v ? 320 : 120;
         ApplyWebViewLowMode(v);
         Post(Json.Stringify(Json.Obj("t", "lowMode", "v", v)));
         lastPause = -1;
@@ -1721,7 +1726,7 @@ class WallpaperForm : Form
                     if (VirtualStateJson != null) core.PostWebMessageAsString(VirtualStateJson());
                     core.PostWebMessageAsString(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
                     if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
-                    lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
+                    lastIcons = ""; lastWindows = ""; lastPause = -1; PollIcons(); PollWindows(); PollForeground();
                     return;
                 }
                 if (msg.StartsWith("{"))
@@ -1737,6 +1742,7 @@ class WallpaperForm : Form
             core.Navigate(PageUrl);
             iconTimer.Start();
             fgTimer.Start();
+            winTimer.Start();
             Log.Write("WebView2 就绪：" + core.Environment.BrowserVersionString);
         }
         catch (Exception ex)
@@ -1767,6 +1773,9 @@ class WallpaperForm : Form
     IntPtr zAnchor;                                     // 我们要紧跟在它下面的窗口（图标列表 / 图标层）
     IntPtr winEventHook;
     Native.WinEventDelegate winEventProc;               // 保持引用，防止被 GC
+    IntPtr winLocHook, winStateHook;
+    Native.WinEventDelegate winTrackProc;               // 实时跟踪顶层窗口移动/大小/开关
+    int lastWinPollTick;
     readonly Dictionary<string, List<Rectangle>> uiRectGroups = new Dictionary<string, List<Rectangle>>();
     IntPtr mouseHook;
     Native.LowLevelMouseProc mouseHookProc;
@@ -2016,8 +2025,35 @@ class WallpaperForm : Form
             winEventHook = Native.SetWinEventHook(0x8000 /* OBJECT_CREATE */, 0x8004 /* OBJECT_REORDER */, IntPtr.Zero,
                 winEventProc, pid, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
         }
+        StartWindowTrackHooks();
         Log.Write(string.Format("已挂载（{0}），屏幕 {1}", mode, screen));
         return true;
+    }
+
+    void StartWindowTrackHooks()
+    {
+        if (winLocHook != IntPtr.Zero || winStateHook != IntPtr.Zero) return;
+        winTrackProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
+        {
+            if (shuttingDown || IsDisposed || lastPause == 1) return;
+            if (idObject != 0 || idChild != 0 || hwnd == IntPtr.Zero || hwnd == Handle) return;
+            int now = Environment.TickCount;
+            int minGap = lowMode ? 48 : 12; // ~80 Hz while dragging for near-zero snow lag
+            if (ev == 0x800B /* EVENT_OBJECT_LOCATIONCHANGE */ && unchecked(now - lastWinPollTick) < minGap)
+                return;
+            lastWinPollTick = now;
+            PollWindows();
+        };
+        winLocHook = Native.SetWinEventHook(0x800B /* EVENT_OBJECT_LOCATIONCHANGE */, 0x800B, IntPtr.Zero,
+            winTrackProc, 0, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
+        winStateHook = Native.SetWinEventHook(0x0003 /* EVENT_SYSTEM_FOREGROUND */, 0x0017 /* EVENT_SYSTEM_MINIMIZEEND */, IntPtr.Zero,
+            winTrackProc, 0, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
+    }
+
+    void StopWindowTrackHooks()
+    {
+        if (winLocHook != IntPtr.Zero) { Native.UnhookWinEvent(winLocHook); winLocHook = IntPtr.Zero; }
+        if (winStateHook != IntPtr.Zero) { Native.UnhookWinEvent(winStateHook); winStateHook = IntPtr.Zero; }
     }
 
     // 守住顺序：紧跟在 zAnchor（图标列表 / 图标层）下面；Progman 挂法还要把系统壁纸层推到最底（被打乱才修）
@@ -2078,6 +2114,74 @@ class WallpaperForm : Form
         Log.Write(string.Format("图标变化：{0} 个，可见={1}", items.Count, visible));
     }
 
+    // ---------------------------------------------------------------- 可见顶层窗口矩形（供雪花/雨滴等主题在窗口边缘堆积与滑落）
+    static bool IsIgnoredWindowClass(string cls)
+    {
+        return cls == "Progman" || cls == "WorkerW"
+            || cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd"
+            || cls == "Windows.UI.Core.CoreWindow"
+            || cls == "ApplicationManager_DesktopShellWindow"
+            || cls == "ForegroundStaging" || cls == "MultitaskingViewFrame"
+            || cls == "EdgeUiInputTopWndClass" || cls == "DummyDwmListenerWindow"
+            || cls == "TaskListThumbnailWnd" || cls == "NotifyIconOverflowWindow"
+            || cls == "IME" || cls == "MSCTFIME UI";
+    }
+
+    void PollWindows()
+    {
+        if (web.CoreWebView2 == null || lastPause == 1) return;
+        var sb = new StringBuilder(512);
+        sb.Append("{\"t\":\"windows\",\"r\":[");
+        int count = 0;
+        var clsBuf = new StringBuilder(64);
+        int rectSize = Marshal.SizeOf(typeof(Native.RECT));
+        Native.EnumWindows(delegate(IntPtr h, IntPtr l)
+        {
+            if (count >= 24) return false;
+            if (h == Handle || !Native.IsWindowVisible(h) || Native.IsIconic(h) || Native.IsZoomed(h))
+                return true;
+            int ex = Native.GetWindowLong(h, Native.GWL_EXSTYLE);
+            if ((ex & 0x00000080 /* WS_EX_TOOLWINDOW */) != 0) return true;
+            int st = Native.GetWindowLong(h, Native.GWL_STYLE);
+            if ((st & Native.WS_CHILD) != 0) return true;
+            int cloaked = 0;
+            if (Native.DwmGetWindowAttribute(h, 14 /* DWMWA_CLOAKED */, out cloaked, 4) == 0 && cloaked != 0)
+                return true;
+            clsBuf.Length = 0;
+            Native.GetClassName(h, clsBuf, clsBuf.Capacity);
+            string cls = clsBuf.ToString();
+            if (string.IsNullOrEmpty(cls) || IsIgnoredWindowClass(cls)) return true;
+
+            Native.RECT wr;
+            if (Native.DwmGetWindowAttribute(h, 9 /* DWMWA_EXTENDED_FRAME_BOUNDS */, out wr, rectSize) != 0)
+            {
+                if (!Native.GetWindowRect(h, out wr)) return true;
+            }
+            int ww = wr.Right - wr.Left;
+            int wh = wr.Bottom - wr.Top;
+            if (ww < 120 || wh < 80) return true;
+            if (wr.Right <= screen.Left || wr.Left >= screen.Right || wr.Bottom <= screen.Top || wr.Top >= screen.Bottom)
+                return true;
+            // Skip full-screen / monitor-covering windows
+            if (wr.Left <= screen.Left && wr.Top <= screen.Top && wr.Right >= screen.Right && wr.Bottom >= screen.Bottom)
+                return true;
+
+            if (count > 0) sb.Append(',');
+            sb.Append('[').Append(h.ToInt64()).Append(',')
+              .Append(wr.Left - screen.Left).Append(',')
+              .Append(wr.Top - screen.Top).Append(',')
+              .Append(wr.Right - screen.Left).Append(',')
+              .Append(wr.Bottom - screen.Top).Append(']');
+            count++;
+            return true;
+        }, IntPtr.Zero);
+        sb.Append("]}");
+        string json = sb.ToString();
+        if (json == lastWindows) return;
+        lastWindows = json;
+        Post(json);
+    }
+
     // ---------------------------------------------------------------- 最大化 / 全屏时暂停
     void PollForeground()
     {
@@ -2124,7 +2228,8 @@ class WallpaperForm : Form
         if (shuttingDown) return;
         shuttingDown = true;
         StopMouseHook();
-        iconTimer.Stop(); fgTimer.Stop();
+        StopWindowTrackHooks();
+        iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
         reader.ResetOrbitalPositions();
         reader.Dispose();
         IntPtr parent = parentHwnd;
@@ -2139,8 +2244,9 @@ class WallpaperForm : Form
     protected override void OnHandleDestroyed(EventArgs e)
     {
         StopMouseHook();
+        StopWindowTrackHooks();
         if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
-        iconTimer.Stop(); fgTimer.Stop();
+        iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
         reader.ResetOrbitalPositions();
         reader.Dispose();
         base.OnHandleDestroyed(e);
@@ -2633,6 +2739,7 @@ static class Native
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
@@ -2642,6 +2749,7 @@ static class Native
     [DllImport("user32.dll")] public static extern bool RedrawWindow(IntPtr h, IntPtr rect, IntPtr rgn, uint flags);
     [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attribute, out int value, int size);
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attribute, out RECT value, int size);
     [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
     [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr h);
     [DllImport("kernel32.dll")] public static extern IntPtr VirtualAllocEx(IntPtr proc, IntPtr addr, IntPtr size, uint type, uint protect);

@@ -162,6 +162,77 @@
     "errStart": "Couldn't start: {msg}"
   },
   "themes": {
+    "quietsnow": {
+      "name": "Quiet Snow",
+      "creditPrefix": "Inspired by",
+      "desc": "Realistic living physics and interaction inspired by Snowhush: snow, glass-beading rain, tumbling autumn leaves, and cherry blossom modes. Settles across the ground, desktop icons, and open windows, slides off when moved or closed, and sweeps away under your cursor.",
+      "groups": [
+        "Season & Weather",
+        "Accumulation & Interaction",
+        "Atmosphere & Look",
+        "Performance"
+      ],
+      "params": {
+        "mode": {
+          "label": "Season mode",
+          "hint": "Switch live between realistic snow, rain with glass beads, autumn leaves, and cherry blossom",
+          "options": ["Snow", "Rain", "Autumn Leaves", "Cherry Blossom"]
+        },
+        "intensity": {
+          "label": "Intensity",
+          "hint": "Overall density of falling snow, rain, leaves, or petals"
+        },
+        "wind": {
+          "label": "Wind direction & speed",
+          "hint": "Negative blows left, positive blows right"
+        },
+        "gusts": {
+          "label": "Natural gusts",
+          "hint": "Intermittent wind gusts and spindrift lifting off snow crests"
+        },
+        "accumulate": {
+          "label": "Accumulate on",
+          "hint": "Choose whether snow, leaves, or rain beads settle on the ground only or also on desktop icons",
+          "options": ["Off", "Ground only", "Ground & Icons"]
+        },
+        "windows": {
+          "label": "Accumulate on windows",
+          "hint": "Settle snow, leaves, petals, and rain splashes on top edges of open windows, shedding when windows move or close",
+          "options": ["Off", "On"]
+        },
+        "melt": {
+          "label": "Natural melt / fade",
+          "hint": "Gradually melts snow drifts or withers fallen leaves and petals to keep the desktop balanced"
+        },
+        "cursor": {
+          "label": "Cursor interaction",
+          "hint": "Sweep snow drifts apart, scatter leaves and petals, or smear rain drops with your pointer",
+          "options": ["Off", "Soft", "Strong"]
+        },
+        "depth": {
+          "label": "Drift depth",
+          "hint": "Maximum snow drift and heap thickness across ground and icons"
+        },
+        "atmosphere": {
+          "label": "Atmosphere",
+          "hint": "Choose a calm seasonal backdrop and ambient lighting",
+          "options": ["Quiet Night", "Blue Hour", "Misty Morning", "Streetlamp Warmth"]
+        },
+        "sparkle": {
+          "label": "Sparkle & sheen",
+          "hint": "Snow crystal surface glints, rain bead highlights, and translucent petal shimmer"
+        },
+        "backdrop": {
+          "label": "Distant mist & ridges",
+          "hint": "Visibility of soft horizon ridges, distant pines, and ground haze"
+        },
+        "quality": {
+          "label": "Quality",
+          "hint": "Render resolution and physics particle budget",
+          "options": ["Low", "Balanced", "High"]
+        }
+      }
+    },
     "beach": {
       "name": "Beach",
       "desc": "The shoreline curves around your files as waves roll up the sand",
@@ -1131,7 +1202,8 @@
     },
     "liquidglass": {
       "name": "Liquid Glass Refractive Surface",
-      "desc": "Flowing silk-mesh light behind translucent optical-refraction liquid glass droplets, prismatic dispersion rims, cursor lens, and frosted glass cradles around desktop icons",
+      "creditPrefix": "Optical shader credit:",
+      "desc": "Multi-pass WebGL2 physical Apple Liquid Glass: Snell's Law bevel refraction, RGB chromatic dispersion, 2-pass Gaussian frost blur, LCH Fresnel & dual-angle glare, smooth liquid merging (smin), and a spring-physics cursor lens",
       "groups": [
         "Glass & Light",
         "Liquid Motion",
@@ -1144,7 +1216,8 @@
             "Tahoe Azure",
             "Aurora Prism",
             "Sunset Silk",
-            "Obsidian Glass"
+            "Obsidian Glass",
+            "Classic Silk"
           ]
         },
         "refraction": {
@@ -1155,6 +1228,10 @@
         },
         "dispersion": {
           "label": "Chromatic edge"
+        },
+        "mergeRate": {
+          "label": "Liquid merge",
+          "hint": "How smoothly floating droplets, the cursor lens, and icon glass cradles fuse together when approaching each other"
         },
         "dropletCount": {
           "label": "Droplet count"

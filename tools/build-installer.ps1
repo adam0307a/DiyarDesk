@@ -38,9 +38,9 @@ $WebView2Bootstrapper = [IO.Path]::GetFullPath($WebView2Bootstrapper)
 $sources = @('.gitattributes', '.gitignore', 'AGENTS.md', 'LICENSE', 'NOTICE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md',
     'host\DesktopHost.cs', 'host\Themes.cs', 'host\DesklandPreview.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
     'tools\build-installer.ps1', 'tools\installer.nsi', 'tools\version.json')
-$themeFiles = @('flat.html', 'meadow.html', 'aurora.html', 'glade.html', 'rift.html', 'strike.html', 'pocket.html', 'roach.html', 'rosebrook.html', 'polarnight.html', 'desert.html', 'zen-archipelago.html', 'istanbul.html', 'thinking-orbs.html',
+$themeFiles = @('flat.html', 'meadow.html', 'aurora.html', 'glade.html', 'rift.html', 'strike.html', 'pocket.html', 'roach.html', 'rosebrook.html', 'polarnight.html', 'desert.html', 'zen-archipelago.html', 'istanbul.html', 'thinking-orbs.html', 'quietsnow.html',
     'settings.html', 'thumbs-data.js', 'low-mode.js', 'share.js', 'wall-icons.js', 'serve.mjs', 'themes.json',
-    'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js', 'aurora-pines.js', 'glade-trees.js', 'rift-props.js', 'strike-props.js', 'pocket-props.js', 'roach-props.js', 'rosebrook-blooms.js', 'desert-props.js', 'istanbul-city.js', 'istanbul-props.js', 'thinking-orbs-engine.js',
+    'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js', 'aurora-pines.js', 'glade-trees.js', 'rift-props.js', 'strike-props.js', 'pocket-props.js', 'roach-props.js', 'rosebrook-blooms.js', 'desert-props.js', 'istanbul-city.js', 'istanbul-props.js', 'thinking-orbs-engine.js', 'quietsnow-engine.js',
     'i18n\en.json', 'i18n\tr.json', 'i18n\zh-CN.json', 'thumbs\beach.webp', 'thumbs\meadow.webp', 'thumbs\polarnight.webp', 'thumbs\desert.webp', 'thumbs\istanbul.webp', 'thumbs\thinking-orbs.webp',
     'assets\beach-coconut-palm-v2.png', 'assets\beach-coconut-palm-curved.png', 'assets\beach-coconut-palm-airy.png', 'assets\beach-coconut-palm-windswept.png', 'assets\beach-coconut-palm-arch.png',
     'assets\meadow-black-kitten.png', 'assets\meadow-kite-boy-level-face.png', 'assets\meadow-kite-boy-diagonal-run.png',

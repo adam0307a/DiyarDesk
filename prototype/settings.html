@@ -522,6 +522,10 @@ function localizeRegistry() {
     const get = f => { for (const x of trs) { const v = f(x); if (v != null) return v; } return null; };
     th.name = get(x => x.name) ?? th.name;
     th.desc = get(x => x.desc) ?? th.desc;
+    if (th.credit) {
+      const cp = get(x => x.creditPrefix);
+      if (cp) th.credit.prefix = cp;
+    }
     (th.groups || []).forEach((g, gi) => {
       g.name = get(x => x.groups && x.groups[gi]) ?? g.name;
       for (const p of g.params) {

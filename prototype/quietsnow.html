@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sessiz Kar — DiyarDesk</title>
+  <script src="low-mode.js"></script>
+  <script src="wall-icons.js"></script>
+  <script src="quietsnow-engine.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #070d18;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    #cv {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: auto;
+    }
+    #ghosts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    .ghost {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 6px;
+      opacity: 0.28;
+    }
+    .ghost i {
+      width: 40px;
+      height: 40px;
+      border-radius: 9px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+    .ghost b {
+      width: 46px;
+      height: 6px;
+      margin-top: 8px;
+      border-radius: 3px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+  <script>
+  'use strict';
+  /* DiyarDesk · Sessiz Kar (Quiet Snow)
+     share.js globals: cv, draw(), icons, W, H, WALL, cacheOK */
+  const QS = new URLSearchParams(location.search || '');
+  const WALL = QS.has('wallpaper');
+  const PREVIEW = QS.has('preview');
+  let LOW = QS.get('low') === '1' || !!window.__desklandInitialLowMode || !!window.__desklandLowMode;
+
+  const DEF = {
+    adaptive: 1,
+    mode: 0,
+    intensity: 0.85,
+    wind: 0.22,
+    gusts: 0.45,
+    accumulate: 2,
+    windows: 1,
+    melt: 0.35,
+    cursor: 2,
+    depth: 0.85,
+    atmosphere: 0,
+    sparkle: 0.55,
+    backdrop: 0.75,
+    quality: 1
+  };
+  const P = Object.assign({}, DEF);
+
+  const cv = document.getElementById('cv');
+  let W = innerWidth || 1280;
+  let H = innerHeight || 720;
+  let icons = [];
+  let _paused = false;
+  let cacheOK = false;
+  let frameN = 0;
+  let rafId = 0;
+  let lastT = 0;
+
+  // Expose reactive `paused` global so share.js can wake the loop when recording/snapshotting while paused
+  Object.defineProperty(window, 'paused', {
+    configurable: true,
+    enumerable: true,
+    get: function () { return _paused; },
+    set: function (v) { setPaused(v); }
+  });
+
+  function commit() {
+    engine.setIcons(icons);
+  }
+
+  const engine = new window.QuietSnowEngine(cv, DEF);
+  engine.setLowMode(LOW);
+
+  function computeScale() {
+    const qMax = LOW ? 0.75 : ([1.0, 1.25, 1.5][P.quality] || 1.25);
+    if (typeof window.__desklandScale === 'function') {
+      return window.__desklandScale(qMax);
+    }
+    return Math.min(window.devicePixelRatio || 1, qMax);
+  }
+
+  function resize() {
+    const box = cv.getBoundingClientRect();
+    W = Math.max(240, box.width || innerWidth || 1280);
+    H = Math.max(160, box.height || innerHeight || 720);
+    const d = computeScale();
+    cv.width = Math.max(1, Math.round(W * d));
+    cv.height = Math.max(1, Math.round(H * d));
+    cv._scale = d;
+    engine.resize(W, H, d);
+    cacheOK = false;
+  }
+
+  function draw(now) {
+    const t = typeof now === 'number' ? now : performance.now();
+    // Honor share.js scale overrides when taking high-res snapshots
+    const curScale = cv._scale || engine.scale || 1;
+    if (!cacheOK || Math.abs(curScale - engine.scale) > 0.001) {
+      engine.scale = curScale;
+      engine.bgDirty = true;
+      cacheOK = true;
+    }
+    engine.draw(t);
+  }
+
+  function sched() {
+    if (!_paused && !rafId) {
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+
+  function setPaused(v) {
+    _paused = !!v;
+    if (_paused) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    } else {
+      lastT = 0;
+      sched();
+    }
+  }
+
+  function frame(now) {
+    rafId = 0;
+    if (_paused) return;
+    sched();
+    const minInterval = LOW ? 62 : 28; // ~30-35 FPS normal, ~15 FPS Eco Mode
+    if (lastT && now - lastT < minInterval) return;
+    const dt = lastT ? Math.min(0.08, (now - lastT) / 1000) : 0.033;
+    lastT = now;
+    frameN++;
+    engine.step(dt);
+    draw(now);
+  }
+
+  function drawGhosts() {
+    const box = document.getElementById('ghosts');
+    if (!box) return;
+    box.innerHTML = icons
+      .map(ic => '<div class="ghost" style="left:' + ic.x + 'px;top:' + ic.y + 'px;width:' + ic.w + 'px;height:' + ic.h + 'px"><i></i><b></b></div>')
+      .join('');
+  }
+
+  function applySettings(v) {
+    if (!v || typeof v !== 'object') return;
+    let needResize = false;
+    for (const k in v) {
+      if (!(k in P)) continue;
+      if (typeof v[k] === 'number' && Number.isFinite(v[k])) {
+        if (k === 'quality' && P[k] !== v[k]) needResize = true;
+        P[k] = v[k];
+      }
+    }
+    engine.applySettings(P);
+    if (needResize) resize();
+    cacheOK = false;
+  }
+
+  function handleMessage(raw) {
+    let m = raw;
+    if (typeof m === 'string') {
+      if (!m || m.charAt(0) !== '{') return;
+      try { m = JSON.parse(m); } catch (_) { return; }
+    }
+    if (!m || typeof m !== 'object') return;
+
+    if (m.t === 'pause') {
+      setPaused(PREVIEW ? false : !!m.v);
+    } else if (m.t === 'lowMode') {
+      LOW = !!m.v;
+      engine.setLowMode(LOW);
+      resize();
+    } else if (m.t === 'settings') {
+      applySettings(m.v || m.params || {});
+    } else if (m.t === 'reset') {
+      applySettings(Object.assign({}, DEF, m.v || {}));
+    } else if (m.t === 'icons') {
+      const k = window.devicePixelRatio || 1;
+      icons = m.vis
+        ? (m.r || []).map(([l, t, r, b]) => ({
+            x: l / k,
+            y: t / k,
+            w: (r - l) / k,
+            h: (b - t) / k
+          }))
+        : [];
+      engine.setIcons(icons);
+      if (PREVIEW || !WALL) drawGhosts();
+    } else if (m.t === 'windows') {
+      const k = window.devicePixelRatio || 1;
+      const wins = Array.isArray(m.r)
+        ? m.r.map(([id, l, t, r, b]) => ({
+            id,
+            x: l / k,
+            y: t / k,
+            w: (r - l) / k,
+            h: (b - t) / k
+          }))
+        : [];
+      engine.setWindows(wins);
+      if (!_paused) draw(performance.now());
+    }
+  }
+
+  // Pointer interaction (works in Windows WebView2 hook, Plasma inject, preview iframe & browser)
+  function toLocal(ev) {
+    const rect = cv.getBoundingClientRect();
+    return {
+      x: (ev.clientX - rect.left),
+      y: (ev.clientY - rect.top)
+    };
+  }
+  window.addEventListener('pointermove', ev => {
+    const pt = toLocal(ev);
+    engine.onPointerMove(pt.x, pt.y, (ev.buttons & 1) === 1);
+  }, { passive: true });
+  window.addEventListener('pointerdown', ev => {
+    const pt = toLocal(ev);
+    engine.onPointerDown(pt.x, pt.y);
+  }, { passive: true });
+  window.addEventListener('pointerup', () => engine.onPointerUp(), { passive: true });
+  window.addEventListener('pointercancel', () => engine.onPointerLeave(), { passive: true });
+  window.addEventListener('pointerleave', () => engine.onPointerLeave(), { passive: true });
+
+  window.addEventListener('deskland:lowmode', ev => {
+    LOW = !!(ev && ev.detail && ev.detail.lowMode);
+    engine.setLowMode(LOW);
+    resize();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  if (!WALL) {
+    const gd = document.createElement('div');
+    gd.id = 'ghosts';
+    document.body.appendChild(gd);
+  }
+
+  if (PREVIEW) {
+    window.addEventListener('message', ev => {
+      if (ev.source === parent) handleMessage(ev.data);
+    });
+    parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
+  } else if (WALL) {
+    const host = window.chrome && window.chrome.webview;
+    if (host) {
+      host.addEventListener('message', ev => handleMessage(ev.data));
+      host.postMessage('ready');
+    }
+  } else {
+    // Standalone browser test layout
+    icons = [
+      [0.04, 0.08], [0.04, 0.22], [0.04, 0.36], [0.04, 0.50],
+      [0.14, 0.08], [0.14, 0.22],
+      [0.88, 0.08], [0.88, 0.22],
+      [0.44, 0.62], [0.56, 0.62]
+    ].map(([a, b]) => ({ x: W * a, y: H * b, w: 76, h: 90 }));
+    engine.setIcons(icons);
+    drawGhosts();
+  }
+
+  sched();
+  </script>
+  <script src="share.js"></script>
+</body>
+</html>

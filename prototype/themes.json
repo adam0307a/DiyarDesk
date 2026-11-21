@@ -2,6 +2,155 @@
   "version": 1,
   "themes": [
     {
+      "id": "quietsnow",
+      "adaptive": true,
+      "name": "静雪",
+      "desc": "灵感源自 Snowhush 的真实物理互动降雪壁纸：支持飘雪、细雨玻璃水珠、秋叶与樱花四种季节模式，雪会在屏幕底部、桌面图标及打开窗口顶端自然堆积、滑落与融化，并随光标划过而飞扬",
+      "page": "quietsnow.html",
+      "status": "ready",
+      "product": "free",
+      "credit": {
+        "prefix": "灵感源自",
+        "label": "Snowhush (github.com/mbezruchko/Snowhush)",
+        "url": "https://github.com/mbezruchko/Snowhush"
+      },
+      "thumb": "radial-gradient(circle at 22% 28%, rgba(255,255,255,0.85) 0 1.4%, transparent 2.6%), radial-gradient(circle at 48% 18%, rgba(240,248,255,0.75) 0 1.8%, transparent 3.4%), radial-gradient(circle at 74% 34%, rgba(255,255,255,0.8) 0 1.3%, transparent 2.5%), radial-gradient(circle at 34% 52%, rgba(225,240,255,0.65) 0 1.2%, transparent 2.4%), radial-gradient(circle at 82% 16%, rgba(255,222,162,0.52) 0, rgba(255,196,118,0.16) 18%, transparent 44%), radial-gradient(ellipse 64% 26% at 28% 100%, #eef5fc 0%, #c8daec 55%, transparent 72%), radial-gradient(ellipse 68% 30% at 76% 100%, #f4f9ff 0%, #bdd2e8 58%, transparent 74%), linear-gradient(180deg, #08101c 0%, #112138 52%, #203752 100%)",
+      "groups": [
+        {
+          "name": "季节与天气",
+          "params": [
+            {
+              "key": "mode",
+              "label": "季节模式",
+              "hint": "在真实飘雪、窗面雨滴、秋叶飘落与樱花花瓣之间实时切换",
+              "options": ["飘雪", "细雨", "秋叶", "樱花"],
+              "default": 0
+            },
+            {
+              "key": "intensity",
+              "label": "降落强度",
+              "hint": "雪花、雨丝、秋叶或花瓣的整体密度与降落量",
+              "min": 0.15,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 0.85,
+              "format": "percent"
+            },
+            {
+              "key": "wind",
+              "label": "风向与风力",
+              "hint": "负值向左吹，正值向右吹",
+              "min": -1.5,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 0.22,
+              "format": "times"
+            },
+            {
+              "key": "gusts",
+              "label": "自然阵风",
+              "hint": "不定期拂过的微风阵与雪面吹雪效果",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.45,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "堆积与交互",
+          "params": [
+            {
+              "key": "accumulate",
+              "label": "堆积位置",
+              "hint": "控制积雪、落叶与雨珠是仅停留在屏幕底部还是同时落在桌面图标上",
+              "options": ["关闭", "仅地面", "地面与图标"],
+              "default": 2
+            },
+            {
+              "key": "windows",
+              "label": "窗口顶部堆积",
+              "hint": "积雪、落叶与雨滴同样会在打开的应用程序窗口顶端堆积，移动或关闭窗口时自然滑落",
+              "options": ["关闭", "开启"],
+              "default": 1
+            },
+            {
+              "key": "melt",
+              "label": "自然消融",
+              "hint": "积雪缓慢融化或落叶花瓣逐渐枯萎，保持画面清爽平衡",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.35,
+              "format": "percent"
+            },
+            {
+              "key": "cursor",
+              "label": "光标扫雪交互",
+              "hint": "移动鼠标即可拨开积雪、卷起落叶花瓣或划开玻璃上的雨珠",
+              "options": ["关闭", "柔和", "强烈"],
+              "default": 2
+            },
+            {
+              "key": "depth",
+              "label": "堆积厚度",
+              "hint": "地面与图标顶部积雪及落叶堆的最大高度",
+              "min": 0.3,
+              "max": 1.4,
+              "step": 0.05,
+              "default": 0.85,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "氛围与外观",
+          "params": [
+            {
+              "key": "atmosphere",
+              "label": "背景氛围",
+              "hint": "切换静谧冬夜、蓝色时刻、雾霭冬晨或路灯暖光背景",
+              "options": ["静谧夜色", "蓝色时刻", "雾霭冬晨", "路灯暖光"],
+              "default": 0
+            },
+            {
+              "key": "sparkle",
+              "label": "微光与质感",
+              "hint": "雪面晶粒微闪、雨珠反光以及花瓣透光强弱",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.55,
+              "format": "percent"
+            },
+            {
+              "key": "backdrop",
+              "label": "远景雾岚",
+              "hint": "远山轮廓、常青树影与低空薄雾的可见度",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.75,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "性能",
+          "params": [
+            {
+              "key": "quality",
+              "label": "画质",
+              "hint": "渲染分辨率与物理粒子数量预算",
+              "options": ["低", "平衡", "高"],
+              "default": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "papercut",
       "adaptive": true,
       "name": "纸雕花园",
@@ -2447,10 +2596,15 @@
       "id": "liquidglass",
       "adaptive": true,
       "name": "液态玻璃折射",
-      "desc": "流光丝绸背景之上悬浮着实时折射、带有色散高光边缘的液态玻璃胶囊与水滴，支持指针光学透镜与桌面图标磨砂玻璃底座",
+      "desc": "基于 WebGL2 多通道光学渲染的真实苹果风格液态玻璃：斯涅尔定律边缘折射、RGB 色散棱镜、双通道高斯磨砂、LCH 菲涅尔高光与液态融合（smin），支持弹簧光标透镜与桌面图标玻璃底座",
       "page": "liquidglass.html",
       "status": "ready",
       "product": "free",
+      "credit": {
+        "prefix": "光学算法源自",
+        "label": "liquid-glass-studio (github.com/iyinchao/liquid-glass-studio)",
+        "url": "https://github.com/iyinchao/liquid-glass-studio"
+      },
       "thumb": "url(thumbs/liquidglass.webp) center / cover no-repeat, linear-gradient(155deg, #0b2545 0%, #2dd4bf 55%, #38bdf8 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2464,13 +2618,15 @@
                 "太浩冰蓝",
                 "极光棱镜",
                 "日落丝绸",
-                "黑曜烟熏"
+                "黑曜烟熏",
+                "经典流光"
               ],
               "values": [
                 "tahoe",
                 "aurora",
                 "prism",
-                "obsidian"
+                "obsidian",
+                "classic"
               ],
               "default": "tahoe"
             },
@@ -2499,6 +2655,16 @@
               "max": 1.6,
               "step": 0.05,
               "default": 0.95,
+              "format": "percent"
+            },
+            {
+              "key": "mergeRate",
+              "label": "液态融合度",
+              "hint": "水滴、光标透镜与桌面图标玻璃靠近时像液态玻璃般融合的程度",
+              "min": 0.0,
+              "max": 1.2,
+              "step": 0.05,
+              "default": 0.55,
               "format": "percent"
             }
           ]

@@ -3,772 +3,1053 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Liquid Glass Refractive Surface</title>
+  <title>Liquid Glass Refractive Surface — DiyarDesk</title>
   <script src="low-mode.js"></script>
   <script src="wall-icons.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0c2748; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #091d38; touch-action: none; }
     #cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: auto; }
     #ghosts { position: fixed; inset: 0; pointer-events: none; }
     .ghost { position: absolute; display: flex; flex-direction: column; align-items: center; padding-top: 6px; opacity: .28; }
-    .ghost i { width: 40px; height: 40px; border-radius: 11px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .ghost i { width: 40px; height: 40px; border-radius: 11px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
     .ghost b { width: 46px; height: 6px; margin-top: 8px; border-radius: 3px; background: #fff; }
   </style>
 </head>
 <body>
   <canvas id="cv"></canvas>
   <script>
-  (function () {
-    'use strict';
+  'use strict';
+  /*
+   * DiyarDesk · Liquid Glass Refractive Surface (WebGL2 Multi-Pass)
+   * Physical optical refraction (Snell's Law), chromatic RGB dispersion,
+   * 2-pass separable Gaussian frost blur, superellipse SDF with polynomial smin
+   * liquid merging, and LCH-preserving Fresnel & dual-angle specular glare.
+   *
+   * Optical shader math & LCH color pipeline adapted from:
+   *   iyinchao/liquid-glass-studio (MIT License, Copyright (c) 2024 Charles Yin)
+   *   https://github.com/iyinchao/liquid-glass-studio
+   *
+   * share.js globals: cv, draw(), icons, W, H, WALL, cacheOK, frameN, paused, commit()
+   */
 
-    // =========================================================================
-    // 1. CONFIGURATION, PALETTES & QUALITY PROFILES
-    // =========================================================================
-    const QS = new URLSearchParams(location.search || '');
-    const WALL = QS.has('wallpaper');
-    const PREVIEW = QS.has('preview');
+  const QS = new URLSearchParams(location.search || '');
+  const WALL = QS.has('wallpaper');
+  const PREVIEW = QS.has('preview');
+  let LOW = QS.get('low') === '1' || !!window.__desklandInitialLowMode || !!window.__desklandLowMode;
 
-    const DEFAULTS = {
-      palette: 'tahoe',
-      refraction: 1.0,
-      frostAmount: 0.65,
-      dispersion: 0.95,
-      dropletCount: 1.0,
-      flowSpeed: 0.85,
-      cursorLens: true,
-      iconGlassStyle: 'capsule',
-      quality: 'High',
-      adaptive: 1,
-      seed: 0
-    };
-    const P = Object.assign({}, DEFAULTS);
+  const DEFAULTS = {
+    palette: 'tahoe',
+    refraction: 1.0,
+    frostAmount: 0.65,
+    dispersion: 0.95,
+    mergeRate: 0.55,
+    dropletCount: 1.0,
+    flowSpeed: 0.85,
+    cursorLens: true,
+    iconGlassStyle: 'capsule',
+    quality: 'High',
+    adaptive: 1,
+    seed: 0
+  };
+  const P = Object.assign({}, DEFAULTS);
 
-    const PALETTES = {
-      tahoe: {
-        base: '#0b2545',
-        lobes: ['#38bdf8', '#2dd4bf', '#3b82f6', '#bae6fd'],
-        caustic: 'rgba(186, 230, 253, 0.24)',
-        dispA: '110, 235, 255',
-        dispB: '255, 148, 225',
-        isDark: false
-      },
-      aurora: {
-        base: '#120f2e',
-        lobes: ['#8b5cf6', '#22d3ee', '#ec4899', '#a5b4fc'],
-        caustic: 'rgba(196, 181, 253, 0.24)',
-        dispA: '103, 232, 249',
-        dispB: '244, 114, 182',
-        isDark: true
-      },
-      prism: {
-        base: '#24132a',
-        lobes: ['#fb7185', '#fbbf24', '#38bdf8', '#fde68a'],
-        caustic: 'rgba(254, 240, 138, 0.24)',
-        dispA: '125, 211, 252',
-        dispB: '251, 146, 60',
-        isDark: false
-      },
-      obsidian: {
-        base: '#080b12',
-        lobes: ['#1e3a5f', '#312e81', '#0f766e', '#64748b'],
-        caustic: 'rgba(148, 163, 184, 0.20)',
-        dispA: '125, 211, 252',
-        dispB: '192, 132, 252',
-        isDark: true
-      }
-    };
+  const PALETTE_INDEX = { tahoe: 0, aurora: 1, prism: 2, obsidian: 3, classic: 4 };
+  const ICON_STYLE_INDEX = { capsule: 0, droplet: 1, prism: 2 };
+  const QUALITY_PROFILES = {
+    Low:    { maxDpr: 0.75, blurScale: 0.35, maxBlurTap: 8,  maxIcons: 24, maxDrops: 4 },
+    Medium: { maxDpr: 1.15, blurScale: 0.50, maxBlurTap: 14, maxIcons: 36, maxDrops: 7 },
+    High:   { maxDpr: 1.50, blurScale: 0.55, maxBlurTap: 18, maxIcons: 48, maxDrops: 9 }
+  };
 
-    const QUALITY_PROFILES = {
-      Low:    { maxDpr: 0.75, meshScale: 0.30, frostScale: 0.10, dropScale: 0.50, enableBeads: false, shadowSteps: 2 },
-      Medium: { maxDpr: 1.25, meshScale: 0.45, frostScale: 0.13, dropScale: 0.85, enableBeads: true,  shadowSteps: 3 },
-      High:   { maxDpr: 1.50, meshScale: 0.55, frostScale: 0.15, dropScale: 1.00, enableBeads: true,  shadowSteps: 4 }
-    };
+  function getProfile() {
+    if (LOW || window.__desklandLowMode) return QUALITY_PROFILES.Low;
+    return QUALITY_PROFILES[P.quality] || QUALITY_PROFILES.High;
+  }
 
-    function getProfile() {
-      if (window.__desklandLowMode) return QUALITY_PROFILES.Low;
-      return QUALITY_PROFILES[P.quality] || QUALITY_PROFILES.High;
+  const cv = document.getElementById('cv');
+  let W = innerWidth || 1280;
+  let H = innerHeight || 720;
+  let icons = [];
+  let _paused = false;
+  let cacheOK = false;
+  let frameN = 0;
+  let rafId = 0;
+  let lastT = 0;
+  let simTime = 0;
+
+  Object.defineProperty(window, 'paused', {
+    configurable: true,
+    enumerable: true,
+    get: function () { return _paused; },
+    set: function (v) { setPaused(v); }
+  });
+
+  function commit() {
+    syncIconUniformBuffer();
+  }
+
+  // =========================================================================
+  // SHADERS (WebGL2 GLSL ES 3.00)
+  // =========================================================================
+  const VERT_SRC = `#version 300 es
+  in vec2 a_pos;
+  out vec2 v_uv;
+  void main() {
+    v_uv = a_pos * 0.5 + 0.5;
+    gl_Position = vec4(a_pos, 0.0, 1.0);
+  }`;
+
+  // Shared SDF + polynomial smin library (adapted from iyinchao/liquid-glass-studio, MIT)
+  const SHARED_SDF_GLSL = `
+  #define MAX_DROPS 10
+  #define MAX_ICONS 48
+
+  uniform vec2 u_resolution;
+  uniform float u_dpr;
+  uniform float u_mergePx;
+  uniform int u_dropCount;
+  uniform vec4 u_drops[MAX_DROPS];      // cx, cy, halfW, halfH (in CSS px, top-left origin)
+  uniform float u_dropRound[MAX_DROPS]; // corner radius in CSS px
+  uniform int u_cursorOn;
+  uniform vec4 u_cursor;                // cx, cy, halfW, halfH (CSS px)
+  uniform float u_cursorRadius;         // corner radius (CSS px)
+  uniform int u_iconCount;
+  uniform int u_iconStyle;              // 0: capsule, 1: droplet, 2: prism
+  uniform vec4 u_icons[MAX_ICONS];      // cx, cy, halfW, halfH (CSS px)
+
+  float smin(float a, float b, float k) {
+    if (k <= 0.0001) return min(a, b);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+  }
+
+  float sdSuperellipseCorner(vec2 p, float r, float n) {
+    p = abs(p);
+    float v = pow(pow(p.x, n) + pow(p.y, n), 1.0 / n);
+    return v - r;
+  }
+
+  float sdSquircleBox(vec2 p, vec2 c, vec2 halfSize, float cr, float n) {
+    vec2 q = p - c;
+    cr = min(cr, min(halfSize.x, halfSize.y));
+    vec2 d = abs(q) - halfSize;
+    if (d.x > -cr && d.y > -cr) {
+      vec2 cc = sign(q) * (halfSize - vec2(cr));
+      return sdSuperellipseCorner(q - cc, cr, n);
     }
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+  }
 
-    function getPalette() {
-      return PALETTES[P.palette] || PALETTES.tahoe;
-    }
+  float sdRoundBoxFast(vec2 p, vec2 c, vec2 halfSize, float cr) {
+    vec2 q = abs(p - c) - (halfSize - vec2(cr));
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - cr;
+  }
 
-    // =========================================================================
-    // 2. CANVAS & OFFSCREEN REFRACTION BUFFERS
-    // =========================================================================
-    const cv = document.getElementById('cv');
-    const ctx = cv.getContext('2d', { alpha: false });
-    const bgMeshCanvas = document.createElement('canvas');
-    const meshCtx = bgMeshCanvas.getContext('2d', { alpha: false });
-    const frostMidCanvas = document.createElement('canvas');
-    const frostMidCtx = frostMidCanvas.getContext('2d', { alpha: false });
-    const frostCanvas = document.createElement('canvas');
-    const frostCtx = frostCanvas.getContext('2d', { alpha: false });
+  // Evaluates signed distance in CSS pixels (negative inside glass)
+  float sceneSDF(vec2 cssP) {
+    float k = u_mergePx;
+    float d = 1e5;
 
-    let W = innerWidth || 1920;
-    let H = innerHeight || 1080;
-    let scale = 1;
-    let cacheOK = false;
-    let paused = false;
-    let _rafId = 0;
-    let lastT = 0;
-    let simTime = 0;
-    let seed = 20261118;
-    let icons = [];
-    let iconsSeen = false;
-
-    const pointer = { x: -9999, y: -9999, active: false, down: false, lensOpacity: 0 };
-
-    function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-    function lerp(a, b, t) { return a + (b - a) * t; }
-    function mulberry32(a) {
-      let s = a >>> 0;
-      return function () {
-        s = (s + 0x6D2B79F5) >>> 0;
-        let t = Math.imul(s ^ (s >>> 15), 1 | s);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-    }
-
-    function roundRect(c, x, y, w, h, r) {
-      const rr = Math.min(r, w * 0.5, h * 0.5);
-      c.beginPath();
-      c.moveTo(x + rr, y);
-      c.arcTo(x + w, y, x + w, y + h, rr);
-      c.arcTo(x + w, y + h, x, y + h, rr);
-      c.arcTo(x, y + h, x, y, rr);
-      c.arcTo(x, y, x + w, y, rr);
-      c.closePath();
-    }
-
-    // =========================================================================
-    // 3. FLOATING LIQUID DROPLETS, RIPPLES & SPECULAR BEADS
-    // =========================================================================
-    const droplets = [];
-    const ripples = [];
-    const beads = [];
-
-    function buildDroplets() {
-      const prof = getProfile();
-      const count = clamp(Math.round(9 * P.dropletCount * prof.dropScale), 0, 18);
-      const rng = mulberry32(seed ^ 0x4C474C53);
-      droplets.length = 0;
-
-      for (let i = 0; i < count; i++) {
-        const isPill = rng() > 0.45;
-        const w = isPill ? (108 + Math.round(rng() * 76)) : (56 + Math.round(rng() * 54));
-        const h = isPill ? (52 + Math.round(rng() * 34)) : w;
-        droplets.push({
-          w: w,
-          h: h,
-          r: Math.round(Math.min(w, h) * 0.5),
-          homeX: (0.10 + rng() * 0.80) * W,
-          homeY: (0.10 + rng() * 0.80) * H,
-          x: (0.10 + rng() * 0.80) * W,
-          y: (0.10 + rng() * 0.80) * H,
-          vx: 0,
-          vy: 0,
-          ampX: 14 + rng() * 24,
-          ampY: 12 + rng() * 22,
-          freqX: 0.30 + rng() * 0.38,
-          freqY: 0.36 + rng() * 0.42,
-          phase: rng() * Math.PI * 2,
-          stretch: 0,
-          stretchVel: 0,
-          angle: 0
-        });
+    // 1. Floating liquid glass droplets & smooth pill capsules
+    for (int i = 0; i < MAX_DROPS; i++) {
+      if (i >= u_dropCount) break;
+      vec4 dr = u_drops[i];
+      vec2 hs = dr.zw;
+      vec2 bb = abs(cssP - dr.xy) - hs;
+      float bound = max(bb.x, bb.y);
+      if (bound < d + k * 2.2) {
+        // Round droplets & smooth Apple pills (n = 2.15 gives organic liquid curvature)
+        float sd = sdSquircleBox(cssP, dr.xy, hs, u_dropRound[i], 2.15);
+        d = (d > 1e4) ? sd : smin(d, sd, k);
       }
     }
 
-    function spawnLiquidRipple(x, y) {
-      if (ripples.length >= 5) ripples.shift();
-      ripples.push({ x: x, y: y, r: 10, maxR: Math.hypot(W, H) * 0.45, speed: 360 });
-
-      const prof = getProfile();
-      if (!prof.enableBeads) return;
-      for (let i = 0; i < 8; i++) {
-        if (beads.length >= 36) beads.shift();
-        const ang = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
-        const spd = 70 + Math.random() * 110;
-        beads.push({
-          x: x, y: y,
-          vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-          r: 4 + Math.random() * 5,
-          life: 0, maxLife: 0.75
-        });
-      }
-
-      for (let i = 0; i < droplets.length; i++) {
-        const d = droplets[i];
-        const dx = d.x - x, dy = d.y - y;
-        const dist = Math.hypot(dx, dy) || 1;
-        if (dist < 260) {
-          const inf = 1 - dist / 260;
-          d.stretchVel += inf * 1.4;
-          d.vx += (dx / dist) * inf * 140;
-          d.vy += (dy / dist) * inf * 140;
-        }
+    // 2. Spring-physics cursor lens (organic liquid droplet/pill that merges via smin)
+    if (u_cursorOn == 1) {
+      vec2 hs = u_cursor.zw;
+      vec2 bb = abs(cssP - u_cursor.xy) - hs;
+      if (max(bb.x, bb.y) < d + k * 2.5) {
+        float sd = sdSquircleBox(cssP, u_cursor.xy, hs, u_cursorRadius, 2.35);
+        d = (d > 1e4) ? sd : smin(d, sd, k * 1.2);
       }
     }
 
-    // =========================================================================
-    // 4. ADAPTIVE DESKTOP ICON GLASS CAPSULES
-    // =========================================================================
-    const iconStates = [];
-
-    function syncIncomingIcons(rects) {
-      icons = Array.isArray(rects) ? rects : [];
-      iconsSeen = true;
-
-      const matched = new Set();
-      for (let i = 0; i < icons.length; i++) {
-        const ic = icons[i];
-        let bestIdx = -1;
-        let bestDist = 48;
-        for (let s = 0; s < iconStates.length; s++) {
-          if (matched.has(s)) continue;
-          const st = iconStates[s];
-          const d = Math.hypot(ic.x - st.tx, ic.y - st.ty);
-          if (d < bestDist) { bestDist = d; bestIdx = s; }
-        }
-        if (bestIdx >= 0) {
-          const st = iconStates[bestIdx];
-          st.tx = ic.x; st.ty = ic.y; st.tw = ic.w; st.th = ic.h;
-          st.removing = false;
-          matched.add(bestIdx);
+    // 3. Adaptive desktop icon glass cradles
+    float iconK = k * (u_iconStyle == 2 ? 0.35 : 0.72);
+    for (int i = 0; i < MAX_ICONS; i++) {
+      if (i >= u_iconCount) break;
+      vec4 ic = u_icons[i];
+      vec2 hs = ic.zw;
+      vec2 bb = abs(cssP - ic.xy) - hs;
+      if (max(bb.x, bb.y) < min(d, 120.0) + iconK * 2.2) {
+        float sd;
+        if (u_iconStyle == 1) {
+          float rad = min(hs.x, hs.y) * 0.96;
+          sd = sdSquircleBox(cssP, ic.xy, hs * 0.94, rad, 2.4);
+        } else if (u_iconStyle == 2) {
+          sd = sdRoundBoxFast(cssP, ic.xy, hs, 14.0);
         } else {
-          iconStates.push({
-            x: ic.x, y: ic.y, w: ic.w, h: ic.h,
-            tx: ic.x, ty: ic.y, tw: ic.w, th: ic.h,
-            opacity: 0,
-            hover: 0,
-            removing: false
-          });
-          matched.add(iconStates.length - 1);
+          sd = sdSquircleBox(cssP, ic.xy, hs, min(hs.x, hs.y) * 0.44, 4.2);
         }
-      }
-      for (let s = 0; s < iconStates.length; s++) {
-        if (!matched.has(s)) iconStates[s].removing = true;
+        d = (d > 1e4) ? sd : smin(d, sd, iconK);
       }
     }
 
-    // =========================================================================
-    // 5. SIMULATION STEP
-    // =========================================================================
-    function stepSimulation(dt) {
-      const fSpd = clamp(P.flowSpeed, 0, 2.5);
-      simTime += dt * (0.2 + fSpd * 0.85);
+    return d;
+  }
+  `;
 
-      const lensTarget = (P.cursorLens && pointer.active) ? 1 : 0;
-      pointer.lensOpacity = lerp(pointer.lensOpacity, lensTarget, 1 - Math.exp(-10 * dt));
+  // Pass 0: Rich optical silk-ribbon & light-caustic backdrop + soft glass drop shadows
+  const BG_FRAG_SRC = `#version 300 es
+  precision highp float;
+  in vec2 v_uv;
+  out vec4 fragColor;
 
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const rp = ripples[i];
-        rp.r += rp.speed * dt;
-        if (rp.r >= rp.maxR) ripples.splice(i, 1);
+  uniform float u_time;
+  uniform int u_palette;
+  uniform float u_shadowFactor;
+  ${SHARED_SDF_GLSL}
+
+  float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+  }
+
+  vec3 paletteBackdrop(vec2 uv, float t, int pal) {
+    // Aspect-corrected coordinates for crisp optical curves that showcase glass refraction
+    float asp = u_resolution.x / max(1.0, u_resolution.y);
+    vec2 p = (uv - 0.5) * vec2(asp, 1.0);
+
+    // Classic Silk (original calm line-free radial lobe silk mesh from previous Liquid Glass)
+    if (pal == 4) {
+      vec3 col = vec3(0.043, 0.145, 0.271); // #0b2545
+      vec3 lobes[4];
+      lobes[0] = vec3(0.220, 0.741, 0.973); // #38bdf8
+      lobes[1] = vec3(0.176, 0.831, 0.749); // #2dd4bf
+      lobes[2] = vec3(0.231, 0.510, 0.965); // #3b82f6
+      lobes[3] = vec3(0.729, 0.902, 0.992); // #bae6fd
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        vec2 c = vec2(
+          0.18 + 0.22 * fi + sin(t * (0.42 + fi * 0.11) + fi * 1.3) * 0.18,
+          0.50 + cos(t * (0.36 + fi * 0.13) + fi * 1.7) * 0.34
+        );
+        vec2 dv = (uv - c) * vec2(asp, 1.0);
+        float rad = (0.48 + 0.08 * fi) * max(asp, 1.0);
+        float a = clamp(1.0 - length(dv) / rad, 0.0, 1.0);
+        a = a * a * (3.0 - 2.0 * a) * 0.62;
+        col = mix(col, lobes[i], a);
       }
-
-      for (let i = beads.length - 1; i >= 0; i--) {
-        const b = beads[i];
-        b.life += dt;
-        if (b.life >= b.maxLife) { beads.splice(i, 1); continue; }
-        b.vx *= Math.exp(-3.2 * dt);
-        b.vy *= Math.exp(-3.2 * dt);
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-      }
-
-      for (let i = 0; i < droplets.length; i++) {
-        const d = droplets[i];
-        const hx = d.homeX + Math.sin(simTime * d.freqX + d.phase) * d.ampX;
-        const hy = d.homeY + Math.cos(simTime * d.freqY + d.phase * 1.2) * d.ampY;
-        let px = 0, py = 0;
-        if (pointer.active) {
-          const dx = d.x - pointer.x, dy = d.y - pointer.y;
-          const dist = Math.hypot(dx, dy) || 1;
-          const hitR = Math.max(d.w, d.h) * 0.55 + 72;
-          if (dist < hitR) {
-            const inf = 1 - dist / hitR;
-            px = (dx / dist) * inf * 240;
-            py = (dy / dist) * inf * 240;
-          }
-        }
-        if (P.adaptive !== 0) {
-          for (let j = 0; j < icons.length; j++) {
-            const ic = icons[j];
-            const dx = d.x - (ic.x + ic.w * 0.5);
-            const dy = d.y - (ic.y + ic.h * 0.5);
-            const minSep = Math.max(ic.w, ic.h) * 0.6 + Math.max(d.w, d.h) * 0.45 + 14;
-            const dist = Math.hypot(dx, dy) || 1;
-            if (dist < minSep) {
-              const inf = 1 - dist / minSep;
-              px += (dx / dist) * inf * 220;
-              py += (dy / dist) * inf * 220;
-            }
-          }
-        }
-        d.vx += ((hx - d.x) * 10 + px - d.vx * 4.2) * dt;
-        d.vy += ((hy - d.y) * 10 + py - d.vy * 4.2) * dt;
-        d.x += d.vx * dt;
-        d.y += d.vy * dt;
-
-        const speed = Math.hypot(d.vx, d.vy);
-        if (speed > 4) {
-          d.angle = Math.atan2(d.vy, d.vx);
-        }
-        const targetStretch = clamp(speed * 0.0012, 0, 0.16);
-        const acc = (targetStretch - d.stretch) * 68 - d.stretchVel * 8.5;
-        d.stretchVel += acc * dt;
-        d.stretch = clamp(d.stretch + d.stretchVel * dt, -0.14, 0.18);
-      }
-
-      const posAlpha = 1 - Math.exp(-10 * dt);
-      for (let i = iconStates.length - 1; i >= 0; i--) {
-        const st = iconStates[i];
-        st.x = lerp(st.x, st.tx, posAlpha);
-        st.y = lerp(st.y, st.ty, posAlpha);
-        st.w = lerp(st.w, st.tw, posAlpha);
-        st.h = lerp(st.h, st.th, posAlpha);
-        if (st.removing) {
-          st.opacity = Math.max(0, st.opacity - dt * 2.5);
-          if (st.opacity <= 0.005) { iconStates.splice(i, 1); continue; }
-        } else {
-          st.opacity = Math.min(1, st.opacity + dt * 3.0);
-        }
-        let ht = 0;
-        if (pointer.active) {
-          const dist = Math.hypot(st.x + st.w * 0.5 - pointer.x, st.y + st.h * 0.5 - pointer.y);
-          if (dist < 78) ht = (1 - dist / 78) * (pointer.down ? 1.0 : 0.65);
-        }
-        st.hover = lerp(st.hover, ht, 1 - Math.exp(-10 * dt));
-      }
+      col += (hash21(gl_FragCoord.xy) - 0.5) * (1.2 / 255.0);
+      return clamp(col, 0.0, 1.0);
     }
 
-    // =========================================================================
-    // 6. OPTICAL LIQUID GLASS RENDERING PIPELINE
-    // =========================================================================
-    function renderSilkBackdrop(pal) {
-      const mw = bgMeshCanvas.width;
-      const mh = bgMeshCanvas.height;
-      meshCtx.fillStyle = pal.base;
-      meshCtx.fillRect(0, 0, mw, mh);
+    // Domain-warped flowing glass silk waves
+    vec2 q = p;
+    q.x += 0.22 * sin(p.y * 2.4 + t * 0.42) + 0.10 * cos(p.x * 3.1 - t * 0.31);
+    q.y += 0.20 * cos(p.x * 2.1 - t * 0.36) + 0.09 * sin(p.y * 3.4 + t * 0.27);
 
-      const maxDim = Math.max(mw, mh);
-      for (let i = 0; i < pal.lobes.length; i++) {
-        const cx = mw * (0.18 + 0.22 * i + Math.sin(simTime * (0.42 + i * 0.11) + i * 1.3) * 0.18);
-        const cy = mh * (0.50 + Math.cos(simTime * (0.36 + i * 0.13) + i * 1.7) * 0.34);
-        const rad = maxDim * (0.48 + 0.08 * i);
-        const g = meshCtx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-        g.addColorStop(0.0, pal.lobes[i]);
-        g.addColorStop(1.0, 'rgba(0,0,0,0)');
-        meshCtx.globalAlpha = 0.78;
-        meshCtx.fillStyle = g;
-        meshCtx.fillRect(0, 0, mw, mh);
+    float w1 = 0.5 + 0.5 * sin(q.x * 2.8 + q.y * 2.2 + t * 0.35);
+    float w2 = 0.5 + 0.5 * cos(q.x * 3.7 - q.y * 2.9 - t * 0.28);
+    float w3 = 0.5 + 0.5 * sin((q.x - q.y) * 4.5 + t * 0.22);
+
+    // Crisp luminous silk ribbons — high contrast curves make Snell refraction visibly bend!
+    float ribbonA = exp(-pow(abs(q.y - 0.18 * sin(q.x * 2.6 + t * 0.45) - 0.14), 1.6) * 26.0);
+    float ribbonB = exp(-pow(abs(q.y + 0.24 * cos(q.x * 2.1 - t * 0.35) + 0.16), 1.5) * 22.0);
+    float ribbonC = exp(-pow(abs((q.x * 0.55 + q.y * 0.85) - 0.22 * sin(q.x * 3.2 - t * 0.3)), 1.7) * 32.0);
+
+    // Subtle organic liquid silk contour waves (showcases real optical lens bend without harsh grid lines)
+    float contourWave = sin((q.x * 0.55 + q.y * 0.85) * 14.0 + 2.2 * sin(q.x * 2.4 - q.y * 1.6 - t * 0.3));
+    float contours = smoothstep(0.84, 0.99, contourWave) * 0.11;
+
+    // Soft glowing bokeh orbs in the background
+    vec2 orb1 = vec2(0.45 * sin(t * 0.24 + 0.5), 0.26 * cos(t * 0.19));
+    vec2 orb2 = vec2(-0.52 * cos(t * 0.21 + 1.4), -0.22 * sin(t * 0.27));
+    float g1 = exp(-dot(p - orb1, p - orb1) * 4.2);
+    float g2 = exp(-dot(p - orb2, p - orb2) * 5.2);
+
+    vec3 c0, c1, c2, c3, hi1, hi2;
+    if (pal == 0) {
+      // Tahoe Azure (macOS 26 Tahoe glass ocean & luminous sky silk)
+      c0 = vec3(0.03, 0.11, 0.25);
+      c1 = vec3(0.06, 0.28, 0.52);
+      c2 = vec3(0.09, 0.56, 0.68);
+      c3 = vec3(0.36, 0.82, 0.94);
+      hi1 = vec3(0.74, 0.96, 1.00);
+      hi2 = vec3(0.32, 0.92, 0.84);
+    } else if (pal == 1) {
+      // Aurora Prism
+      c0 = vec3(0.05, 0.04, 0.16);
+      c1 = vec3(0.22, 0.10, 0.44);
+      c2 = vec3(0.08, 0.52, 0.68);
+      c3 = vec3(0.86, 0.28, 0.64);
+      hi1 = vec3(0.54, 0.96, 0.98);
+      hi2 = vec3(0.98, 0.58, 0.84);
+    } else if (pal == 2) {
+      // Sunset Silk
+      c0 = vec3(0.11, 0.06, 0.18);
+      c1 = vec3(0.46, 0.15, 0.34);
+      c2 = vec3(0.88, 0.38, 0.34);
+      c3 = vec3(0.98, 0.74, 0.36);
+      hi1 = vec3(1.00, 0.90, 0.68);
+      hi2 = vec3(0.42, 0.82, 0.98);
+    } else {
+      // Obsidian Architectural Glass
+      c0 = vec3(0.03, 0.04, 0.07);
+      c1 = vec3(0.08, 0.13, 0.21);
+      c2 = vec3(0.15, 0.24, 0.34);
+      c3 = vec3(0.38, 0.48, 0.58);
+      hi1 = vec3(0.78, 0.88, 0.98);
+      hi2 = vec3(0.52, 0.66, 0.84);
+    }
+
+    vec3 col = mix(c0, c1, smoothstep(0.0, 1.0, uv.y * 0.7 + w1 * 0.45));
+    col = mix(col, c2, w2 * 0.55);
+    col = mix(col, c3, smoothstep(0.38, 0.95, w3) * 0.42);
+    col += hi1 * ribbonA * 0.58;
+    col += hi2 * ribbonB * 0.48;
+    col += mix(hi1, hi2, 0.5) * ribbonC * 0.34;
+    col += hi1 * g1 * 0.30 + hi2 * g2 * 0.26;
+    col += mix(hi1, vec3(1.0), 0.4) * contours;
+
+    // Gentle vignette for refined depth
+    float vig = 1.0 - dot(p * vec2(0.55, 0.72), p * vec2(0.55, 0.72)) * 0.42;
+    col *= clamp(vig, 0.68, 1.05);
+    // Tiny dither to eliminate 8-bit gradient banding
+    col += (hash21(gl_FragCoord.xy) - 0.5) * (1.2 / 255.0);
+    return clamp(col, 0.0, 1.0);
+  }
+
+  void main() {
+    vec3 bg = paletteBackdrop(v_uv, u_time, u_palette);
+
+    // Soft glass cast shadow directly onto backdrop (offset slightly down-right)
+    vec2 cssP = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y) / u_dpr;
+    float dShadow = sceneSDF(cssP - vec2(0.0, 7.0));
+    float shadow = exp(-max(dShadow, 0.0) / 22.0) * 0.34 * u_shadowFactor;
+    // Slightly stronger ambient occlusion right under glass rim
+    float contact = exp(-max(dShadow, 0.0) / 6.5) * 0.18 * u_shadowFactor;
+    bg *= (1.0 - clamp(shadow + contact, 0.0, 0.55));
+
+    fragColor = vec4(bg, 1.0);
+  }`;
+
+  // Pass 1 & 2: Separable Gaussian Blur (adapted from iyinchao/liquid-glass-studio, MIT)
+  const BLUR_FRAG_SRC = `#version 300 es
+  precision highp float;
+  #define MAX_TAP 24
+  in vec2 v_uv;
+  out vec4 fragColor;
+
+  uniform sampler2D u_tex;
+  uniform vec2 u_texelDir; // (1/w, 0) or (0, 1/h)
+  uniform int u_radius;
+  uniform float u_weights[MAX_TAP + 1];
+
+  void main() {
+    vec4 sum = texture(u_tex, v_uv) * u_weights[0];
+    for (int i = 1; i <= MAX_TAP; i++) {
+      if (i > u_radius) break;
+      float w = u_weights[i];
+      vec2 off = u_texelDir * float(i);
+      sum += texture(u_tex, v_uv + off) * w;
+      sum += texture(u_tex, v_uv - off) * w;
+    }
+    fragColor = sum;
+  }`;
+
+  // Pass 3: Physical Liquid Glass Shader (Snell refraction, chromatic dispersion, LCH Fresnel & Glare)
+  // Core optical formulas & LCH transforms adapted from iyinchao/liquid-glass-studio (MIT License)
+  const MAIN_FRAG_SRC = `#version 300 es
+  precision highp float;
+  #define PI 3.14159265359
+
+  const float N_R = 1.0 - 0.024;
+  const float N_G = 1.0;
+  const float N_B = 1.0 + 0.024;
+
+  in vec2 v_uv;
+  out vec4 fragColor;
+
+  uniform sampler2D u_bg;
+  uniform sampler2D u_blurredBg;
+  uniform float u_refraction;   // 0.2 .. 1.6
+  uniform float u_frost;        // 0.0 .. 1.5
+  uniform float u_dispersion;   // 0.0 .. 1.6
+  uniform vec4 u_tint;          // glass tint rgba
+  uniform float u_glareAngle;   // light angle radians
+
+  ${SHARED_SDF_GLSL}
+
+  float safeAsin(float x) {
+    return asin(clamp(x, -1.0, 1.0));
+  }
+
+  // ---- sRGB <-> Lab <-> LCH color space (from liquid-glass-studio / GLSL-Color-Functions) ----
+  const vec3 D65_WHITE = vec3(0.95045592705, 1.0, 1.08905775076);
+  const mat3 RGB_TO_XYZ_M = mat3(
+    0.4124, 0.3576, 0.1805,
+    0.2126, 0.7152, 0.0722,
+    0.0193, 0.1192, 0.9505
+  );
+  const mat3 XYZ_TO_RGB_M = mat3(
+     3.2406255, -1.537208 , -0.4986286,
+    -0.9689307,  1.8757561,  0.0415175,
+     0.0557101, -0.2040211,  1.0569959
+  );
+  float UNCOMPAND_SRGB(float a) { return a > 0.04045 ? pow((a + 0.055) / 1.055, 2.4) : a / 12.92; }
+  float COMPAND_RGB(float a) { return a <= 0.0031308 ? 12.92 * a : 1.055 * pow(max(a, 0.0), 0.41666666666) - 0.055; }
+  vec3 SRGB_TO_XYZ(vec3 s) { return vec3(UNCOMPAND_SRGB(s.x), UNCOMPAND_SRGB(s.y), UNCOMPAND_SRGB(s.z)) * RGB_TO_XYZ_M; }
+  vec3 XYZ_TO_SRGB(vec3 x) {
+    vec3 r = x * XYZ_TO_RGB_M;
+    return clamp(vec3(COMPAND_RGB(r.x), COMPAND_RGB(r.y), COMPAND_RGB(r.z)), 0.0, 1.0);
+  }
+  float XYZ_TO_LAB_F(float x) { return x > 0.00885645167 ? pow(x, 0.333333333) : 7.78703703704 * x + 0.13793103448; }
+  float LAB_TO_XYZ_F(float x) { return x > 0.206897 ? x * x * x : 0.12841854934 * (x - 0.137931034); }
+  vec3 SRGB_TO_LCH(vec3 srgb) {
+    vec3 xyz = SRGB_TO_XYZ(srgb) / D65_WHITE;
+    vec3 f = vec3(XYZ_TO_LAB_F(xyz.x), XYZ_TO_LAB_F(xyz.y), XYZ_TO_LAB_F(xyz.z));
+    vec3 lab = vec3(116.0 * f.y - 16.0, 500.0 * (f.x - f.y), 200.0 * (f.y - f.z));
+    return vec3(lab.x, sqrt(dot(lab.yz, lab.yz)), atan(lab.z, lab.y));
+  }
+  vec3 LCH_TO_SRGB(vec3 lch) {
+    vec3 lab = vec3(lch.x, lch.y * cos(lch.z), lch.y * sin(lch.z));
+    float w = (lab.x + 16.0) / 116.0;
+    vec3 xyz = D65_WHITE * vec3(LAB_TO_XYZ_F(w + lab.y / 500.0), LAB_TO_XYZ_F(w), LAB_TO_XYZ_F(w - lab.z / 200.0));
+    return XYZ_TO_SRGB(xyz);
+  }
+
+  vec2 getNormalCSS(vec2 cssP) {
+    float e = 0.75;
+    vec2 e1 = vec2( 1.0,  1.0);
+    vec2 e2 = vec2(-1.0,  1.0);
+    vec2 e3 = vec2( 1.0, -1.0);
+    vec2 e4 = vec2(-1.0, -1.0);
+    vec2 g = e1 * sceneSDF(cssP + e * e1)
+           + e2 * sceneSDF(cssP + e * e2)
+           + e3 * sceneSDF(cssP + e * e3)
+           + e4 * sceneSDF(cssP + e * e4);
+    float len = length(g);
+    return len > 1e-5 ? g / len : vec2(0.0, 1.0);
+  }
+
+  vec3 sampleDispersion(vec2 uv, vec2 uvOffset, float blurMix, float dispStrength) {
+    vec2 oR = uvOffset * (1.0 - (N_R - 1.0) * dispStrength);
+    vec2 oG = uvOffset * (1.0 - (N_G - 1.0) * dispStrength);
+    vec2 oB = uvOffset * (1.0 - (N_B - 1.0) * dispStrength);
+
+    float bgR = texture(u_bg, clamp(uv + oR, 0.001, 0.999)).r;
+    float bgG = texture(u_bg, clamp(uv + oG, 0.001, 0.999)).g;
+    float bgB = texture(u_bg, clamp(uv + oB, 0.001, 0.999)).b;
+
+    float blR = texture(u_blurredBg, clamp(uv + oR, 0.001, 0.999)).r;
+    float blG = texture(u_blurredBg, clamp(uv + oG, 0.001, 0.999)).g;
+    float blB = texture(u_blurredBg, clamp(uv + oB, 0.001, 0.999)).b;
+
+    return vec3(mix(bgR, blR, blurMix), mix(bgG, blG, blurMix), mix(bgB, blB, blurMix));
+  }
+
+  void main() {
+    vec2 res1x = u_resolution / u_dpr;
+    vec2 cssP = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y) / u_dpr;
+    vec3 bgPixel = texture(u_bg, v_uv).rgb;
+
+    float d = sceneSDF(cssP);
+    if (d > 2.0) {
+      fragColor = vec4(bgPixel, 1.0);
+      return;
+    }
+
+    float nmerged = max(0.0, -d); // depth inside glass in CSS pixels
+    float refThickness = 22.0 + 20.0 * u_refraction;
+    float ior = 1.24 + 0.52 * u_refraction;
+    float frostMix = clamp(u_frost * 0.56, 0.0, 0.92);
+    float dispFactor = u_dispersion * (u_iconStyle == 2 ? 18.0 : 13.5);
+
+    // Physical Snell's Law refraction edge profile (liquid-glass-studio)
+    float x_R_ratio = clamp(1.0 - nmerged / refThickness, 0.0, 1.0);
+    float thetaI = safeAsin(x_R_ratio * x_R_ratio);
+    float thetaT = safeAsin(sin(thetaI) / ior);
+    float edgeFactor = (nmerged >= refThickness) ? 0.0 : max(0.0, -tan(thetaT - thetaI));
+
+    vec2 normalCSS = getNormalCSS(cssP);
+    // Flip Y from CSS top-down to WebGL bottom-up UV space
+    vec2 normalUV = vec2(normalCSS.x, -normalCSS.y);
+
+    vec3 glassCol;
+    if (edgeFactor <= 0.0001) {
+      // Crystal-clear luminous interior with soft frost & subtle lensing
+      vec2 mildOff = -normalUV * (0.004 * u_refraction);
+      glassCol = sampleDispersion(v_uv, mildOff, frostMix, dispFactor * 0.18);
+    } else {
+      // Beveled refraction rim: crisp optical magnification & rainbow dispersion transitioning into frost
+      float edgeH = clamp(nmerged / refThickness, 0.0, 1.0);
+      float blurRate = mix(frostMix * 0.14, frostMix, smoothstep(0.22, 0.95, edgeH));
+      vec2 uvOff = -normalUV * edgeFactor * (34.0 * u_refraction) / res1x;
+      glassCol = sampleDispersion(v_uv, uvOff, blurRate, dispFactor);
+    }
+
+    // Subtle glass tint + slight luminous clarity lift inside glass
+    glassCol = mix(glassCol, u_tint.rgb, u_tint.a * 0.55);
+    glassCol = min(vec3(1.0), glassCol * 1.04);
+
+    // ---- Tight crystal Fresnel rim reflection in LCH space ----
+    float fresnelRange = 20.0;
+    float fresnelFactor = clamp(pow(clamp(1.0 - nmerged / fresnelRange + 0.06, 0.0, 1.0), 4.8), 0.0, 1.0);
+    float fresnelStrength = (0.36 + 0.24 * u_refraction);
+    vec3 fresnelLCH = SRGB_TO_LCH(mix(vec3(1.0), u_tint.rgb, u_tint.a * 0.45));
+    fresnelLCH.x = clamp(fresnelLCH.x + 24.0 * fresnelFactor, 0.0, 100.0);
+    glassCol = mix(glassCol, LCH_TO_SRGB(fresnelLCH), fresnelFactor * fresnelStrength * 0.58);
+
+    // ---- Dual-sided directional specular glare (Apple Liquid Glass signature rim glint) ----
+    float glareRange = 14.0;
+    float glareGeo = clamp(pow(clamp(1.0 - nmerged / glareRange + 0.06, 0.0, 1.0), 5.0), 0.0, 1.0);
+    float ang = atan(normalUV.y, normalUV.x);
+    if (ang < 0.0) ang += 2.0 * PI;
+    float glareAngle = (ang - PI * 0.25 + u_glareAngle) * 2.0;
+    bool farSide = (glareAngle > PI * 1.5 && glareAngle < PI * 3.5) || (glareAngle < -PI * 0.5);
+    float glareDir = (0.5 + 0.5 * sin(glareAngle)) * (farSide ? 0.80 : 1.24);
+    glareDir = clamp(pow(max(glareDir, 0.0), 1.45), 0.0, 1.0);
+
+    vec3 glareLCH = SRGB_TO_LCH(mix(glassCol, u_tint.rgb, u_tint.a * 0.35));
+    glareLCH.x = clamp(glareLCH.x + 110.0 * glareDir * glareGeo, 0.0, 100.0);
+    glareLCH.y = clamp(glareLCH.y + 22.0 * glareDir * glareGeo, 0.0, 120.0);
+    glassCol = mix(glassCol, LCH_TO_SRGB(glareLCH), clamp(glareDir * glareGeo * 0.92, 0.0, 0.95));
+
+    // Razor-crisp hairline specular bevel right on outer boundary
+    float bevel = smoothstep(2.0, 0.3, nmerged) * (0.24 + 0.68 * glareDir);
+    glassCol = mix(glassCol, vec3(1.0), clamp(bevel * 0.68, 0.0, 0.78));
+
+    // Anti-aliased composite over sharp backdrop
+    float aa = max(0.75, 1.1 / max(u_dpr, 0.5));
+    float mask = 1.0 - smoothstep(-aa, aa, d);
+    fragColor = vec4(mix(bgPixel, glassCol, mask), 1.0);
+  }`;
+
+  // =========================================================================
+  // WEBGL2 MULTI-PASS RENDERER
+  // =========================================================================
+  const gl = cv.getContext('webgl2', {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    preserveDrawingBuffer: true,
+    powerPreference: 'default'
+  });
+
+  function compileShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error('LiquidGlass shader error:', gl.getShaderInfoLog(s));
+      gl.deleteShader(s);
+      return null;
+    }
+    return s;
+  }
+
+  function linkProgram(vSrc, fSrc) {
+    const vs = compileShader(gl.VERTEX_SHADER, vSrc);
+    const fs = compileShader(gl.FRAGMENT_SHADER, fSrc);
+    if (!vs || !fs) return null;
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error('LiquidGlass link error:', gl.getProgramInfoLog(p));
+      gl.deleteProgram(p);
+      return null;
+    }
+    return p;
+  }
+
+  function makeFBO(w, h) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { fbo, tex, w, h };
+  }
+
+  function freeFBO(obj) {
+    if (!obj) return;
+    if (obj.fbo) gl.deleteFramebuffer(obj.fbo);
+    if (obj.tex) gl.deleteTexture(obj.tex);
+  }
+
+  function computeGaussianWeights(radius) {
+    const arr = new Float32Array(25);
+    const r = Math.max(0, Math.min(24, radius | 0));
+    if (r === 0) { arr[0] = 1; return arr; }
+    const sigma = Math.max(1.0, r * 0.45);
+    let sum = 1.0;
+    arr[0] = 1.0;
+    for (let i = 1; i <= r; i++) {
+      const w = Math.exp(-(i * i) / (2.0 * sigma * sigma));
+      arr[i] = w;
+      sum += 2.0 * w;
+    }
+    for (let i = 0; i <= r; i++) arr[i] /= sum;
+    return arr;
+  }
+
+  let progBg = null, progBlur = null, progMain = null;
+  let quadVAO = null;
+  let fboBg = null, fboBlurA = null, fboBlurB = null;
+  let uBg = {}, uBlur = {}, uMain = {};
+  let glReady = false;
+
+  function cacheUniforms(prog, names) {
+    const out = {};
+    for (const n of names) out[n] = gl.getUniformLocation(prog, n);
+    return out;
+  }
+
+  function initGL() {
+    if (!gl) return false;
+    progBg = linkProgram(VERT_SRC, BG_FRAG_SRC);
+    progBlur = linkProgram(VERT_SRC, BLUR_FRAG_SRC);
+    progMain = linkProgram(VERT_SRC, MAIN_FRAG_SRC);
+    if (!progBg || !progBlur || !progMain) return false;
+
+    quadVAO = gl.createVertexArray();
+    gl.bindVertexArray(quadVAO);
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    const sharedNames = [
+      'u_resolution', 'u_dpr', 'u_mergePx',
+      'u_dropCount', 'u_drops', 'u_dropRound',
+      'u_cursorOn', 'u_cursor', 'u_cursorRadius',
+      'u_iconCount', 'u_iconStyle', 'u_icons'
+    ];
+    uBg = cacheUniforms(progBg, sharedNames.concat(['u_time', 'u_palette', 'u_shadowFactor']));
+    uBlur = cacheUniforms(progBlur, ['u_tex', 'u_texelDir', 'u_radius', 'u_weights']);
+    uMain = cacheUniforms(progMain, sharedNames.concat([
+      'u_bg', 'u_blurredBg', 'u_refraction', 'u_frost', 'u_dispersion', 'u_tint', 'u_glareAngle'
+    ]));
+    glReady = true;
+    return true;
+  }
+
+  function rebuildFBOs(pw, ph) {
+    if (!glReady) return;
+    freeFBO(fboBg); freeFBO(fboBlurA); freeFBO(fboBlurB);
+    const prof = getProfile();
+    const bw = Math.max(64, Math.round(pw * prof.blurScale));
+    const bh = Math.max(64, Math.round(ph * prof.blurScale));
+    fboBg = makeFBO(pw, ph);
+    fboBlurA = makeFBO(bw, bh);
+    fboBlurB = makeFBO(bw, bh);
+  }
+
+  // =========================================================================
+  // FLOATING LIQUID GLASS DROPLETS, SPRING CURSOR LENS & ICON CRADLES
+  // =========================================================================
+  const MAX_DROPS = 10;
+  const MAX_ICONS = 48;
+  const dropsData = new Float32Array(MAX_DROPS * 4);
+  const dropsRound = new Float32Array(MAX_DROPS);
+  const iconsData = new Float32Array(MAX_ICONS * 4);
+  let activeIconCount = 0;
+
+  // Deterministic fluid glass droplets (circles & pills that drift and merge via smin)
+  const drops = [];
+  (function initDrops() {
+    const specs = [
+      { ux: 0.72, uy: 0.34, rx: 88, ry: 54, rd: 46, vx: 19, vy: 11, ph: 0.4 },
+      { ux: 0.62, uy: 0.56, rx: 56, ry: 56, rd: 56, vx: -16, vy: 14, ph: 1.7 },
+      { ux: 0.82, uy: 0.68, rx: 46, ry: 82, rd: 46, vx: -12, vy: -17, ph: 2.9 },
+      { ux: 0.44, uy: 0.28, rx: 64, ry: 44, rd: 38, vx: 15, vy: -13, ph: 4.1 },
+      { ux: 0.52, uy: 0.74, rx: 74, ry: 42, rd: 42, vx: -20, vy: -9, ph: 5.2 },
+      { ux: 0.34, uy: 0.54, rx: 44, ry: 44, rd: 44, vx: 14, vy: 16, ph: 0.9 },
+      { ux: 0.76, uy: 0.20, rx: 48, ry: 48, rd: 48, vx: -18, vy: 12, ph: 3.3 },
+      { ux: 0.28, uy: 0.78, rx: 58, ry: 38, rd: 36, vx: 17, vy: -14, ph: 2.1 },
+      { ux: 0.66, uy: 0.44, rx: 38, ry: 38, rd: 38, vx: -14, vy: -15, ph: 4.8 },
+      { ux: 0.48, uy: 0.46, rx: 52, ry: 52, rd: 52, vx: 12, vy: 18, ph: 1.1 }
+    ];
+    for (const s of specs) {
+      drops.push(Object.assign({ x: W * s.ux, y: H * s.uy }, s));
+    }
+  })();
+
+  // Spring-physics cursor glass lens (stretches smoothly along motion vector)
+  const cursorState = {
+    active: false,
+    tx: W * 0.55,
+    ty: H * 0.48,
+    x: W * 0.55,
+    y: H * 0.48,
+    vx: 0,
+    vy: 0,
+    vis: 0,
+    lastMove: 0
+  };
+
+  function syncIconUniformBuffer() {
+    if (!P.adaptive || !icons.length) {
+      activeIconCount = 0;
+      return;
+    }
+    const maxN = Math.min(icons.length, getProfile().maxIcons, MAX_ICONS);
+    const padX = P.iconGlassStyle === 'prism' ? 4 : 7;
+    const padY = P.iconGlassStyle === 'prism' ? 4 : 6;
+    for (let i = 0; i < maxN; i++) {
+      const ic = icons[i];
+      iconsData[i * 4 + 0] = ic.x + ic.w * 0.5;
+      iconsData[i * 4 + 1] = ic.y + ic.h * 0.5;
+      iconsData[i * 4 + 2] = Math.max(22, ic.w * 0.5 + padX);
+      iconsData[i * 4 + 3] = Math.max(24, ic.h * 0.5 + padY);
+    }
+    activeIconCount = maxN;
+  }
+
+  function stepPhysics(dt) {
+    const flow = Math.max(0, P.flowSpeed);
+    simTime += dt * (0.45 + 0.75 * flow);
+
+    const prof = getProfile();
+    const desiredDrops = Math.min(prof.maxDrops, Math.max(0, Math.round(5.2 * P.dropletCount)));
+    const scaleFactor = Math.min(1.15, Math.max(0.65, Math.min(W, H) / 900));
+
+    for (let i = 0; i < desiredDrops; i++) {
+      const d = drops[i];
+      const wobbleX = Math.sin(simTime * 0.7 + d.ph) * 14;
+      const wobbleY = Math.cos(simTime * 0.6 + d.ph * 1.3) * 12;
+      d.x += (d.vx + wobbleX) * dt * flow;
+      d.y += (d.vy + wobbleY) * dt * flow;
+
+      const rx = d.rx * scaleFactor;
+      const ry = d.ry * scaleFactor;
+      const padX = rx + 24;
+      const padY = ry + 24;
+      if (d.x < padX) { d.x = padX; d.vx = Math.abs(d.vx); }
+      else if (d.x > W - padX) { d.x = W - padX; d.vx = -Math.abs(d.vx); }
+      if (d.y < padY) { d.y = padY; d.vy = Math.abs(d.vy); }
+      else if (d.y > H - padY) { d.y = H - padY; d.vy = -Math.abs(d.vy); }
+
+      // Subtle breathing pulse
+      const pulse = 1.0 + 0.04 * Math.sin(simTime * 1.1 + d.ph);
+      dropsData[i * 4 + 0] = d.x;
+      dropsData[i * 4 + 1] = d.y;
+      dropsData[i * 4 + 2] = rx * pulse;
+      dropsData[i * 4 + 3] = ry / pulse;
+      dropsRound[i] = d.rd * scaleFactor;
+    }
+
+    // Spring-damper physics for cursor lens
+    const wantCursor = !!P.cursorLens && cursorState.active && (performance.now() - cursorState.lastMove < 6500);
+    cursorState.vis += ((wantCursor ? 1 : 0) - cursorState.vis) * Math.min(1, dt * (wantCursor ? 10 : 3.5));
+    const stiff = 135;
+    const damp = 17;
+    const ax = (cursorState.tx - cursorState.x) * stiff - cursorState.vx * damp;
+    const ay = (cursorState.ty - cursorState.y) * stiff - cursorState.vy * damp;
+    cursorState.vx += ax * dt;
+    cursorState.vy += ay * dt;
+    cursorState.x += cursorState.vx * dt;
+    cursorState.y += cursorState.vy * dt;
+  }
+
+  function uploadSharedUniforms(u, pw, ph, dpr, dropCount) {
+    gl.uniform2f(u.u_resolution, pw, ph);
+    gl.uniform1f(u.u_dpr, dpr);
+    const mergePx = Math.max(0, P.mergeRate) * 44.0;
+    gl.uniform1f(u.u_mergePx, mergePx);
+
+    gl.uniform1i(u.u_dropCount, dropCount);
+    if (dropCount > 0) {
+      gl.uniform4fv(u.u_drops, dropsData);
+      gl.uniform1fv(u.u_dropRound, dropsRound);
+    }
+
+    const cOn = P.cursorLens && cursorState.vis > 0.02 ? 1 : 0;
+    gl.uniform1i(u.u_cursorOn, cOn);
+    if (cOn) {
+      const spdX = Math.min(26, Math.abs(cursorState.vx) * 0.022);
+      const spdY = Math.min(26, Math.abs(cursorState.vy) * 0.022);
+      const baseR = 54 * cursorState.vis;
+      const hw = Math.max(8, baseR + spdX - spdY * 0.35);
+      const hh = Math.max(8, baseR + spdY - spdX * 0.35);
+      gl.uniform4f(u.u_cursor, cursorState.x, cursorState.y, hw, hh);
+      gl.uniform1f(u.u_cursorRadius, Math.min(hw, hh) * 0.96);
+    }
+
+    gl.uniform1i(u.u_iconCount, activeIconCount);
+    gl.uniform1i(u.u_iconStyle, ICON_STYLE_INDEX[P.iconGlassStyle] || 0);
+    if (activeIconCount > 0) {
+      gl.uniform4fv(u.u_icons, iconsData);
+    }
+  }
+
+  function computeScale() {
+    const qMax = getProfile().maxDpr;
+    if (typeof window.__desklandScale === 'function') {
+      return window.__desklandScale(qMax);
+    }
+    return Math.min(window.devicePixelRatio || 1, qMax);
+  }
+
+  function resize() {
+    const box = cv.getBoundingClientRect();
+    const prevW = W, prevH = H;
+    W = Math.max(240, box.width || innerWidth || 1280);
+    H = Math.max(160, box.height || innerHeight || 720);
+    if (prevW > 0 && prevH > 0) {
+      for (const d of drops) {
+        d.x = (d.x / prevW) * W;
+        d.y = (d.y / prevH) * H;
       }
-      meshCtx.globalAlpha = 1.0;
+    }
+    const dpr = computeScale();
+    cv.width = Math.max(1, Math.round(W * dpr));
+    cv.height = Math.max(1, Math.round(H * dpr));
+    cv._scale = dpr;
+    rebuildFBOs(cv.width, cv.height);
+    syncIconUniformBuffer();
+    cacheOK = true;
+  }
 
-      // Two-step bilinear downscale for buttery smooth frost blur (zero ctx.filter!)
-      frostMidCtx.drawImage(bgMeshCanvas, 0, 0, frostMidCanvas.width, frostMidCanvas.height);
-      frostCtx.drawImage(frostMidCanvas, 0, 0, frostCanvas.width, frostCanvas.height);
+  function draw(now) {
+    if (!glReady) return;
+    const pw = cv.width;
+    const ph = cv.height;
+    const dpr = cv._scale || (pw / Math.max(1, W));
+    if (!fboBg || fboBg.w !== pw || fboBg.h !== ph || !cacheOK) {
+      rebuildFBOs(pw, ph);
       cacheOK = true;
     }
 
-    function drawLiquidGlassCapsule(cx, cy, w, h, r, pal, prof, frostMix, zoomFactor, sxScale, syScale, rotAngle, isPrismOnly, labelContrast) {
-      const halfW = w * 0.5;
-      const halfH = h * 0.5;
-      const refract = clamp(P.refraction, 0.1, 1.8);
-      const disp = clamp(P.dispersion, 0.0, 1.8);
+    const prof = getProfile();
+    const dropCount = Math.min(prof.maxDrops, Math.max(0, Math.round(5.2 * P.dropletCount)));
+    const palIdx = PALETTE_INDEX[P.palette] || 0;
 
-      ctx.save();
-      ctx.translate(cx, cy);
-      if (rotAngle) ctx.rotate(rotAngle);
-      if (sxScale !== 1 || syScale !== 1) ctx.scale(sxScale, syScale);
+    gl.bindVertexArray(quadVAO);
 
-      // Soft multi-pass shadow (zero shadowBlur!)
-      if (!isPrismOnly) {
-        for (let s = prof.shadowSteps; s >= 1; s--) {
-          const sp = s * 4.5;
-          ctx.fillStyle = 'rgba(0, 0, 0, ' + (0.045 * (prof.shadowSteps + 1 - s) / prof.shadowSteps).toFixed(3) + ')';
-          roundRect(ctx, -halfW - sp * 0.4, -halfH + 7 - sp * 0.25, w + sp * 0.8, h + sp * 0.8, r + sp * 0.35);
-          ctx.fill();
+    // ---- Pass 0: Render crisp silk optical backdrop + glass cast shadows -> fboBg ----
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboBg.fbo);
+    gl.viewport(0, 0, fboBg.w, fboBg.h);
+    gl.useProgram(progBg);
+    uploadSharedUniforms(uBg, pw, ph, dpr, dropCount);
+    gl.uniform1f(uBg.u_time, simTime);
+    gl.uniform1i(uBg.u_palette, palIdx);
+    gl.uniform1f(uBg.u_shadowFactor, 1.0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // ---- Pass 1 & 2: 2-pass separable Gaussian blur -> fboBlurB ----
+    const blurRad = Math.min(prof.maxBlurTap, Math.max(0, Math.round(P.frostAmount * 11.5)));
+    const weights = computeGaussianWeights(blurRad);
+
+    gl.useProgram(progBlur);
+    gl.uniform1i(uBlur.u_radius, blurRad);
+    gl.uniform1fv(uBlur.u_weights, weights);
+    gl.uniform1i(uBlur.u_tex, 0);
+
+    // Horizontal pass
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboBlurA.fbo);
+    gl.viewport(0, 0, fboBlurA.w, fboBlurA.h);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, fboBg.tex);
+    gl.uniform2f(uBlur.u_texelDir, 1.0 / fboBlurA.w, 0.0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Vertical pass
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboBlurB.fbo);
+    gl.viewport(0, 0, fboBlurB.w, fboBlurB.h);
+    gl.bindTexture(gl.TEXTURE_2D, fboBlurA.tex);
+    gl.uniform2f(uBlur.u_texelDir, 0.0, 1.0 / fboBlurB.h);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // ---- Pass 3: Main Physical Liquid Glass Composite -> Screen ----
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, pw, ph);
+    gl.useProgram(progMain);
+    uploadSharedUniforms(uMain, pw, ph, dpr, dropCount);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, fboBg.tex);
+    gl.uniform1i(uMain.u_bg, 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, fboBlurB.tex);
+    gl.uniform1i(uMain.u_blurredBg, 1);
+
+    gl.uniform1f(uMain.u_refraction, Math.max(0.15, P.refraction));
+    gl.uniform1f(uMain.u_frost, Math.max(0.0, P.frostAmount));
+    gl.uniform1f(uMain.u_dispersion, Math.max(0.0, P.dispersion));
+
+    // Palette-matched crystal glass tint
+    if (palIdx === 0 || palIdx === 4) gl.uniform4f(uMain.u_tint, 0.88, 0.96, 1.00, 0.09);
+    else if (palIdx === 1) gl.uniform4f(uMain.u_tint, 0.92, 0.90, 1.00, 0.08);
+    else if (palIdx === 2) gl.uniform4f(uMain.u_tint, 1.00, 0.95, 0.90, 0.09);
+    else gl.uniform4f(uMain.u_tint, 0.84, 0.90, 0.98, 0.07);
+
+    // Gentle living glint drift
+    gl.uniform1f(uMain.u_glareAngle, -0.78 + Math.sin(simTime * 0.25) * 0.14);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+  }
+
+  // =========================================================================
+  // LOOP, HOST MESSAGES & POINTER EVENTS
+  // =========================================================================
+  function sched() {
+    if (!_paused && !rafId) {
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+
+  function setPaused(v) {
+    _paused = !!v;
+    if (_paused) {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    } else {
+      lastT = 0;
+      sched();
+    }
+  }
+
+  function frame(now) {
+    rafId = 0;
+    if (_paused) return;
+    sched();
+    const minInterval = (LOW || window.__desklandLowMode) ? 62 : 28;
+    if (lastT && now - lastT < minInterval) return;
+    const dt = lastT ? Math.min(0.06, (now - lastT) / 1000) : 0.033;
+    lastT = now;
+    frameN++;
+    stepPhysics(dt);
+    draw(now);
+  }
+
+  function drawGhosts() {
+    const box = document.getElementById('ghosts');
+    if (!box) return;
+    box.innerHTML = icons
+      .map(ic => '<div class="ghost" style="left:' + ic.x + 'px;top:' + ic.y + 'px;width:' + ic.w + 'px;height:' + ic.h + 'px"><i></i><b></b></div>')
+      .join('');
+  }
+
+  function applySettings(v) {
+    if (!v || typeof v !== 'object') return;
+    let needResize = false;
+    for (const k in v) {
+      if (!(k in P)) continue;
+      if (k === 'palette' || k === 'iconGlassStyle' || k === 'quality') {
+        if (typeof v[k] === 'string' && P[k] !== v[k]) {
+          P[k] = v[k];
+          if (k === 'quality') needResize = true;
         }
-      }
-
-      // Clipped optical refraction & frost interior
-      ctx.save();
-      roundRect(ctx, -halfW, -halfH, w, h, r);
-      ctx.clip();
-
-      if (!isPrismOnly) {
-        const zoom = 1 + (zoomFactor || 0.18) * refract;
-        const ox = (W * 0.5 - cx) * 0.11 * refract;
-        const oy = (H * 0.5 - cy) * 0.11 * refract;
-        // Undo local translate/rotate for world-aligned background sampling
-        if (sxScale !== 1 || syScale !== 1) ctx.scale(1 / sxScale, 1 / syScale);
-        if (rotAngle) ctx.rotate(-rotAngle);
-        ctx.translate(-cx, -cy);
-
-        const drawW = W * zoom;
-        const drawH = H * zoom;
-        const drawX = -W * (zoom - 1) * 0.5 + ox;
-        const drawY = -H * (zoom - 1) * 0.5 + oy;
-
-        if (frostMix > 0.02) {
-          ctx.globalAlpha = clamp(frostMix, 0, 1);
-          ctx.drawImage(frostCanvas, drawX, drawY, drawW, drawH);
-        }
-        const sharpMix = clamp(1 - frostMix * 0.72, 0.18, 0.95);
-        ctx.globalAlpha = sharpMix;
-        ctx.drawImage(bgMeshCanvas, drawX + ox * 0.35, drawY + oy * 0.35, drawW, drawH);
-        ctx.globalAlpha = 1.0;
-
-        // Re-apply local transform for specular sheen & rims
-        ctx.translate(cx, cy);
-        if (rotAngle) ctx.rotate(rotAngle);
-        if (sxScale !== 1 || syScale !== 1) ctx.scale(sxScale, syScale);
-      }
-
-      // Glass surface specular sheen & internal caustic reflection
-      const sheen = ctx.createLinearGradient(-halfW, -halfH, halfW * 0.65, halfH);
-      sheen.addColorStop(0.0, 'rgba(255, 255, 255, ' + (isPrismOnly ? '0.18' : '0.32') + ')');
-      sheen.addColorStop(0.42, 'rgba(255, 255, 255, 0.04)');
-      sheen.addColorStop(1.0, pal.caustic);
-      ctx.fillStyle = sheen;
-      ctx.fillRect(-halfW, -halfH, w, h);
-
-      // Subtle neutral tint behind desktop icon text for contrast safety
-      if (labelContrast) {
-        ctx.fillStyle = 'rgba(10, 14, 24, 0.24)';
-        roundRect(ctx, -halfW + 6, halfH - 22, w - 12, 16, 8);
-        ctx.fill();
-      }
-
-      // Prismatic chromatic edge dispersion (cyan + magenta inner rim offsets)
-      if (disp > 0.02) {
-        ctx.lineWidth = 2.2;
-        ctx.strokeStyle = 'rgba(' + pal.dispA + ', ' + clamp(0.36 * disp, 0, 0.65).toFixed(3) + ')';
-        roundRect(ctx, -halfW + 1.5, -halfH + 1.5, w, h, r);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(' + pal.dispB + ', ' + clamp(0.28 * disp, 0, 0.55).toFixed(3) + ')';
-        roundRect(ctx, -halfW - 1.5, -halfH - 1.5, w, h, r);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-
-      // Crisp outer liquid glass specular rim
-      ctx.lineWidth = isPrismOnly ? 1.8 : 1.35;
-      ctx.strokeStyle = 'rgba(255, 255, 255, ' + (isPrismOnly ? '0.68' : '0.58') + ')';
-      roundRect(ctx, -halfW, -halfH, w, h, r);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    function draw() {
-      const pal = getPalette();
-      const prof = getProfile();
-
-      document.documentElement.style.background = pal.base;
-      document.body.style.background = pal.base;
-
-      renderSilkBackdrop(pal);
-
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      ctx.drawImage(bgMeshCanvas, 0, 0, W, H);
-
-      const frostMix = clamp(P.frostAmount, 0, 1.5);
-
-      // 1. Floating optical Liquid Glass droplets
-      for (let i = 0; i < droplets.length; i++) {
-        const d = droplets[i];
-        const sx = 1 + d.stretch;
-        const sy = 1 / Math.max(0.82, 1 + d.stretch);
-        drawLiquidGlassCapsule(d.x, d.y, d.w, d.h, d.r, pal, prof, frostMix * 0.55, 0.20, sx, sy, d.angle, false, false);
-      }
-
-      // 2. Adaptive desktop icon glass capsules
-      if (P.adaptive !== 0) {
-        const isDroplet = P.iconGlassStyle === 'droplet';
-        const isPrism = P.iconGlassStyle === 'prism';
-        const iconFrost = isDroplet ? frostMix * 0.25 : clamp(frostMix, 0.2, 1.0);
-
-        for (let i = 0; i < iconStates.length; i++) {
-          const st = iconStates[i];
-          if (st.opacity <= 0.01) continue;
-          const cw = Math.round(st.w + 20);
-          const ch = Math.round(st.h + 14);
-          const cr = isDroplet ? Math.round(Math.min(cw, ch) * 0.45) : 18;
-          const sc = 1 + st.hover * 0.04;
-
-          ctx.save();
-          ctx.globalAlpha = st.opacity;
-          drawLiquidGlassCapsule(
-            st.x + st.w * 0.5,
-            st.y + st.h * 0.5,
-            cw, ch, cr,
-            pal, prof,
-            iconFrost,
-            0.16 + st.hover * 0.08,
-            sc, sc, 0,
-            isPrism,
-            !pal.isDark
-          );
-          ctx.restore();
-        }
-      }
-
-      // 3. Interactive cursor optical glass lens
-      if (pointer.lensOpacity > 0.02) {
-        ctx.save();
-        ctx.globalAlpha = pointer.lensOpacity;
-        const lr = pointer.down ? 76 : 64;
-        drawLiquidGlassCapsule(pointer.x, pointer.y, lr, lr, lr * 0.5, pal, prof, frostMix * 0.18, 0.28, 1, 1, 0, false, false);
-        ctx.restore();
-      }
-
-      // 4. Refractive click ripples & specular beads
-      for (let i = 0; i < ripples.length; i++) {
-        const rp = ripples[i];
-        const fade = 1 - rp.r / rp.maxR;
-        if (fade <= 0.01) continue;
-        ctx.lineWidth = 2.2;
-        ctx.strokeStyle = 'rgba(255, 255, 255, ' + (fade * 0.48).toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.lineWidth = 1.2;
-        ctx.strokeStyle = 'rgba(' + pal.dispA + ', ' + (fade * 0.32).toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.arc(rp.x, rp.y, rp.r + 3, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      for (let i = 0; i < beads.length; i++) {
-        const b = beads[i];
-        const fade = clamp(1 - b.life / b.maxLife, 0, 1);
-        ctx.fillStyle = 'rgba(255, 255, 255, ' + (fade * 0.65).toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * fade, 0, Math.PI * 2);
-        ctx.fill();
+      } else if (k === 'cursorLens') {
+        P[k] = !!v[k];
+      } else if (typeof v[k] === 'number' && Number.isFinite(v[k])) {
+        P[k] = v[k];
       }
     }
+    syncIconUniformBuffer();
+    if (needResize) resize();
+  }
 
-    // =========================================================================
-    // 7. RESIZE, LIFECYCLE & HOST PROTOCOL
-    // =========================================================================
-    function resize() {
-      const box = cv.getBoundingClientRect();
-      W = box.width || innerWidth || 1920;
-      H = box.height || innerHeight || 1080;
-      const prof = getProfile();
-      scale = window.__desklandScale
-        ? window.__desklandScale(prof.maxDpr, 0.45)
-        : (PREVIEW ? 0.45 : Math.min(devicePixelRatio || 1, prof.maxDpr));
-      cv.width = Math.max(1, Math.round(W * scale));
-      cv.height = Math.max(1, Math.round(H * scale));
-      cv._scale = scale;
-
-      bgMeshCanvas.width = Math.max(64, Math.round(W * prof.meshScale));
-      bgMeshCanvas.height = Math.max(36, Math.round(H * prof.meshScale));
-      frostMidCanvas.width = Math.max(48, Math.round(W * prof.frostScale * 2));
-      frostMidCanvas.height = Math.max(27, Math.round(H * prof.frostScale * 2));
-      frostCanvas.width = Math.max(24, Math.round(W * prof.frostScale));
-      frostCanvas.height = Math.max(14, Math.round(H * prof.frostScale));
-
-      buildDroplets();
+  function handleMessage(raw) {
+    let m = raw;
+    if (typeof m === 'string') {
+      if (!m || m.charAt(0) !== '{') return;
+      try { m = JSON.parse(m); } catch (_) { return; }
     }
+    if (!m || typeof m !== 'object') return;
 
-    function _scheduleFrame() {
-      if (!paused && !_rafId) _rafId = requestAnimationFrame(frame);
-    }
-
-    function _setPaused(v) {
-      paused = PREVIEW ? false : !!v;
-      if (paused) {
-        if (_rafId) { cancelAnimationFrame(_rafId); _rafId = 0; }
-        lastT = 0;
-      } else {
-        _scheduleFrame();
-      }
-    }
-
-    function frame(now) {
-      _rafId = 0;
-      if (paused || document.hidden) { lastT = 0; return; }
-      _scheduleFrame();
-      const maxDt = window.__desklandLowMode ? 0.12 : 0.08;
-      const dt = lastT ? Math.min((now - lastT) / 1000, maxDt) : 0.03;
-      lastT = now;
-
-      stepSimulation(dt);
-      draw();
-    }
-
-    function applySettings(v) {
-      if (!v || typeof v !== 'object') return;
-      let needDroplets = false;
-
-      if (typeof v.seed === 'number' && v.seed !== seed) {
-        seed = (v.seed >>> 0) || 20261118;
-        needDroplets = true;
-      }
-      if (typeof v.palette === 'string' && v.palette in PALETTES) {
-        P.palette = v.palette;
-      }
-      if (typeof v.iconGlassStyle === 'string' && (v.iconGlassStyle === 'capsule' || v.iconGlassStyle === 'droplet' || v.iconGlassStyle === 'prism')) {
-        P.iconGlassStyle = v.iconGlassStyle;
-      }
-      if (typeof v.quality === 'string' && v.quality in QUALITY_PROFILES && v.quality !== P.quality) {
-        P.quality = v.quality;
-        resize();
-      }
-      if (v.cursorLens !== undefined) {
-        P.cursorLens = (v.cursorLens === true || v.cursorLens === 'true' || v.cursorLens === 1);
-      }
-
-      const numKeys = ['refraction', 'frostAmount', 'dispersion', 'dropletCount', 'flowSpeed', 'adaptive'];
-      for (let i = 0; i < numKeys.length; i++) {
-        const k = numKeys[i];
-        if (v[k] !== undefined) {
-          const n = Number(v[k]);
-          if (Number.isFinite(n) && P[k] !== n) {
-            P[k] = n;
-            if (k === 'dropletCount') needDroplets = true;
-          }
-        }
-      }
-
-      if (needDroplets) buildDroplets();
-    }
-
-    function drawGhosts() {
-      const box = document.getElementById('ghosts');
-      if (!box) return;
-      box.innerHTML = icons.map(ic =>
-        `<div class="ghost" style="left:${ic.x}px;top:${ic.y}px;width:${ic.w}px;height:${ic.h}px"><i></i><b></b></div>`
-      ).join('');
-    }
-
-    function handleMessage(ev) {
-      let m = ev && ev.data !== undefined ? ev.data : ev;
-      if (typeof m === 'string') {
-        try { m = JSON.parse(m); } catch (e) { return; }
-      }
-      if (!m || typeof m !== 'object') return;
-      const kind = m.t || m.type;
-      if (kind === 'pause') {
-        _setPaused(m.v);
-        if (paused) draw();
-        return;
-      }
-      if (kind === 'resume') {
-        _setPaused(false);
-        return;
-      }
-      if (kind === 'settings') { applySettings(m.v || m.params || m); return; }
-      if (kind === 'reset') { applySettings(Object.assign({}, DEFAULTS, m.v || {})); return; }
-      if (kind === 'icons') {
-        const k = window.devicePixelRatio || 1;
-        const rects = m.vis !== false && Array.isArray(m.r)
-          ? m.r.map(([l, t, r, b]) => ({ x: l / k, y: t / k, w: (r - l) / k, h: (b - t) / k }))
-          : [];
-        syncIncomingIcons(rects);
-        if (PREVIEW) drawGhosts();
-        if (paused) draw();
-      }
-    }
-
-    function buildDemoIcons() {
-      const cells = [
-        [0.05, 0.14], [0.05, 0.30], [0.05, 0.46], [0.05, 0.62],
-        [0.14, 0.14], [0.14, 0.30], [0.44, 0.68], [0.54, 0.68], [0.80, 0.72]
-      ];
-      return cells.map(([fx, fy], i) => ({
-        x: Math.round(fx * W),
-        y: Math.round(fy * H),
-        w: i % 3 === 0 ? 80 : 72,
-        h: 86
-      }));
-    }
-
-    function init() {
+    if (m.t === 'pause') {
+      setPaused(PREVIEW ? false : !!m.v);
+    } else if (m.t === 'lowMode') {
+      LOW = !!m.v;
       resize();
-      window.addEventListener('resize', resize, { passive: true });
-      window.addEventListener('deskland:lowmode', resize);
-      document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && !paused) lastT = 0;
-      });
-
-      window.addEventListener('pointermove', function (ev) {
-        const rect = cv.getBoundingClientRect();
-        pointer.x = ev.clientX - rect.left;
-        pointer.y = ev.clientY - rect.top;
-        pointer.active = true;
-      }, { passive: true });
-
-      window.addEventListener('pointerdown', function (ev) {
-        const rect = cv.getBoundingClientRect();
-        pointer.x = ev.clientX - rect.left;
-        pointer.y = ev.clientY - rect.top;
-        pointer.active = true;
-        pointer.down = true;
-        spawnLiquidRipple(pointer.x, pointer.y);
-      }, { passive: true });
-
-      window.addEventListener('pointerup', function () { pointer.down = false; }, { passive: true });
-      window.addEventListener('pointercancel', function () { pointer.down = false; }, { passive: true });
-      window.addEventListener('pointerleave', function () { pointer.down = false; pointer.active = false; }, { passive: true });
-
-      if (PREVIEW) {
-        document.body.classList.add('preview');
-        const g = document.createElement('div');
-        g.id = 'ghosts';
-        document.body.appendChild(g);
-        window.addEventListener('message', handleMessage, false);
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
-        }
-      } else if (WALL) {
-        window.addEventListener('message', handleMessage, false);
-        const host = window.chrome && window.chrome.webview;
-        if (host) {
-          host.addEventListener('message', handleMessage);
-          host.postMessage('ready');
-        }
-      } else {
-        syncIncomingIcons(buildDemoIcons());
-      }
-
-      if (window.WallIcons && typeof window.WallIcons.subscribe === 'function') {
-        window.WallIcons.subscribe(function (vList) {
-          if (!WALL && !PREVIEW) return;
-          if (!iconsSeen && Array.isArray(vList) && vList.length) {
-            const k = window.devicePixelRatio || 1;
-            const rects = vList.map(v => ({ x: v.left / k, y: v.top / k, w: (v.right - v.left) / k, h: (v.bottom - v.top) / k }));
-            syncIncomingIcons(rects);
-          }
-        });
-      }
-
-      Object.defineProperty(window, 'cv', { get: () => cv });
-      Object.defineProperty(window, 'W', { get: () => W });
-      Object.defineProperty(window, 'H', { get: () => H });
-      Object.defineProperty(window, 'WALL', { get: () => WALL });
-      Object.defineProperty(window, 'icons', { get: () => icons });
-      Object.defineProperty(window, 'cacheOK', { get: () => cacheOK, set: v => { cacheOK = !!v; } });
-      window.draw = draw;
-      window.handleMessage = handleMessage;
-
-      _scheduleFrame();
+    } else if (m.t === 'settings') {
+      applySettings(m.v || m.params || {});
+    } else if (m.t === 'reset') {
+      applySettings(Object.assign({}, DEFAULTS, m.v || {}));
+    } else if (m.t === 'icons') {
+      const k = window.devicePixelRatio || 1;
+      icons = m.vis
+        ? (m.r || []).map(([l, t, r, b]) => ({
+            x: l / k,
+            y: t / k,
+            w: (r - l) / k,
+            h: (b - t) / k
+          }))
+        : [];
+      syncIconUniformBuffer();
+      if (PREVIEW || !WALL) drawGhosts();
     }
+  }
 
-    init();
-  })();
+  function updatePointer(ev) {
+    const rect = cv.getBoundingClientRect();
+    cursorState.tx = ev.clientX - rect.left;
+    cursorState.ty = ev.clientY - rect.top;
+    if (!cursorState.active) {
+      cursorState.x = cursorState.tx;
+      cursorState.y = cursorState.ty;
+      cursorState.vx = cursorState.vy = 0;
+    }
+    cursorState.active = true;
+    cursorState.lastMove = performance.now();
+  }
+  window.addEventListener('pointermove', updatePointer, { passive: true });
+  window.addEventListener('pointerdown', updatePointer, { passive: true });
+  window.addEventListener('pointerleave', () => { cursorState.active = false; }, { passive: true });
+
+  window.addEventListener('deskland:lowmode', ev => {
+    LOW = !!(ev && ev.detail && ev.detail.lowMode);
+    resize();
+  });
+
+  window.addEventListener('resize', resize);
+
+  if (initGL()) {
+    resize();
+    if (!WALL) {
+      const gd = document.createElement('div');
+      gd.id = 'ghosts';
+      document.body.appendChild(gd);
+    }
+    if (PREVIEW) {
+      window.addEventListener('message', ev => {
+        if (ev.source === parent) handleMessage(ev.data);
+      });
+      parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
+    } else if (WALL) {
+      const host = window.chrome && window.chrome.webview;
+      if (host) {
+        host.addEventListener('message', ev => handleMessage(ev.data));
+        host.postMessage('ready');
+      }
+    } else {
+      icons = [
+        [0.05, 0.09], [0.05, 0.23], [0.05, 0.37],
+        [0.15, 0.09], [0.15, 0.23],
+        [0.86, 0.12], [0.86, 0.26]
+      ].map(([a, b]) => ({ x: W * a, y: H * b, w: 76, h: 90 }));
+      syncIconUniformBuffer();
+      drawGhosts();
+    }
+    sched();
+  }
   </script>
   <script src="share.js"></script>
 </body>

@@ -25,3 +25,21 @@ Windows 安装包使用 NSIS 3.13 制作。便携编译器仅在构建时下载�
 - 许可证：MIT License（https://opensource.org/licenses/MIT）
 
 The 9 3D dotted orb designs in `prototype/thinking-orbs-engine.js` and `prototype/thinking-orbs.html` are ported from `haplollc/ThinkingOrbs` (originally Jakub Antalik's `thinking-orbs` web engine) under the MIT License.
+
+## Quiet Snow (Snowhush Inspiration)
+
+`prototype/quietsnow.html` ve `prototype/quietsnow-engine.js` dosyaları DiyarDesk için sıfırdan özgün (GPL-3.0) olarak yazılmıştır; ancak etkileşimli kar birikimi, pencere üstünden kayma/dökülme, imleçle süpürme ve dört mevsim atmosfer konsepti için `mbezruchko/Snowhush` projesinden ilham alınmıştır:
+
+- Referans proje / Reference project: https://github.com/mbezruchko/Snowhush
+- Not: `prototype/quietsnow.html` and `prototype/quietsnow-engine.js` are original GPL-3.0 implementations written from scratch for DiyarDesk, inspired by the interactive snow & seasonal desktop experience of `mbezruchko/Snowhush`.
+
+## Liquid Glass Studio
+
+`prototype/liquidglass.html` içindeki WebGL2 fiziksel Snell kırılımı, kromatik RGB dispersiyon, ayrık 2 geçişli Gaussian bulanıklık, süperelips SDF + `smin` sıvı kaynaşması ve LCH Fresnel/parlama shader matematiği MIT lisanslı `iyinchao/liquid-glass-studio` projesinden uyarlanmıştır:
+
+- Depo / Repository: https://github.com/iyinchao/liquid-glass-studio
+- Telif / Copyright: Copyright (c) 2024 Charles Yin
+- Lisans / License: MIT License (https://opensource.org/licenses/MIT)
+- LCH renk dönüşüm yardımcıları: `GLSL-Color-Functions` (`Rachmanin0xFF/GLSL-Color-Functions`)
+
+The WebGL2 physical Snell refraction, chromatic RGB dispersion, 2-pass separable Gaussian blur, superellipse SDF with polynomial `smin` liquid merging, and LCH Fresnel/glare shader math in `prototype/liquidglass.html` are adapted from `iyinchao/liquid-glass-studio` under the MIT License.

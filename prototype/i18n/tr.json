@@ -162,6 +162,77 @@
     "errStart": "Başlatılamadı: {msg}"
   },
   "themes": {
+    "quietsnow": {
+      "name": "Sessiz Kar",
+      "creditPrefix": "İlham kaynağı:",
+      "desc": "Snowhush projesinden ilham alan gerçekçi canlı fizik ve etkileşim: Kar, camda süzülen yağmur damlaları, sonbahar yaprakları ve kiraz çiçeği modları. Ekran dibinde, masaüstü simgelerinde ve açık pencerelerin üstünde birikir; hareket edince dökülür ve imleçle süpürülür.",
+      "groups": [
+        "Mevsim ve Hava",
+        "Birikme ve Etkileşim",
+        "Atmosfer ve Görünüm",
+        "Performans"
+      ],
+      "params": {
+        "mode": {
+          "label": "Mevsim modu",
+          "hint": "Gerçekçi kar, camda süzülen yağmur damlaları, sonbahar yaprakları ve kiraz çiçeği arasında anında geçiş yapın",
+          "options": ["Kar", "Yağmur", "Sonbahar Yaprakları", "Kiraz Çiçeği"]
+        },
+        "intensity": {
+          "label": "Yağış yoğunluğu",
+          "hint": "Kar tanesi, yağmur, yaprak veya taçyaprak yoğunluğu"
+        },
+        "wind": {
+          "label": "Rüzgâr yönü ve gücü",
+          "hint": "Eksi değerler sola, artı değerler sağa eser"
+        },
+        "gusts": {
+          "label": "Doğal esintiler",
+          "hint": "Zaman zaman artan rüzgâr hamleleri ve kar yüzeyinden savrulma (spindrift)"
+        },
+        "accumulate": {
+          "label": "Birikme yüzeyi",
+          "hint": "Karın, yaprakların veya yağmur damlalarının yalnızca zeminde mi yoksa masaüstü simgelerinde de mi birikeceğini seçin",
+          "options": ["Kapalı", "Yalnızca Zemin", "Zemin ve Simgeler"]
+        },
+        "windows": {
+          "label": "Pencerelerde birikme",
+          "hint": "Kar, yapraklar ve yağmur açık pencerelerin üst kenarlarında da birikir; pencere taşınınca veya kapanınca dökülür",
+          "options": ["Kapalı", "Açık"]
+        },
+        "melt": {
+          "label": "Doğal erime / solma",
+          "hint": "Kar yığınlarının yavaşça erimesi veya yaprak/taçyaprakların zamanla solup sahneyi dengede tutması"
+        },
+        "cursor": {
+          "label": "İmleç etkileşimi",
+          "hint": "Fareyi gezdirerek karı süpürün, yaprakları havalandırın veya yağmur damlalarını sıyırın",
+          "options": ["Kapalı", "Yumuşak", "Güçlü"]
+        },
+        "depth": {
+          "label": "Yığın derinliği",
+          "hint": "Zeminde ve simge üstlerinde oluşabilecek en yüksek birikinti kalınlığı"
+        },
+        "atmosphere": {
+          "label": "Arka plan atmosferi",
+          "hint": "Sakin kış atmosferi ve ortam ışıklandırmasını seçin",
+          "options": ["Gece Sessizliği", "Mavi Saat", "Sisli Kış Sabahı", "Sokak Lambası Sıcaklığı"]
+        },
+        "sparkle": {
+          "label": "Parıltı ve ışık dokusu",
+          "hint": "Kar kristali yüzey parıltısı, yağmur damlası yansıması ve taçyaprak ışık geçişi"
+        },
+        "backdrop": {
+          "label": "Uzak silüet ve sis",
+          "hint": "Ufuktaki dağ sırtları, uzaktaki çam gölgeleri ve yer sisinin belirginliği"
+        },
+        "quality": {
+          "label": "Kalite",
+          "hint": "Çizim çözünürlüğü ve parçacık bütçesi",
+          "options": ["Düşük", "Dengeli", "Yüksek"]
+        }
+      }
+    },
     "papercut": {
       "name": "Kâğıt Bahçe — Katı' Işığında",
       "desc": "Katmanlı kâğıt kesme (shadow box) bahçesi: lale, karanfil, sümbül, selvi, çınar ve uzakta Boğaz silüeti. Masaüstü ikonları kâğıtlara kesilmiş, üç halkalı niş pencerelere dönüşür.",
@@ -1257,7 +1328,8 @@
     },
     "liquidglass": {
       "name": "Liquid Glass Kırınımlı Yüzey",
-      "desc": "Yarı saydam optik kırınımlı sıvı cam damlacıkları arkasında akan ipeksi ışık ağı, prizmatik renk saçılımı kenarları, imleç merceği ve masaüstü simgelerinin etrafında buzlu cam yuvalar",
+      "creditPrefix": "Optik motor / atıf:",
+      "desc": "WebGL2 çok geçişli gerçek fiziksel Apple Liquid Glass: Snell yasası kenar kırılımı, RGB kromatik prizma saçılımı, 2 geçişli Gaussian buzlu cam, LCH Fresnel ve çift yönlü kenar parıltısı, sıvı kaynaşma (smin) ve yaylı imleç merceği",
       "groups": [
         "Cam ve Işık",
         "Sıvı Hareket",
@@ -1270,7 +1342,8 @@
             "Tahoe Gök Mavisi",
             "Aurora Prizması",
             "Gün Batımı İpeği",
-            "Obsidyen Cam"
+            "Obsidyen Cam",
+            "Klasik İpek"
           ]
         },
         "refraction": {
@@ -1281,6 +1354,10 @@
         },
         "dispersion": {
           "label": "Kromatik kenar"
+        },
+        "mergeRate": {
+          "label": "Sıvı kaynaşma",
+          "hint": "Cam damlalarının, imleç merceğinin ve simge yuvalarının birbirine yaklaşınca sıvı cam gibi birleşme derecesi"
         },
         "dropletCount": {
           "label": "Damlacık sayısı"

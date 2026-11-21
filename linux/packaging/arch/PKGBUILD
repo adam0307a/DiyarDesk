@@ -1,6 +1,6 @@
 # Maintainer: DiyarDesk contributors
 pkgname=diyardesk
-pkgver=0.2.11
+pkgver=0.2.12
 pkgrel=1
 pkgdesc="DiyarDesk — adaptive animated wallpaper that follows desktop icons (based on Deskland)"
 arch=('any')
