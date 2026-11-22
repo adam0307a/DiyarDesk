@@ -6,7 +6,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LINUX=$(CDPATH= cd -- "$HERE/.." && pwd)
 ROOT=$(CDPATH= cd -- "$LINUX/.." && pwd)
-VERSION="0.2.14~linux1"
+VERSION="0.3.0~linux1"
 ARCH="all"
 PKG="diyardesk"
 STAGE=$(mktemp -d)
