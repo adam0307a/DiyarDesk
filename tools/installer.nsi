@@ -196,6 +196,7 @@ Section "Uninstall"
   ${If} $1 != ""
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPreview"
   ${EndIf}
+  Delete "$SMSTARTUP\Deskland.lnk"
   !include "${DELETE_LIST}"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"

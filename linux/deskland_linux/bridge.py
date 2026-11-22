@@ -92,6 +92,62 @@ class BridgeWebView:
         manager.add_script(script)
         self.webview = WebKit2.WebView.new_with_user_content_manager(manager)
         self._configure()
+        try:
+            self.webview.connect("script-dialog", lambda *_a: True)
+        except (AttributeError, TypeError):
+            pass
+        try:
+            self.webview.connect("create", lambda *_a: None)
+        except (AttributeError, TypeError):
+            pass
+
+    def install_navigation_guard(self, allowed_port: int | None = None) -> None:
+        """Block any navigation or popup outside the local loopback origin."""
+        from .server import is_allowed_local_uri
+
+        def _on_decide_policy(_webview: Any, decision: Any, decision_type: Any) -> bool:
+            if decision_type not in (
+                WebKit2.PolicyDecisionType.NAVIGATION_ACTION,
+                WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION,
+            ):
+                return False
+            try:
+                action = decision.get_navigation_action()
+                request = action.get_request() if action is not None else None
+                uri = request.get_uri() if request is not None else ""
+            except Exception:
+                decision.ignore()
+                return True
+            if decision_type == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+                decision.ignore()
+                return True
+            if not is_allowed_local_uri(uri, allowed_port=allowed_port):
+                decision.ignore()
+                return True
+            return False
+
+        try:
+            self.webview.connect("decide-policy", _on_decide_policy)
+        except (AttributeError, TypeError):
+            pass
+
+    def set_process_terminated_handler(self, handler: Callable[[str], None]) -> None:
+        """Register a callback invoked if the WebKitWebProcess crashes or terminates."""
+
+        def _on_terminated(_webview: Any, reason: Any) -> None:
+            try:
+                name = getattr(reason, "value_nick", None) or str(reason)
+            except Exception:
+                name = "unknown"
+            try:
+                handler(name)
+            except Exception:
+                pass
+
+        try:
+            self.webview.connect("web-process-terminated", _on_terminated)
+        except (AttributeError, TypeError):
+            pass
 
     def add_user_script(self, source: str, at_end: bool = True) -> None:
         """Register an auxiliary UserScript on this WebView."""
@@ -117,6 +173,10 @@ class BridgeWebView:
             ("set_enable_html5_local_storage", True),
             ("set_enable_html5_database", True),
             ("set_media_playback_requires_user_gesture", False),
+            ("set_allow_file_access_from_file_urls", False),
+            ("set_allow_universal_access_from_file_urls", False),
+            ("set_javascript_can_open_windows_automatically", False),
+            ("set_enable_hyperlink_auditing", False),
             ("set_enable_developer_extras", bool(os.environ.get("DESKLAND_DEBUG"))),
         ):
             fn = getattr(settings, name, None)

@@ -96,14 +96,16 @@ export DESKLAND_PROTOTYPE="${DESKLAND_PROTOTYPE:-/usr/lib/deskland/prototype}"
 exec python3 -m deskland_linux "$@"
 EOF
 chmod 755 %{buildroot}%{_bindir}/deskland-linux
+install -m 755 linux/bin/diyardesk-ctl %{buildroot}%{_bindir}/diyardesk-ctl
 
 %find_lang deskland
 
 %files -f deskland.lang
 %license LICENSE NOTICE THIRD_PARTY_NOTICES.md TRADEMARKS.md
-%doc README.md
+%doc README.md SECURITY.md
 
 %{_bindir}/deskland-linux
+%{_bindir}/diyardesk-ctl
 %{_datadir}/applications/deskland.desktop
 %{_datadir}/icons/hicolor/scalable/apps/deskland.svg
 %{_datadir}/plasma/wallpapers/org.deskland.preview

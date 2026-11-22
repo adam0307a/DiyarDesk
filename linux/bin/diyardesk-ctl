@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+if [ -d "/usr/lib/deskland/linux" ]; then
+  export PYTHONPATH="/usr/lib/deskland/linux${PYTHONPATH:+:$PYTHONPATH}"
+elif [ -d "/usr/lib/deskland" ]; then
+  export PYTHONPATH="/usr/lib/deskland${PYTHONPATH:+:$PYTHONPATH}"
+else
+  SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+  export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+fi
+exec python3 -m deskland_linux.ctl "$@"

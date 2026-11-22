@@ -22,9 +22,16 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from .audio import NativeAudioPlayer, resolve_theme_audio_path  # noqa: E402
 from .bridge import BridgeWebView  # noqa: E402
 from .config import config_dir  # noqa: E402
+from .displays import MonitorInfo, detect_compositor_monitors  # noqa: E402
 from .icons import make_adapter  # noqa: E402
+from .mpv_player import MpvVideoBackend, find_theme_video_file  # noqa: E402
 from .pause import PauseMonitor  # noqa: E402
+from .power import PowerMonitor, PowerState  # noqa: E402
+from .scheduler import compute_solar_phase, detect_os_dark_mode  # noqa: E402
 from .static_wallpaper import StaticWallpaper  # noqa: E402
+from .sysbridge import LocalAudioMeter, SystemStatsSampler  # noqa: E402
+from .watchdog import ResourceWatchdog, find_webkit_child_pids, sample_processes  # noqa: E402
+from .windows import detect_active_windows, detect_workspace_state  # noqa: E402
 
 
 def plasma_pause_path() -> Path:
@@ -308,6 +315,9 @@ class Wallpaper:
         backend: str = "auto",
         page: str = "flat.html",
         adapter: str | None = None,
+        monitor_info: MonitorInfo | None = None,
+        gdk_monitor: Any = None,
+        is_primary: bool = True,
     ) -> None:
         self.host = host
         self.server = server
@@ -338,13 +348,28 @@ class Wallpaper:
         self._low_mode = bool(getattr(getattr(self.host, "settings", None), "low_mode", False))
         self._disable_auto_pause = bool(getattr(getattr(self.host, "settings", None), "disable_auto_pause", False))
         self._closed = False
+        self._is_primary = bool(is_primary)
 
-        geo, scale = primary_geometry()
+        if monitor_info is not None:
+            geo = Gdk.Rectangle()
+            geo.x = monitor_info.x
+            geo.y = monitor_info.y
+            geo.width = monitor_info.width
+            geo.height = monitor_info.height
+            scale: float = float(monitor_info.scale)
+        else:
+            geo, int_scale = primary_geometry()
+            scale = float(int_scale)
+            # Prefer exact fractional scale from Wayland compositor when available.
+            for cm in detect_compositor_monitors():
+                if cm.primary:
+                    scale = float(cm.scale)
+                    break
         self.geo = geo
         self.scale = scale
-        self.screen_w = geo.width * scale
-        self.screen_h = geo.height * scale
-        self.monitor = (
+        self.screen_w = max(1, int(round(geo.width * scale)))
+        self.screen_h = max(1, int(round(geo.height * scale)))
+        self.monitor = gdk_monitor or (
             Gdk.Display.get_default().get_primary_monitor()
             or Gdk.Display.get_default().get_monitor(0)
         )
@@ -358,14 +383,24 @@ class Wallpaper:
             forced=self._adapter,
         )
         self.pause_monitor = PauseMonitor(
-            geo.x * scale,
-            geo.y * scale,
+            int(round(geo.x * scale)),
+            int(round(geo.y * scale)),
             self.screen_w,
             self.screen_h,
             scale,
             log,
         )
         self.pause_monitor.low_mode = self._low_mode
+        self.power_monitor = PowerMonitor()
+        self._last_power_perf: tuple[bool, bool] | None = None
+        self._crash_times: list[float] = []
+        self._watchdog_timeout = 0
+        self.resource_watchdog = ResourceWatchdog()
+        self._last_watchdog_check = 0.0
+        self.mpv_backend = MpvVideoBackend(log)
+        self.stats_sampler = SystemStatsSampler()
+        self.audio_meter = LocalAudioMeter()
+        self._last_stats_ts = 0.0
         self.backend = self._select_backend(backend)
         self._safe_insets = detect_layer_shell_safe_insets(self.backend)
         self.static_wallpaper = StaticWallpaper(log)
@@ -424,6 +459,11 @@ class Wallpaper:
         if self.bridge is not None:
             return
         self.bridge = BridgeWebView(self._on_message)
+        server_port = getattr(getattr(self, "server", None), "port", None)
+        if hasattr(self.bridge, "install_navigation_guard"):
+            self.bridge.install_navigation_guard(allowed_port=server_port or None)
+        if hasattr(self.bridge, "set_process_terminated_handler"):
+            self.bridge.set_process_terminated_handler(self._on_web_process_terminated)
         low_js_path = getattr(getattr(self, "server", None), "prototype", None)
         if low_js_path is not None:
             candidate = Path(low_js_path) / "low-mode.js"
@@ -883,10 +923,22 @@ class Wallpaper:
         self.send_virtual_state()
         if self.bridge is not None:
             self.bridge.post({"t": "lowMode", "v": self._is_low_mode()})
+            pm = getattr(self, "power_monitor", None)
+            if pm is not None:
+                st = pm.state
+                self.bridge.post(
+                    {
+                        "t": "perf",
+                        "adaptiveFps": True,
+                        "onBattery": st.on_battery,
+                        "reducedMotion": st.reduced_motion,
+                    }
+                )
             self.bridge.post(self.host.wallpaper_settings_message())
             if self._last_icons is not None:
                 self.bridge.post(self._last_icons)
         self._sync_native_audio()
+        self.sync_mpv_video()
         if self.backend == "plasma-plugin":
             if self._pending_snapshot and self.bridge is not None:
                 self._pending_snapshot = False
@@ -976,28 +1028,72 @@ class Wallpaper:
         return True
 
     def _read_icons(self) -> None:
+        win_message: dict[str, Any] | None = None
+        ws_message: dict[str, Any] | None = None
         try:
             visible, rects = self.icon_adapter.read()
+            raw_rects = [rect.as_array() for rect in rects]
+            settings = getattr(self.host, "settings", None)
+            window_aware = bool(getattr(settings, "window_aware", False))
+            if window_aware:
+                wins = detect_active_windows()
+                ws_id, panels = detect_workspace_state()
+                ox = getattr(getattr(self, "geo", None), "x", 0)
+                oy = getattr(getattr(self, "geo", None), "y", 0)
+                sc = float(getattr(self, "scale", 1.0) or 1.0)
+                win_message = {
+                    "t": "windows",
+                    "r": [w.as_wire_list(scale=sc, offset_x=ox, offset_y=oy) for w in wins],
+                }
+                ws_message = {
+                    "t": "workspace",
+                    "id": ws_id,
+                    "panels": [p.as_rect(scale=sc, offset_x=ox, offset_y=oy) for p in panels],
+                }
+                if not raw_rects and wins:
+                    # On iconless tiling Wayland desktops (Hyprland/Sway/niri), let themes
+                    # react seamlessly to open windows when window-aware scenery is enabled.
+                    raw_rects = [w.as_icon_rect(scale=sc, offset_x=ox, offset_y=oy) for w in wins]
+                    visible = True
             message: dict[str, Any] = {
                 "t": "icons",
                 "vis": bool(visible),
-                "r": [rect.as_array() for rect in rects],
+                "r": raw_rects,
             }
             if any(rect.label for rect in rects):
                 message["n"] = [rect.label for rect in rects]
         except Exception as exc:  # adapter must never kill the timer
             self.log.exception("Simge okuma hatası", exc)
             message = None
-        GLib.idle_add(self._apply_icons, message)
+        GLib.idle_add(self._apply_icons, message, win_message, ws_message)
 
     def _poll_icons_once(self) -> bool:
         if not self._icon_busy:
             self._poll_icons()
         return False
 
-    def _apply_icons(self, message: dict[str, Any] | None) -> bool:
+    def _apply_icons(
+        self,
+        message: dict[str, Any] | None,
+        win_message: dict[str, Any] | None = None,
+        ws_message: dict[str, Any] | None = None,
+    ) -> bool:
         self._icon_busy = False
-        if message is None or self._closed:
+        if self._closed:
+            return False
+        if win_message is not None:
+            w_enc = json.dumps(win_message, ensure_ascii=False, separators=(",", ":"))
+            if w_enc != getattr(self, "_last_windows", None):
+                self._last_windows = w_enc
+                if self._ready and self.bridge is not None:
+                    self.bridge.post(w_enc)
+        if ws_message is not None:
+            ws_enc = json.dumps(ws_message, ensure_ascii=False, separators=(",", ":"))
+            if ws_enc != getattr(self, "_last_workspace", None):
+                self._last_workspace = ws_enc
+                if self._ready and self.bridge is not None:
+                    self.bridge.post(ws_enc)
+        if message is None:
             return False
         encoded = json.dumps(message, ensure_ascii=False, separators=(",", ":"))
         if encoded == self._last_icons:
@@ -1014,6 +1110,30 @@ class Wallpaper:
         self.log.write(f"Simge değişimi: {len(message['r'])} adet")
         return False
 
+    def _on_web_process_terminated(self, reason: str) -> None:
+        if self._closed:
+            return
+        now = time.monotonic()
+        recent = [ts for ts in getattr(self, "_crash_times", []) if now - ts < 60.0]
+        recent.append(now)
+        self._crash_times = recent
+        self.log.write(f"WebKitWebProcess sonlandı (neden={reason}, son 60 sn={len(recent)})")
+        if len(recent) > 3:
+            self.log.write("WebKitWebProcess art arda çöktü; sonsuz yeniden yükleme durduruldu")
+            return
+        delay_ms = 1000 * (2 ** (len(recent) - 1))
+        if getattr(self, "_watchdog_timeout", 0):
+            GLib.source_remove(self._watchdog_timeout)
+        self._watchdog_timeout = GLib.timeout_add(delay_ms, self._watchdog_reload)
+
+    def _watchdog_reload(self) -> bool:
+        self._watchdog_timeout = 0
+        if self._closed or self.bridge is None:
+            return False
+        self.log.write("Watchdog: duvar kağıdı WebView yeniden yükleniyor")
+        self.load_page(self._page)
+        return False
+
     # ---------------------------------------------------------------- pause
     def _poll_pause(self) -> bool:
         if self._closed:
@@ -1023,9 +1143,6 @@ class Wallpaper:
             # and Plasma hosts keep near-zero idle GPU/CPU usage.
             GLib.idle_add(self._apply_pause, True)
             return False
-        if getattr(self, "_disable_auto_pause", False):
-            GLib.idle_add(self._apply_pause, False)
-            return True
         if self._pause_busy:
             return True
         self._pause_busy = True
@@ -1033,23 +1150,121 @@ class Wallpaper:
         return True
 
     def _read_pause(self) -> None:
+        power_state = PowerState()
+        pm = getattr(self, "power_monitor", None)
+        if pm is not None:
+            try:
+                power_state = pm.poll()
+            except Exception as exc:
+                self.log.exception("Güç durumu okuma hatası", exc)
         try:
-            auto = False if getattr(self, "_disable_auto_pause", False) else self.pause_monitor.should_pause()
+            disable_auto = bool(getattr(self, "_disable_auto_pause", False))
+            if power_state.locked:
+                auto = True
+            elif disable_auto:
+                auto = False
+            elif power_state.power_saver:
+                auto = True
+            else:
+                auto = self.pause_monitor.should_pause()
         except Exception as exc:
             self.log.exception("Duraklatma algılama hatası", exc)
             auto = False
-        GLib.idle_add(self._apply_pause, auto)
+        GLib.idle_add(self._apply_pause, auto, power_state)
 
     def _poll_pause_once(self) -> bool:
         if not self._pause_busy:
             self._poll_pause()
         return False
 
-    def _apply_pause(self, auto: bool) -> bool:
+    def push_environment(self, force: bool = False) -> None:
+        if self._closed or not self._ready or self.bridge is None:
+            return
+        settings = getattr(self.host, "settings", None)
+        solar_sync = bool(getattr(settings, "solar_sync", False))
+        now = time.monotonic()
+        last_ts = float(getattr(self, "_last_env_ts", 0.0))
+        if not force and (now - last_ts) < 60.0:
+            return
+        self._last_env_ts = now
+        payload = compute_solar_phase(dark_mode=detect_os_dark_mode(), solar_sync=solar_sync)
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        if force or encoded != getattr(self, "_last_env", None):
+            self._last_env = encoded
+            self.bridge.post(encoded)
+
+    def sync_mpv_video(self) -> None:
+        mpv = getattr(self, "mpv_backend", None)
+        if mpv is None:
+            return
+        settings = getattr(self.host, "settings", None)
+        prefer_mpv = bool(getattr(settings, "prefer_mpv", False))
+        custom_dir = getattr(self.host, "custom_themes_dir", None)
+        page = str(getattr(self, "_page", "") or "")
+        if prefer_mpv and self.backend == "x11" and page.startswith("__custom/") and custom_dir is not None:
+            tid = page.split("/", 2)[1]
+            vpath = find_theme_video_file(Path(custom_dir) / tid)
+            if vpath is not None and self.window is not None:
+                gdk_win = self.window.get_window()
+                wid = gdk_win.get_xid() if gdk_win is not None and hasattr(gdk_win, "get_xid") else None
+                params = settings.for_theme(tid) if settings is not None else {}
+                if mpv.start(vpath, wid=wid, speed=float(params.get("speed", 1.0)), brightness=float(params.get("brightness", 1.0))):
+                    return
+        mpv.stop()
+
+    def _tick_system_bridge_and_watchdog(self) -> None:
+        if self._closed:
+            return
+        now = time.monotonic()
+        # 1. Runaway script CPU/RAM watchdog every 10s
+        rw = getattr(self, "resource_watchdog", None)
+        if rw is not None and (now - float(getattr(self, "_last_watchdog_check", 0.0))) >= 10.0:
+            self._last_watchdog_check = now
+            pids = find_webkit_child_pids()
+            if pids:
+                reason = rw.evaluate(sample_processes(pids), now)
+                if reason is not None:
+                    self.log.write(f"Kaçak betik sınır aşımı algılandı ({reason}); duvar kağıdı sıfırlanıyor")
+                    rw.reset()
+                    self._on_web_process_terminated(reason)
+        # 2. Opt-in local System Stats & Audio Reactive bridge
+        settings = getattr(self.host, "settings", None)
+        bridge_on = bool(getattr(settings, "system_bridge", False))
+        am = getattr(self, "audio_meter", None)
+        if not bridge_on:
+            if am is not None:
+                am.stop()
+            return
+        if self._last_pause == 1 or not self._ready or self.bridge is None:
+            return
+        if am is not None:
+            am.start()
+            self.bridge.post(am.latest_payload())
+        sampler = getattr(self, "stats_sampler", None)
+        if sampler is not None and (now - float(getattr(self, "_last_stats_ts", 0.0))) >= 2.0:
+            self._last_stats_ts = now
+            self.bridge.post(sampler.sample())
+
+    def _apply_pause(self, auto: bool, power_state: PowerState | None = None) -> bool:
         self._pause_busy = False
         if self._closed:
             return False
-        effective_auto = False if getattr(self, "_disable_auto_pause", False) else bool(auto)
+        self.push_environment(force=False)
+        self._tick_system_bridge_and_watchdog()
+        if power_state is not None and self._ready and self.bridge is not None:
+            perf_sig = (power_state.on_battery, power_state.reduced_motion)
+            if perf_sig != getattr(self, "_last_power_perf", None):
+                self._last_power_perf = perf_sig
+                self.bridge.post(
+                    {
+                        "t": "perf",
+                        "adaptiveFps": True,
+                        "onBattery": power_state.on_battery,
+                        "reducedMotion": power_state.reduced_motion,
+                    }
+                )
+        locked = bool(power_state and power_state.locked)
+        effective_auto = True if locked else (False if getattr(self, "_disable_auto_pause", False) else bool(auto))
         pause = (
             True
             if self.backend in ("plasma-plugin", "static")
@@ -1326,6 +1541,12 @@ class Wallpaper:
             return
         self._closed = True
         self._native_audio.stop()
+        mpv = getattr(self, "mpv_backend", None)
+        if mpv is not None:
+            mpv.stop()
+        am = getattr(self, "audio_meter", None)
+        if am is not None:
+            am.stop()
         if self.backend == "plasma-plugin":
             self._write_plasma_pause(False)
         if self._snapshot_timeout:
@@ -1343,6 +1564,9 @@ class Wallpaper:
         if getattr(self, "_pointer_timeout", 0):
             GLib.source_remove(self._pointer_timeout)
             self._pointer_timeout = 0
+        if getattr(self, "_watchdog_timeout", 0):
+            GLib.source_remove(self._watchdog_timeout)
+            self._watchdog_timeout = 0
         self.static_wallpaper.restore()
         if self._static_file is not None:
             try:

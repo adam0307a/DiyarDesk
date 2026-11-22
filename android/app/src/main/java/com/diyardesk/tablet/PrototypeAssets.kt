@@ -2,6 +2,9 @@ package com.diyardesk.tablet
 
 import android.content.Context
 import android.net.Uri
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import androidx.webkit.WebViewAssetLoader
@@ -19,6 +22,70 @@ import java.io.InputStream
 object PrototypeAssets {
 
     const val ORIGIN = "https://appassets.androidplatform.net"
+
+    const val SECURITY_CSP =
+        "default-src 'self' data: blob:; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "style-src 'self' 'unsafe-inline' data: blob:; " +
+            "img-src 'self' data: blob:; " +
+            "media-src 'self' data: blob:; " +
+            "font-src 'self' data: blob:; " +
+            "connect-src 'self' data: blob:; " +
+            "frame-src 'self' data: blob:; " +
+            "object-src 'none'; " +
+            "base-uri 'self'; " +
+            "form-action 'none'"
+
+    private val SECURITY_HEADERS: Map<String, String> = mapOf(
+        "Content-Security-Policy" to SECURITY_CSP,
+        "X-Content-Type-Options" to "nosniff",
+        "Referrer-Policy" to "no-referrer"
+    )
+
+    private fun withSecurityHeaders(resp: WebResourceResponse): WebResourceResponse {
+        val merged = LinkedHashMap<String, String>()
+        resp.responseHeaders?.let { merged.putAll(it) }
+        merged.putAll(SECURITY_HEADERS)
+        resp.responseHeaders = merged
+        return resp
+    }
+
+    fun blockedResponse(): WebResourceResponse = WebResourceResponse(
+        "text/plain",
+        "utf-8",
+        403,
+        "Blocked",
+        SECURITY_HEADERS,
+        ByteArrayInputStream(ByteArray(0))
+    )
+
+    fun createSilentWebChromeClient(): WebChromeClient = object : WebChromeClient() {
+        override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+            result?.cancel()
+            return true
+        }
+
+        override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+            result?.cancel()
+            return true
+        }
+
+        override fun onJsPrompt(
+            view: WebView?,
+            url: String?,
+            message: String?,
+            defaultValue: String?,
+            result: JsPromptResult?
+        ): Boolean {
+            result?.cancel()
+            return true
+        }
+
+        override fun onJsBeforeUnload(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+            result?.cancel()
+            return true
+        }
+    }
 
     /** Installed before any HTML `<script>` runs so `window.chrome.webview` works identically to Windows/Linux hosts. */
     val WEBVIEW_BRIDGE_JS = """
@@ -67,7 +134,7 @@ object PrototypeAssets {
                 return@PathHandler try {
                     val base = assetManager.open("prototype/themes.json").bufferedReader(Charsets.UTF_8).use { it.readText() }
                     val merged = importer.mergedThemesJson(base).toByteArray(Charsets.UTF_8)
-                    WebResourceResponse("application/json", "utf-8", ByteArrayInputStream(merged))
+                    withSecurityHeaders(WebResourceResponse("application/json", "utf-8", ByteArrayInputStream(merged)))
                 } catch (_: Exception) {
                     null
                 }
@@ -78,7 +145,7 @@ object PrototypeAssets {
                 if (!target.isFile) return@PathHandler null
                 return@PathHandler try {
                     val mime = CustomThemeImporter.guessMimeType(target.name)
-                    WebResourceResponse(mime.substringBefore(';'), "utf-8", FileInputStream(target))
+                    withSecurityHeaders(WebResourceResponse(mime.substringBefore(';'), "utf-8", FileInputStream(target)))
                 } catch (_: Exception) {
                     null
                 }
@@ -87,7 +154,7 @@ object PrototypeAssets {
             return@PathHandler try {
                 val stream: InputStream = assetManager.open("prototype/$clean")
                 val mime = CustomThemeImporter.guessMimeType(clean)
-                WebResourceResponse(mime.substringBefore(';'), "utf-8", stream)
+                withSecurityHeaders(WebResourceResponse(mime.substringBefore(';'), "utf-8", stream))
             } catch (_: Exception) {
                 null
             }
@@ -101,7 +168,7 @@ object PrototypeAssets {
 
     fun installBridge(webView: WebView) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            WebViewCompat.addDocumentStartJavaScript(webView, WEBVIEW_BRIDGE_JS, setOf("*"))
+            WebViewCompat.addDocumentStartJavaScript(webView, WEBVIEW_BRIDGE_JS, setOf(ORIGIN))
         }
     }
 
@@ -129,5 +196,20 @@ object PrototypeAssets {
         return "flat.html"
     }
 
-    fun isLocalAppUrl(uri: Uri?): Boolean = uri?.host == "appassets.androidplatform.net"
+    fun isLocalAppUrl(uri: Uri?): Boolean =
+        uri?.scheme.equals("https", ignoreCase = true) &&
+            uri?.host.equals("appassets.androidplatform.net", ignoreCase = true)
+
+    fun isAllowedInWebView(uri: Uri?): Boolean {
+        if (uri == null) return false
+        if (isLocalAppUrl(uri)) return true
+        val scheme = uri.scheme?.lowercase() ?: return false
+        return scheme == "about" || scheme == "data" || scheme == "blob"
+    }
+
+    fun isSafeExternalHttpUrl(uri: Uri?): Boolean {
+        if (uri == null || isLocalAppUrl(uri)) return false
+        val scheme = uri.scheme?.lowercase() ?: return false
+        return scheme == "http" || scheme == "https"
+    }
 }

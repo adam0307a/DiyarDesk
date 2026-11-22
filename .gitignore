@@ -18,6 +18,10 @@ __pycache__/
 /android/local.properties
 *.apk
 *.aab
+/.pytest_cache/
+/macos/.build/
+/macos/.swiftpm/
+/out-*/
 
 # Graphify (code knowledge graph) generated output
 /graphify-out/*

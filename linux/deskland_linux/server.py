@@ -16,6 +16,35 @@ mimetypes.add_type("audio/ogg", ".opus")
 mimetypes.add_type("video/mp4", ".mp4")
 mimetypes.add_type("video/webm", ".webm")
 
+SECURITY_CSP = (
+    "default-src 'self' data: blob:; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; "
+    "style-src 'self' 'unsafe-inline' data: blob:; "
+    "img-src 'self' data: blob:; "
+    "media-src 'self' data: blob:; "
+    "font-src 'self' data: blob:; "
+    "connect-src 'self' data: blob:; "
+    "frame-src 'self' data: blob:; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'none'"
+)
+
+
+def is_allowed_local_uri(uri: str, allowed_port: int | None = None) -> bool:
+    """Return True if *uri* is safe for in-WebView navigation (local loopback or safe internal scheme)."""
+    if not uri:
+        return False
+    parsed = urlparse(uri)
+    scheme = (parsed.scheme or "").lower()
+    if scheme in ("about", "data", "blob"):
+        return True
+    if scheme == "http" and parsed.hostname in ("127.0.0.1", "localhost"):
+        if allowed_port is not None and parsed.port not in (None, allowed_port):
+            return False
+        return True
+    return False
+
 
 class _Handler(SimpleHTTPRequestHandler):
     share_dir: Path
@@ -40,6 +69,16 @@ class _Handler(SimpleHTTPRequestHandler):
         self.themes_provider = themes_provider
         self.prototype_dir = Path(directory)
         super().__init__(*args, directory=directory, **kwargs)
+
+    def end_headers(self) -> None:
+        self.send_header("Content-Security-Policy", SECURITY_CSP)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        super().end_headers()
+
+    def list_directory(self, path: str):  # noqa: ANN201 - stdlib signature
+        self.send_error(403, "Directory listing is disabled")
+        return None
 
     def _send_bytes(self, data: bytes, ctype: str) -> None:
         total = len(data)

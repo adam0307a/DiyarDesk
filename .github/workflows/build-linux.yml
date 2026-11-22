@@ -1,0 +1,60 @@
+name: Build Linux Packages & Run Tests
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/*"
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux test dependencies & run full pytest suite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext python3-pytest python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=linux python3 -m pytest -p no:cacheprovider -v linux/tests
+          find linux -type d \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} +
+
+      - name: Build .deb and generic Linux tarball
+        run: |
+          VER=$(python3 -c "import json; print(json.load(open('tools/version.json'))['version'])")
+          sh linux/packaging/build-deb.sh
+          DEB_PATH=$(find dist -maxdepth 1 -type f -name 'diyardesk_*_all.deb' | head -n 1)
+          test -n "$DEB_PATH"
+          dpkg-deb -I "$DEB_PATH"
+
+          STAGE_DIR=$(mktemp -d)
+          PKG_ROOT="$STAGE_DIR/DiyarDesk-${VER}-linux"
+          mkdir -p "$PKG_ROOT/linux"
+          cp LICENSE NOTICE README.md SECURITY.md THIRD_PARTY_NOTICES.md TRADEMARKS.md "$PKG_ROOT/"
+          cp -a prototype "$PKG_ROOT/"
+          cp -a linux/bin linux/deskland_linux linux/gnome-extension linux/kde-iconspy linux/packaging linux/plasma-wallpaper linux/tests linux/README.md linux/run.sh "$PKG_ROOT/linux/"
+          find "$PKG_ROOT" \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} +
+          find "$PKG_ROOT" -name '*.pyc' -delete
+
+          mkdir -p out-linux
+          cp "$DEB_PATH" out-linux/
+          TAR_NAME="DiyarDesk-${VER}-linux-any.tar.gz"
+          tar -C "$STAGE_DIR" -czf "out-linux/$TAR_NAME" "DiyarDesk-${VER}-linux"
+          rm -rf "$STAGE_DIR"
+
+          (
+            cd out-linux
+            for f in diyardesk_*_all.deb "$TAR_NAME"; do
+              sha256sum "$f" > "${f}.sha256"
+            done
+          )
+          ls -lh out-linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: diyardesk-linux
+          path: out-linux/*
+          if-no-files-found: error

@@ -28,9 +28,11 @@ cp -a "$ROOT/prototype/." "$STAGE/usr/lib/deskland/prototype/"
 cp -a "$LINUX/plasma-wallpaper/org.deskland.preview" "$STAGE/usr/share/plasma/wallpapers/"
 cp -a "$LINUX/kde-iconspy/org.deskland.iconspy" "$STAGE/usr/share/plasma/plasmoids/"
 cp -a "$LINUX/gnome-extension/deskland@deskland.app" "$STAGE/usr/share/gnome-shell/extensions/"
-# Compile gettext catalogs (msgfmt) into the system locale tree; system
-# extensions bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
-sh "$LINUX/gnome-extension/build-mo.sh" "$STAGE/usr/share/locale"
+# Compile gettext catalogs (msgfmt) into the system locale tree when present;
+# system extensions bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
+if [ -f "$LINUX/gnome-extension/build-mo.sh" ]; then
+  sh "$LINUX/gnome-extension/build-mo.sh" "$STAGE/usr/share/locale"
+fi
 rm -rf "$STAGE/usr/share/gnome-shell/extensions/deskland@deskland.app/locale" \
        "$STAGE/usr/share/gnome-shell/extensions/deskland@deskland.app/po"
 install -m 644 "$HERE/deskland.desktop" "$STAGE/usr/share/applications/deskland.desktop"
@@ -44,6 +46,7 @@ export DESKLAND_PROTOTYPE="${DESKLAND_PROTOTYPE:-/usr/lib/deskland/prototype}"
 exec python3 -m deskland_linux "$@"
 EOF
 chmod 755 "$STAGE/usr/bin/deskland-linux"
+install -m 755 "$LINUX/bin/diyardesk-ctl" "$STAGE/usr/bin/diyardesk-ctl"
 
 cat > "$STAGE/DEBIAN/control" <<EOF
 Package: $PKG

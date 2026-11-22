@@ -1,0 +1,27 @@
+name: Build macOS App & DMG
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/*"
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Swift unit tests & build DiyarDesk.app + DMG
+        run: bash macos/build-app.sh
+
+      - name: Upload macOS DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diyardesk-macos-arm64
+          path: |
+            out-macos/DiyarDesk-*-macos-*.dmg
+            out-macos/DiyarDesk-*-macos-*.dmg.sha256
+          if-no-files-found: error

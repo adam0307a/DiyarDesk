@@ -19,6 +19,7 @@ except ValueError:
 from gi.repository import Gdk, Gtk, WebKit2  # noqa: E402
 
 from .bridge import BridgeWebView  # noqa: E402
+from .server import is_allowed_local_uri  # noqa: E402
 
 
 class SettingsWindow:
@@ -79,6 +80,7 @@ class SettingsWindow:
         except Exception:
             return False
         parsed = urlparse(uri or "")
+        allowed_port = urlparse(self.url).port
         if parsed.scheme in ("http", "https") and parsed.hostname not in ("127.0.0.1", "localhost"):
             try:
                 subprocess.Popen(
@@ -88,6 +90,12 @@ class SettingsWindow:
                 )
             except OSError:
                 pass
+            decision.ignore()
+            return True
+        if decision_type == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            decision.ignore()
+            return True
+        if not is_allowed_local_uri(uri or "", allowed_port=allowed_port):
             decision.ignore()
             return True
         return False

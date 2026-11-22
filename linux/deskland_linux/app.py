@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ from . import autostart
 from .config import (
     APP_ID,
     APP_NAME,
+    DISPLAY_MODES,
     SUPPORTED_LANGS,
     VERSION,
     I18n,
@@ -35,7 +37,13 @@ from .config import (
     prototype_dir,
     repo_root,
 )
+from .diagnostics import export_diagnostics
+from .displays import MonitorInfo, compute_span_rect, detect_compositor_monitors
 from .importer import SUPPORTED_EXTS, custom_themes_dir, import_theme_file, remove_custom_theme
+from .ipc import IpcServer
+from .lan_sync import LanPairingServer
+from .lockscreen import apply_linux_lockscreen, make_blurred_lockscreen
+from .scheduler import PlaylistController
 from .server import LocalServer
 from .settings_window import SettingsWindow
 from .share import copy_files, copy_image, open_path, reveal_path, save_share
@@ -76,6 +84,22 @@ class DesklandHost:
         )
         self.server.start()
         self.wallpaper: Wallpaper | None = None
+        self.extra_wallpapers: list[Wallpaper] = []
+        self._requested_backend = "auto"
+        self._requested_adapter: str | None = None
+        self.lan_pairing = LanPairingServer(
+            custom_dir=self.custom_themes_dir,
+            state_provider=lambda: {
+                "theme": self.settings.theme,
+                "params": dict(self.settings.for_theme(self.settings.theme)),
+            },
+        )
+        self.playlist = PlaylistController(
+            interval_minutes=self.settings.playlist_interval_min,
+            themes=self.settings.playlist_themes,
+        )
+        self._playlist_timeout = 0
+        self.ipc_server = IpcServer(self._dispatch_ipc)
         self.settings_window: SettingsWindow | None = None
         self.tray: Tray | None = None
         self.last_icons: dict[str, Any] | None = None
@@ -112,6 +136,108 @@ class DesklandHost:
         self.log.write("Yüklenecek ücretsiz tema bulunamadı")
         self.settings.theme = "papercut"
 
+    def _all_wallpapers(self) -> list[Wallpaper]:
+        out: list[Wallpaper] = []
+        if self.wallpaper is not None:
+            out.append(self.wallpaper)
+        out.extend(self.extra_wallpapers)
+        return out
+
+    def _shutdown_wallpapers(self) -> None:
+        for wp in self._all_wallpapers():
+            try:
+                wp.shutdown()
+            except Exception:
+                pass
+        self.wallpaper = None
+        self.extra_wallpapers = []
+
+    def _spawn_wallpapers(self, backend: str, icon_adapter: str | None) -> None:
+        from gi.repository import Gdk
+
+        self._shutdown_wallpapers()
+        self._requested_backend = backend
+        self._requested_adapter = icon_adapter
+        mode = self.settings.display_mode
+        display = Gdk.Display.get_default()
+        gdk_monitors = (
+            [display.get_monitor(i) for i in range(display.get_n_monitors())]
+            if display is not None
+            else []
+        )
+        comp_monitors = detect_compositor_monitors()
+
+        if mode == "span" and len(comp_monitors) > 1:
+            span = compute_span_rect(comp_monitors)
+            self.wallpaper = Wallpaper(
+                host=self,
+                server=self.server,
+                log=self.log,
+                backend=backend,
+                page=self.current_page,
+                adapter=icon_adapter,
+                monitor_info=span,
+                is_primary=True,
+            )
+            self.wallpaper.load_page(self.current_page)
+            return
+
+        primary_mon = comp_monitors[0] if comp_monitors else None
+        for cm in comp_monitors:
+            if cm.primary:
+                primary_mon = cm
+                break
+        primary_gdk = (
+            display.get_primary_monitor() or (gdk_monitors[0] if gdk_monitors else None)
+            if display is not None
+            else None
+        )
+        self.wallpaper = Wallpaper(
+            host=self,
+            server=self.server,
+            log=self.log,
+            backend=backend,
+            page=self.current_page,
+            adapter=icon_adapter,
+            monitor_info=primary_mon,
+            gdk_monitor=primary_gdk,
+            is_primary=True,
+        )
+        self.wallpaper.load_page(self.current_page)
+
+        if mode in ("independent", "duplicate") and self.wallpaper.backend in ("layer-shell", "x11"):
+            extras: list[tuple[MonitorInfo | None, Any]] = []
+            if len(comp_monitors) > 1:
+                for idx, cm in enumerate(comp_monitors):
+                    if cm is primary_mon:
+                        continue
+                    gmon = gdk_monitors[idx] if idx < len(gdk_monitors) else None
+                    extras.append((cm, gmon))
+            elif len(gdk_monitors) > 1:
+                for gmon in gdk_monitors:
+                    if gmon == primary_gdk:
+                        continue
+                    g = gmon.get_geometry()
+                    sc = float(gmon.get_scale_factor() or 1)
+                    extras.append((MonitorInfo("secondary", g.x, g.y, g.width, g.height, sc, False), gmon))
+            for minfo, gmon in extras:
+                try:
+                    ewp = Wallpaper(
+                        host=self,
+                        server=self.server,
+                        log=self.log,
+                        backend=self.wallpaper.backend,
+                        page=self.current_page,
+                        adapter=icon_adapter,
+                        monitor_info=minfo,
+                        gdk_monitor=gmon,
+                        is_primary=False,
+                    )
+                    ewp.load_page(self.current_page)
+                    self.extra_wallpapers.append(ewp)
+                except Exception as exc:
+                    self.log.exception("İkincil monitör duvar kağıdı başlatılamadı", exc)
+
     # ---------------------------------------------------------------- startup
     def start(
         self,
@@ -130,15 +256,7 @@ class DesklandHost:
         self.app.hold()
         self.choose_theme()
         try:
-            self.wallpaper = Wallpaper(
-                host=self,
-                server=self.server,
-                log=self.log,
-                backend=backend,
-                page=self.current_page,
-                adapter=icon_adapter,
-            )
-            self.wallpaper.load_page(self.current_page)
+            self._spawn_wallpapers(backend=backend, icon_adapter=icon_adapter)
         except Exception as exc:
             self.log.exception("Duvar kağıdı başlatılamadı", exc)
             self._show_error(self.i18n.t("errStart", msg=str(exc)))
@@ -158,6 +276,9 @@ class DesklandHost:
         self.tray.set_autostart(self.autostart_enabled())
         self.tray.set_low_mode(self.settings.low_mode)
         self._apply_process_priority(self.settings.low_mode)
+        if self.ipc_server.start():
+            self.log.write(f"IPC soketi dinleniyor: {self.ipc_server.socket_path}")
+        self._playlist_timeout = GLib.timeout_add_seconds(30, self._tick_playlist)
         self._welcome()
         if show_settings:
             self.open_settings()
@@ -202,14 +323,15 @@ class DesklandHost:
             self.tray.popup()
 
     def reload(self) -> None:
+        for wp in self._all_wallpapers():
+            wp.reload()
         if self.wallpaper is not None:
-            self.wallpaper.reload()
             self.log.write("Tema yeniden yüklendi")
 
     def set_manual_pause(self, paused: bool) -> None:
         self.manual_pause = bool(paused)
-        if self.wallpaper is not None:
-            self.wallpaper.set_manual_pause(self.manual_pause)
+        for wp in self._all_wallpapers():
+            wp.set_manual_pause(self.manual_pause)
         if self.tray is not None:
             self.tray.set_paused(self.manual_pause)
 
@@ -244,8 +366,8 @@ class DesklandHost:
         self._apply_process_priority(val)
         if self.tray is not None:
             self.tray.set_low_mode(val)
-        if self.wallpaper is not None:
-            self.wallpaper.set_low_mode(val)
+        for wp in self._all_wallpapers():
+            wp.set_low_mode(val)
         self._post_settings({"t": "lowMode", "v": val})
         self.log.write("Düşük performans modu açık" if val else "Düşük performans modu kapalı")
 
@@ -253,10 +375,246 @@ class DesklandHost:
         val = bool(enabled)
         self.settings.disable_auto_pause = val
         self.settings.save()
-        if self.wallpaper is not None:
-            self.wallpaper.set_disable_auto_pause(val)
+        for wp in self._all_wallpapers():
+            wp.set_disable_auto_pause(val)
         self._post_settings({"t": "disableAutoPause", "v": val})
         self.log.write("Otomatik duraklatma devre dışı" if val else "Otomatik duraklatma etkin")
+
+    def set_display_mode(self, mode: str) -> None:
+        if mode not in DISPLAY_MODES or mode == self.settings.display_mode:
+            return
+        self.settings.display_mode = mode
+        self.settings.save()
+        try:
+            self._spawn_wallpapers(self._requested_backend, self._requested_adapter)
+        except Exception as exc:
+            self.log.exception("Monitör kipi uygulanamadı", exc)
+        self._post_settings({"t": "displayMode", "v": mode})
+        self.log.write(f"Çoklu monitör kipi: {mode}")
+
+    def set_solar_sync(self, enabled: bool) -> None:
+        val = bool(enabled)
+        self.settings.solar_sync = val
+        self.schedule_save()
+        for wp in self._all_wallpapers():
+            wp.push_environment(force=True)
+        self._post_settings({"t": "solarSync", "v": val})
+        self.log.write("Güneş döngüsü senkronizasyonu açık" if val else "Güneş döngüsü senkronizasyonu kapalı")
+
+    def set_window_aware(self, enabled: bool) -> None:
+        val = bool(enabled)
+        self.settings.window_aware = val
+        self.schedule_save()
+        for wp in self._all_wallpapers():
+            wp._poll_icons_once()
+        self._post_settings({"t": "windowAware", "v": val})
+        self.log.write("Pencere duyarlı sahne açık" if val else "Pencere duyarlı sahne kapalı")
+
+    def set_playlist(self, enabled: bool | None = None, interval_min: int | None = None) -> None:
+        if enabled is not None:
+            self.settings.playlist_enabled = bool(enabled)
+        if interval_min is not None and int(interval_min) >= 1:
+            self.settings.playlist_interval_min = max(1, min(1440, int(interval_min)))
+        self.playlist.configure(self.settings.playlist_interval_min, self.settings.playlist_themes)
+        self.playlist.mark_switched()
+        self.schedule_save()
+        self._post_settings(
+            {
+                "t": "playlistState",
+                "enabled": self.settings.playlist_enabled,
+                "intervalMin": self.settings.playlist_interval_min,
+            }
+        )
+
+    def set_system_bridge(self, enabled: bool) -> None:
+        val = bool(enabled)
+        self.settings.system_bridge = val
+        self.schedule_save()
+        if not val:
+            for wp in self._all_wallpapers():
+                am = getattr(wp, "audio_meter", None)
+                if am is not None:
+                    am.stop()
+        self._post_settings({"t": "systemBridge", "v": val})
+        self.log.write("Yerel ses/sistem köprüsü açık" if val else "Yerel ses/sistem köprüsü kapalı")
+
+    def set_prefer_mpv(self, enabled: bool) -> None:
+        val = bool(enabled)
+        self.settings.prefer_mpv = val
+        self.schedule_save()
+        for wp in self._all_wallpapers():
+            wp.sync_mpv_video()
+        self._post_settings({"t": "preferMpv", "v": val})
+        self.log.write("mpv donanım video arka ucu tercih ediliyor" if val else "WebView video oynatıcı aktif")
+
+    def sync_lockscreen(self) -> None:
+        if self.wallpaper is None:
+            self._post_settings({"t": "lockscreenSynced", "ok": False, "msg": self.i18n.t("errNotReady")})
+            return
+
+        def _done(_thumb: str | None, png: str | None, err: str | None) -> None:
+            if err or not png:
+                self._post_settings({"t": "lockscreenSynced", "ok": False, "msg": err or "snapshot failed"})
+                return
+            try:
+                from .share import decode_data_url
+
+                raw = decode_data_url(png)
+                raw_path = config_dir() / "lockscreen-src.png"
+                raw_path.parent.mkdir(parents=True, exist_ok=True)
+                raw_path.write_bytes(raw)
+                blurred = make_blurred_lockscreen(raw_path)
+                backend = apply_linux_lockscreen(blurred)
+                self.log.write(f"Kilit ekranı görseli eşitlendi ({backend}): {blurred}")
+                self._post_settings({"t": "lockscreenSynced", "ok": True, "path": str(blurred), "backend": backend})
+            except Exception as exc:
+                self.log.exception("Kilit ekranı görseli oluşturulamadı", exc)
+                self._post_settings({"t": "lockscreenSynced", "ok": False, "msg": str(exc)})
+
+        self.wallpaper.request_snapshot(_done)
+
+    def _ready_theme_ids(self) -> list[str]:
+        return [
+            str(t.get("id"))
+            for t in self.themes.themes
+            if t.get("id") and self.themes.allowed(str(t.get("id")))
+        ]
+
+    def _switch_theme_by_id(self, theme_id: str) -> bool:
+        if not theme_id or not self.themes.allowed(theme_id):
+            return False
+        self._on_theme({"id": theme_id})
+        self._post_settings({"t": "themeChanged", "id": theme_id})
+        self.playlist.mark_switched()
+        return True
+
+    def _tick_playlist(self) -> bool:
+        if self._quitting:
+            self._playlist_timeout = 0
+            return False
+        if not self.settings.playlist_enabled or self.manual_pause:
+            return True
+        if self.playlist.should_rotate():
+            nxt = self.playlist.next_theme(self._ready_theme_ids(), self.settings.theme)
+            if nxt and nxt != self.settings.theme:
+                self._switch_theme_by_id(nxt)
+                self.log.write(f"Çalma listesi temayı değiştirdi: {nxt}")
+            else:
+                self.playlist.mark_switched()
+        return True
+
+    def _dispatch_ipc(self, req: dict[str, Any]) -> dict[str, Any]:
+        done = threading.Event()
+        box: dict[str, Any] = {}
+
+        def _run() -> bool:
+            try:
+                box["resp"] = self._handle_ipc_on_main(req)
+            except Exception as exc:
+                box["resp"] = {"ok": False, "error": str(exc)}
+            finally:
+                done.set()
+            return False
+
+        GLib.idle_add(_run)
+        if not done.wait(timeout=2.5):
+            return {"ok": False, "error": "daemon busy"}
+        return box.get("resp", {"ok": False, "error": "no response"})
+
+    def _handle_ipc_on_main(self, req: dict[str, Any]) -> dict[str, Any]:
+        cmd = str(req.get("cmd") or "").strip().lower()
+        if cmd == "status":
+            return {
+                "ok": True,
+                "theme": self.settings.theme,
+                "paused": self.manual_pause,
+                "lowMode": self.settings.low_mode,
+                "displayMode": self.settings.display_mode,
+                "solarSync": self.settings.solar_sync,
+                "windowAware": self.settings.window_aware,
+                "playlistEnabled": self.settings.playlist_enabled,
+                "playlistIntervalMin": self.settings.playlist_interval_min,
+            }
+        if cmd == "setwp":
+            tid = str(req.get("theme") or "").strip()
+            if not self._switch_theme_by_id(tid):
+                return {"ok": False, "error": f"unknown or unavailable theme: {tid}"}
+            return {"ok": True, "theme": tid, "message": f"theme={tid}"}
+        if cmd == "setprop":
+            tid = str(req.get("theme") or self.settings.theme).strip()
+            key = str(req.get("key") or "").strip()
+            if not key or not self.themes.allowed(tid):
+                return {"ok": False, "error": "invalid theme or key"}
+            val = req.get("value")
+            self._on_set({"theme": tid, "key": key, "value": val})
+            return {"ok": True, "theme": tid, "key": key, "value": val, "message": f"{tid}.{key}={val}"}
+        if cmd == "pause":
+            self.set_manual_pause(True)
+            return {"ok": True, "paused": True, "message": "paused"}
+        if cmd == "play":
+            self.set_manual_pause(False)
+            return {"ok": True, "paused": False, "message": "playing"}
+        if cmd == "toggle":
+            self.set_manual_pause(not self.manual_pause)
+            return {"ok": True, "paused": self.manual_pause, "message": "paused" if self.manual_pause else "playing"}
+        if cmd == "random":
+            nxt = PlaylistController.pick_random(self._ready_theme_ids(), self.settings.theme)
+            if not nxt or not self._switch_theme_by_id(nxt):
+                return {"ok": False, "error": "no ready theme available"}
+            return {"ok": True, "theme": nxt, "message": f"theme={nxt}"}
+        if cmd == "lowmode":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.low_mode) if st == "toggle" else (st == "on")
+            self.set_low_mode(target)
+            return {"ok": True, "lowMode": target, "message": f"lowMode={target}"}
+        if cmd == "solar":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.solar_sync) if st == "toggle" else (st == "on")
+            self.set_solar_sync(target)
+            return {"ok": True, "solarSync": target, "message": f"solarSync={target}"}
+        if cmd == "window-aware":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.window_aware) if st == "toggle" else (st == "on")
+            self.set_window_aware(target)
+            return {"ok": True, "windowAware": target, "message": f"windowAware={target}"}
+        if cmd == "playlist":
+            action = str(req.get("action") or "status").lower()
+            interval = req.get("interval")
+            if action == "on":
+                self.set_playlist(True, int(interval) if interval else None)
+            elif action == "off":
+                self.set_playlist(False, int(interval) if interval else None)
+            elif action == "next":
+                nxt = self.playlist.next_theme(self._ready_theme_ids(), self.settings.theme)
+                if nxt:
+                    self._switch_theme_by_id(nxt)
+            return {
+                "ok": True,
+                "playlistEnabled": self.settings.playlist_enabled,
+                "playlistIntervalMin": self.settings.playlist_interval_min,
+                "theme": self.settings.theme,
+                "message": f"playlist={self.settings.playlist_enabled} interval={self.settings.playlist_interval_min}m theme={self.settings.theme}",
+            }
+        if cmd == "reload":
+            self.reload()
+            return {"ok": True, "message": "reloaded"}
+        if cmd == "system-bridge":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.system_bridge) if st == "toggle" else (st == "on")
+            self.set_system_bridge(target)
+            return {"ok": True, "systemBridge": target, "message": f"systemBridge={target}"}
+        if cmd == "mpv":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.prefer_mpv) if st == "toggle" else (st == "on")
+            self.set_prefer_mpv(target)
+            return {"ok": True, "preferMpv": target, "message": f"preferMpv={target}"}
+        if cmd == "lockscreen-sync":
+            self.sync_lockscreen()
+            return {"ok": True, "message": "lockscreen sync requested"}
+        if cmd == "exit":
+            GLib.idle_add(self.quit)
+            return {"ok": True, "message": "exiting"}
+        return {"ok": False, "error": f"unknown command: {cmd}"}
 
     # ---------------------------------------------------------------- state
     def schedule_save(self) -> None:
@@ -322,6 +680,38 @@ class DesklandHost:
             self.set_low_mode(bool(message.get("v")))
         elif kind == "disableAutoPause":
             self.set_disable_auto_pause(bool(message.get("v")))
+        elif kind == "displayMode":
+            mode = message.get("v")
+            if isinstance(mode, str):
+                self.set_display_mode(mode)
+        elif kind == "solarSync":
+            self.set_solar_sync(bool(message.get("v")))
+        elif kind == "windowAware":
+            self.set_window_aware(bool(message.get("v")))
+        elif kind == "playlist":
+            enabled = message.get("enabled")
+            interval = message.get("intervalMin")
+            self.set_playlist(
+                enabled=bool(enabled) if isinstance(enabled, bool) else None,
+                interval_min=int(interval) if isinstance(interval, (int, float)) else None,
+            )
+        elif kind == "systemBridge":
+            self.set_system_bridge(bool(message.get("v")))
+        elif kind == "preferMpv":
+            self.set_prefer_mpv(bool(message.get("v")))
+        elif kind == "syncLockscreen":
+            self.sync_lockscreen()
+        elif kind == "startLanPair":
+            try:
+                info = self.lan_pairing.start()
+                self.log.write(f"LAN eşleştirme başladı: {info['host']}:{info['port']}")
+                self._post_settings({"t": "lanPairState", "ok": True, **info})
+            except Exception as exc:
+                self.log.exception("LAN eşleştirme başlatılamadı", exc)
+                self._post_settings({"t": "lanPairState", "ok": False, "active": False, "msg": str(exc)})
+        elif kind == "stopLanPair":
+            self.lan_pairing.stop()
+            self._post_settings({"t": "lanPairState", "ok": True, "active": False})
         elif kind == "autostart":
             self.set_autostart(bool(message.get("v")))
             self._post_settings({"t": "autostart", "v": self.autostart_enabled()})
@@ -348,12 +738,39 @@ class DesklandHost:
         elif kind == "revealShare":
             if self.last_share is not None:
                 reveal_path(self.last_share)
+        elif kind == "exportDiagnostics":
+            self._export_diagnostics()
+        elif kind == "revealDiagnostics":
+            last_diag = getattr(self, "last_diagnostics", None)
+            if last_diag is not None:
+                reveal_path(last_diag)
         elif kind == "openWebsite":
             self._open_url("https://deskland.app/")
         elif kind == "updateProgram":
             self._open_url("https://deskland.app/")
         elif kind == "autostartWarnSeen":
             pass
+
+    def _export_diagnostics(self) -> None:
+        try:
+            wp = self.wallpaper
+            backend = wp.backend if wp is not None else "none"
+            screen = (wp.screen_w, wp.screen_h, wp.scale) if wp is not None else None
+            pm = getattr(wp, "power_monitor", None) if wp is not None else None
+            pstate = pm.poll(force=True) if pm is not None else None
+            out = export_diagnostics(
+                settings=self.settings,
+                backend=backend,
+                screen=screen,
+                power_state=pstate,
+                log_file=self.log.path,
+            )
+            self.last_diagnostics = out
+            self.log.write(f"Tanılama günlüğü dışa aktarıldı: {out}")
+            self._post_settings({"t": "diagExported", "ok": True, "path": str(out)})
+        except Exception as exc:
+            self.log.exception("Tanılama günlüğü dışa aktarılamadı", exc)
+            self._post_settings({"t": "diagExported", "ok": False, "msg": str(exc)})
 
     def _send_init(self) -> None:
         screen_w = self.wallpaper.screen_w if self.wallpaper else 1920
@@ -373,6 +790,13 @@ class DesklandHost:
                 "virtualBarMode": self.settings.virtual_bar_mode,
                 "lowMode": self.settings.low_mode,
                 "disableAutoPause": self.settings.disable_auto_pause,
+                "displayMode": self.settings.display_mode,
+                "solarSync": self.settings.solar_sync,
+                "windowAware": self.settings.window_aware,
+                "playlistEnabled": self.settings.playlist_enabled,
+                "playlistIntervalMin": self.settings.playlist_interval_min,
+                "systemBridge": self.settings.system_bridge,
+                "preferMpv": self.settings.prefer_mpv,
                 "canSaveSnapshot": True,
             }
         )
@@ -513,8 +937,9 @@ class DesklandHost:
         if key == "audioFile" and not message.get("value"):
             self._cleanup_audio_file(params.get("audioFile"))
         params[key] = message.get("value")
-        if theme == self.settings.theme and self.wallpaper is not None:
-            self.wallpaper.set_settings({key: message.get("value")})
+        if theme == self.settings.theme:
+            for wp in self._all_wallpapers():
+                wp.set_settings({key: message.get("value")})
         self.schedule_save()
 
     def _on_reset(self, message: dict[str, Any]) -> None:
@@ -522,8 +947,9 @@ class DesklandHost:
         if not isinstance(theme, str):
             return
         self.settings.params.pop(theme, None)
-        if theme == self.settings.theme and self.wallpaper is not None:
-            self.wallpaper.reset()
+        if theme == self.settings.theme:
+            for wp in self._all_wallpapers():
+                wp.reset()
         self.schedule_save()
         self.log.write(f"Varsayılanlara dönüldü: {theme}")
 
@@ -538,8 +964,8 @@ class DesklandHost:
             return
         self.settings.theme = theme_id
         self.schedule_save()
-        if self.wallpaper is not None:
-            self.wallpaper.load_page(page)
+        for wp in self._all_wallpapers():
+            wp.load_page(page)
         self.log.write(f"Tema değişti: {theme_id}")
 
     def _on_lang(self, message: dict[str, Any]) -> None:
@@ -690,13 +1116,16 @@ class DesklandHost:
         self.log.write("Çıkış")
         if self._save_timeout:
             GLib.source_remove(self._save_timeout)
+        if self._playlist_timeout:
+            GLib.source_remove(self._playlist_timeout)
+            self._playlist_timeout = 0
         self.settings.save()
         if self.settings_window is not None:
             self.settings_window.destroy()
             self.settings_window = None
-        if self.wallpaper is not None:
-            self.wallpaper.shutdown()
-            self.wallpaper = None
+        self._shutdown_wallpapers()
+        self.ipc_server.stop()
+        self.lan_pairing.stop()
         if self.tray is not None:
             self.tray.destroy()
             self.tray = None

@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: DiyarDesk.DiyarDesk
+PackageVersion: 0.2.14
+PackageLocale: en-US
+Publisher: DiyarDesk Contributors
+PublisherUrl: https://github.com/adam0307a/DiyarDesk
+PublisherSupportUrl: https://github.com/adam0307a/DiyarDesk/issues
+PackageName: DiyarDesk
+PackageUrl: https://github.com/adam0307a/DiyarDesk
+License: GPL-3.0-only
+LicenseUrl: https://github.com/adam0307a/DiyarDesk/blob/main/LICENSE
+ShortDescription: Adaptive HTML5/Canvas/WebGL desktop wallpaper that reshapes around your desktop icons locally.
+Description: >-
+  DiyarDesk renders adaptive desktop landscapes behind your Windows desktop icons
+  without AI, cloud accounts, or telemetry. Includes built-in themes, custom theme
+  package import (.zip/.deskland/.html/image/video), multi-monitor support, smart
+  power management, and cloud-free LAN pairing for Android tablets.
+Tags:
+  - wallpaper
+  - live-wallpaper
+  - adaptive-wallpaper
+  - desktop
+  - open-source
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

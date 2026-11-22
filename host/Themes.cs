@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -155,9 +156,48 @@ static class CustomThemes
     public static readonly string[] HtmlExts = new string[] { ".html", ".htm" };
     public static readonly string[] ImageExts = new string[] { ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif", ".bmp" };
     public static readonly string[] VideoExts = new string[] { ".mp4", ".webm", ".mkv", ".mov" };
+    public static readonly string[] ShaderExts = new string[] { ".glsl", ".frag" };
+    public static readonly HashSet<string> ArchiveAllowedExts = new HashSet<string>(new string[] {
+        ".html", ".htm", ".css", ".js", ".mjs", ".json",
+        ".glsl", ".vert", ".frag", ".wgsl", ".wasm",
+        ".txt", ".md", ".xml", ".csv", ".map",
+        ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif", ".bmp", ".ico",
+        ".mp4", ".webm", ".mkv", ".mov", ".ogv",
+        ".mp3", ".wav", ".ogg", ".opus", ".m4a", ".aac", ".flac",
+        ".woff", ".woff2", ".ttf", ".otf", ".eot",
+        ".obj", ".mtl", ".gltf", ".glb", ".bin", ".hdr", ".exr", ".ktx", ".ktx2", ".dds", ".ply", ".stl", ".fbx"
+    }, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> ArchiveAllowedBasenames = new HashSet<string>(new string[] {
+        "license", "notice", "readme", "copying", "authors", "changelog"
+    }, StringComparer.OrdinalIgnoreCase);
+    static readonly PropertyInfo ZipExternalAttrsProp = typeof(ZipArchiveEntry).GetProperty("ExternalAttributes");
 
     public const long MaxArchiveBytes = 150L * 1024L * 1024L;
     public const int MaxArchiveFiles = 2000;
+
+    public static bool IsAllowedArchiveMember(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName)) return false;
+        string ext = Path.GetExtension(fileName);
+        if (!string.IsNullOrEmpty(ext)) return ArchiveAllowedExts.Contains(ext);
+        return ArchiveAllowedBasenames.Contains(fileName);
+    }
+
+    static bool IsZipSymlink(ZipArchiveEntry entry)
+    {
+        if (ZipExternalAttrsProp == null || entry == null) return false;
+        try
+        {
+            object val = ZipExternalAttrsProp.GetValue(entry, null);
+            if (val is int)
+            {
+                int attrs = (int)val;
+                return (((attrs >> 16) & 0xF000) == 0xA000);
+            }
+        }
+        catch { }
+        return false;
+    }
 
     public static string Dir
     {
@@ -180,7 +220,7 @@ static class CustomThemes
 
     public static bool IsSupportedExt(string ext)
     {
-        return HasExt(ext, ArchiveExts) || HasExt(ext, HtmlExts) || HasExt(ext, ImageExts) || HasExt(ext, VideoExts);
+        return HasExt(ext, ArchiveExts) || HasExt(ext, HtmlExts) || HasExt(ext, ImageExts) || HasExt(ext, VideoExts) || HasExt(ext, ShaderExts);
     }
 
     public static List<Dictionary<string, object>> Load()
@@ -299,6 +339,8 @@ static class CustomThemes
         {
             string full = (entry.FullName ?? "").Replace('\\', '/');
             if (full.EndsWith("/") || string.IsNullOrEmpty(entry.Name)) continue;
+            if (IsZipSymlink(entry))
+                throw new InvalidOperationException("Archive contains unsupported symbolic link.");
             if (full.StartsWith("/") || full.IndexOf(':') >= 0)
                 throw new InvalidOperationException("Unsafe archive entry path: " + entry.FullName);
 
@@ -313,6 +355,8 @@ static class CustomThemes
             }
             if (parts.Count == 0) continue;
             if (string.Equals(parts[0], "__MACOSX", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsAllowedArchiveMember(parts[parts.Count - 1]))
+                throw new InvalidOperationException("Unsupported file type in theme archive: " + entry.FullName);
 
             totalSize += Math.Max(0L, entry.Length);
             if (totalSize > MaxArchiveBytes) throw new InvalidOperationException("Theme archive exceeds 150 MB size limit.");
@@ -389,6 +433,17 @@ static class CustomThemes
         throw new InvalidOperationException("No .html entry page found in archive.");
     }
 
+    static string SanitizeColor(object rawVal)
+    {
+        string s = rawVal != null ? Convert.ToString(rawVal, CultureInfo.InvariantCulture).Trim() : "";
+        if (Regex.IsMatch(s, "^#[0-9a-fA-F]{6}$")) return s.ToLowerInvariant();
+        if (Regex.IsMatch(s, "^#[0-9a-fA-F]{3}$"))
+        {
+            return ("#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).ToLowerInvariant();
+        }
+        return "#4a90e2";
+    }
+
     static List<Dictionary<string, object>> SanitizeGroups(object rawGroups)
     {
         var cleanGroups = new List<Dictionary<string, object>>();
@@ -418,6 +473,17 @@ static class CustomThemes
                 {
                     string h = (string)hintObj;
                     item["hint"] = h.Length > 180 ? h.Substring(0, 180) : h;
+                }
+
+                string ptype = p.ContainsKey("type") && p["type"] != null ? Convert.ToString(p["type"], CultureInfo.InvariantCulture).Trim().ToLowerInvariant() : "";
+                if (ptype == "color")
+                {
+                    object cDef = null;
+                    if (!p.TryGetValue("default", out cDef)) p.TryGetValue("value", out cDef);
+                    item["type"] = "color";
+                    item["default"] = SanitizeColor(cDef);
+                    cleanParams.Add(item);
+                    continue;
                 }
 
                 object optsObj;
@@ -589,7 +655,13 @@ static class CustomThemes
             if (string.IsNullOrEmpty(groupName)) groupName = "Settings";
 
             string ptype = spec.ContainsKey("type") && spec["type"] != null ? Convert.ToString(spec["type"], CultureInfo.InvariantCulture).Trim().ToLowerInvariant() : "";
-            object labelObj = spec.ContainsKey("label") && spec["label"] != null ? spec["label"] : (spec.ContainsKey("title") ? spec["title"] : key);
+            if (ptype == "button" || ptype == "label" || ptype == "folderdropdown" || ptype == "file")
+                continue;
+            object labelObj = spec.ContainsKey("label") && spec["label"] != null
+                ? spec["label"]
+                : (spec.ContainsKey("title") && spec["title"] != null
+                    ? spec["title"]
+                    : (spec.ContainsKey("text") && spec["text"] != null ? spec["text"] : key));
             var param = Json.Obj("key", key, "label", labelObj);
             if (spec.ContainsKey("hint") && spec["hint"] is string) param["hint"] = spec["hint"];
             else if (spec.ContainsKey("description") && spec["description"] is string) param["hint"] = spec["description"];
@@ -597,7 +669,12 @@ static class CustomThemes
             bool hasDef = spec.ContainsKey("default") || spec.ContainsKey("value");
             object rawDef = spec.ContainsKey("default") ? spec["default"] : (spec.ContainsKey("value") ? spec["value"] : null);
 
-            if (ptype == "checkbox" || ptype == "boolean" || ptype == "bool" || ptype == "toggle")
+            if (ptype == "color")
+            {
+                param["type"] = "color";
+                param["default"] = SanitizeColor(rawDef);
+            }
+            else if (ptype == "checkbox" || ptype == "boolean" || ptype == "bool" || ptype == "toggle")
             {
                 param["options"] = new object[] { "Off", "On" };
                 param["values"] = new object[] { false, true };
@@ -611,9 +688,10 @@ static class CustomThemes
                 }
                 param["default"] = b;
             }
-            else if (spec.ContainsKey("options") && spec["options"] is IEnumerable && !(spec["options"] is string))
+            else if ((spec.ContainsKey("options") && spec["options"] is IEnumerable && !(spec["options"] is string)) ||
+                     ((ptype == "dropdown" || ptype == "select") && spec.ContainsKey("items") && spec["items"] is IEnumerable && !(spec["items"] is string)))
             {
-                param["options"] = spec["options"];
+                param["options"] = spec.ContainsKey("options") && spec["options"] is IEnumerable && !(spec["options"] is string) ? spec["options"] : spec["items"];
                 if (hasDef) param["default"] = rawDef;
             }
             else
@@ -746,6 +824,57 @@ static class CustomThemes
         return list;
     }
 
+    static string ShaderWrapperHtml(string title, string glslSource)
+    {
+        string safeTitle = WebUtility.HtmlEncode(title);
+        string encodedGlsl = Json.Stringify(glslSource);
+        return "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>" + safeTitle + "</title>\n"
+            + "<style>html,body,canvas{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#090c14;display:block;}</style>\n"
+            + "</head>\n<body>\n<canvas id=\"gl\"></canvas>\n<script>\n(() => {\n"
+            + "  const canvas = document.getElementById('gl');\n"
+            + "  const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });\n"
+            + "  if (!gl) return;\n"
+            + "  const rawFrag = " + encodedGlsl + ";\n"
+            + "  const hasMainImage = /void\\s+mainImage\\s*\\(/.test(rawFrag);\n"
+            + "  const header = 'precision highp float;\\nuniform float u_time;\\nuniform vec2 u_resolution;\\nuniform vec2 u_mouse;\\nuniform float u_speed;\\nuniform float u_brightness;\\nuniform float u_audio;\\nuniform int u_iconCount;\\nuniform vec4 u_icons[32];\\nuniform vec3 iResolution;\\nuniform float iTime;\\nuniform vec4 iMouse;\\n';\n"
+            + "  const stripped = rawFrag.replace(/^\\s*precision\\s+\\w+\\s+float\\s*;/gm, '');\n"
+            + "  const fragSrc = header + stripped + (hasMainImage ? '\\nvoid main(){ vec4 c=vec4(0.0); mainImage(c, gl_FragCoord.xy); gl_FragColor=vec4(c.rgb*u_brightness, 1.0); }\\n' : '');\n"
+            + "  const vertSrc = 'attribute vec2 a_pos; void main(){ gl_Position = vec4(a_pos, 0.0, 1.0); }';\n"
+            + "  function compile(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'shader compile error'); return s; }\n"
+            + "  const prog = gl.createProgram();\n"
+            + "  try { gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc)); gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc)); gl.linkProgram(prog); }\n"
+            + "  catch (err) { document.body.innerHTML = '<pre style=\"color:#f78;padding:20px;font:13px monospace\">' + String(err) + '</pre>'; return; }\n"
+            + "  gl.useProgram(prog);\n"
+            + "  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);\n"
+            + "  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);\n"
+            + "  const locPos = gl.getAttribLocation(prog, 'a_pos'); gl.enableVertexAttribArray(locPos); gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);\n"
+            + "  const U = n => gl.getUniformLocation(prog, n);\n"
+            + "  const uTime=U('u_time'), uRes=U('u_resolution'), uMouse=U('u_mouse'), uSpeed=U('u_speed'), uBright=U('u_brightness'), uAudio=U('u_audio'), uIconCount=U('u_iconCount'), uIcons=U('u_icons'), iRes=U('iResolution'), iTime=U('iTime'), iMouse=U('iMouse');\n"
+            + "  const cfg = { speed: 1.0, brightness: 1.0 };\n"
+            + "  let paused = false, mouseX = 0, mouseY = 0, audioRms = 0, icons = new Float32Array(128), iconCount = 0, simTime = 0, lastTs = performance.now();\n"
+            + "  function resize(){ const dpr = Math.min(window.devicePixelRatio || 1, 1.5); canvas.width = Math.max(1, Math.floor(innerWidth * dpr)); canvas.height = Math.max(1, Math.floor(innerHeight * dpr)); gl.viewport(0, 0, canvas.width, canvas.height); }\n"
+            + "  addEventListener('resize', resize); resize();\n"
+            + "  function applyMsg(raw){ let m = raw; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (_) { return; } } if (!m || typeof m !== 'object') return;\n"
+            + "    if (m.t === 'settings' && m.v) { if (typeof m.v.speed === 'number') cfg.speed = m.v.speed; if (typeof m.v.brightness === 'number') cfg.brightness = m.v.brightness; }\n"
+            + "    else if (m.t === 'reset') { cfg.speed = 1.0; cfg.brightness = 1.0; }\n"
+            + "    else if (m.t === 'pause') { paused = !!m.v; }\n"
+            + "    else if (m.t === 'pointer' && typeof m.x === 'number') { mouseX = m.x * (window.devicePixelRatio || 1); mouseY = canvas.height - m.y * (window.devicePixelRatio || 1); }\n"
+            + "    else if (m.t === 'audioLevels' && typeof m.rms === 'number') { audioRms = m.rms; }\n"
+            + "    else if (m.t === 'icons' && Array.isArray(m.r)) { iconCount = Math.min(32, m.r.length); for (let i = 0; i < iconCount; i++) { const r = m.r[i] || [0,0,0,0]; icons[i*4]=r[0]||0; icons[i*4+1]=r[1]||0; icons[i*4+2]=r[2]||0; icons[i*4+3]=r[3]||0; } }\n"
+            + "  }\n"
+            + "  addEventListener('message', e => applyMsg(e.data));\n"
+            + "  if (window.chrome && window.chrome.webview) window.chrome.webview.addEventListener('message', e => applyMsg(e.data));\n"
+            + "  function render(ts){ requestAnimationFrame(render); const dt = Math.min(0.1, Math.max(0, (ts - lastTs) / 1000)); lastTs = ts; if (paused) return; simTime += dt * cfg.speed;\n"
+            + "    if (uTime) gl.uniform1f(uTime, simTime); if (iTime) gl.uniform1f(iTime, simTime); if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height); if (iRes) gl.uniform3f(iRes, canvas.width, canvas.height, 1.0);\n"
+            + "    if (uMouse) gl.uniform2f(uMouse, mouseX, mouseY); if (iMouse) gl.uniform4f(iMouse, mouseX, mouseY, 0, 0); if (uSpeed) gl.uniform1f(uSpeed, cfg.speed); if (uBright) gl.uniform1f(uBright, cfg.brightness); if (uAudio) gl.uniform1f(uAudio, audioRms);\n"
+            + "    if (uIconCount) gl.uniform1i(uIconCount, iconCount); if (uIcons) gl.uniform4fv(uIcons, icons); gl.drawArrays(gl.TRIANGLES, 0, 6); }\n"
+            + "  window.desklandSnapshot = () => canvas.toDataURL('image/png');\n"
+            + "  requestAnimationFrame(render);\n"
+            + "  if (new URLSearchParams(location.search).get('preview') === '1') parent.postMessage(JSON.stringify({ t: 'ready' }), '*');\n"
+            + "  else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage('ready');\n"
+            + "})();\n</script>\n</body>\n</html>\n";
+    }
+
     public static Dictionary<string, object> ImportFile(string sourcePath, string pageDir)
     {
         if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath))
@@ -756,6 +885,8 @@ static class CustomThemes
         string ext = (Path.GetExtension(sourcePath) ?? "").ToLowerInvariant();
         if (!IsSupportedExt(ext))
             throw new InvalidOperationException("Unsupported file type: " + (string.IsNullOrEmpty(ext) ? "none" : ext));
+        if (!HasExt(ext, ArchiveExts) && fi.Length > MaxArchiveBytes)
+            throw new InvalidOperationException("Selected file exceeds 150 MB size limit.");
 
         Directory.CreateDirectory(Dir);
         var current = Load();
@@ -815,6 +946,20 @@ static class CustomThemes
                     manifest = parsed;
                     break;
                 }
+                Dictionary<string, object> livelyInfo = null;
+                string livelyInfoPath = Path.Combine(themeDir, "LivelyInfo.json");
+                if (File.Exists(livelyInfoPath))
+                {
+                    try { livelyInfo = Json.Parse(File.ReadAllText(livelyInfoPath, Encoding.UTF8)) as Dictionary<string, object>; }
+                    catch { livelyInfo = null; }
+                }
+                Dictionary<string, object> livelyProps = null;
+                string livelyPropsPath = Path.Combine(themeDir, "LivelyProperties.json");
+                if (File.Exists(livelyPropsPath))
+                {
+                    try { livelyProps = Json.Parse(File.ReadAllText(livelyPropsPath, Encoding.UTF8)) as Dictionary<string, object>; }
+                    catch { livelyProps = null; }
+                }
 
                 object entryPref = null;
                 string[] entryKeys = new string[] { "entry", "page", "main", "file" };
@@ -822,15 +967,18 @@ static class CustomThemes
                 {
                     if (manifest.TryGetValue(entryKeys[i], out entryPref) && entryPref != null) break;
                 }
+                if (entryPref == null && livelyInfo != null) livelyInfo.TryGetValue("FileName", out entryPref);
                 string entry = FindEntryHtml(themeDir, entryPref as string);
                 string entryHtml = ValidateHtmlFile(Path.Combine(themeDir, entry.Replace('/', Path.DirectorySeparatorChar)));
                 string htmlTitle = ExtractHtmlTitle(entryHtml, PrettyTitle(stem));
 
                 object nameObj = null, descObj = null, adapObj = null, thumbObj = null, groupsObj = null, settingsObj = null;
                 if (!manifest.TryGetValue("name", out nameObj) || nameObj == null) manifest.TryGetValue("title", out nameObj);
+                if (nameObj == null && livelyInfo != null) livelyInfo.TryGetValue("Title", out nameObj);
                 string tName = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : htmlTitle;
                 if (tName.Length > 60) tName = tName.Substring(0, 60);
                 if (!manifest.TryGetValue("desc", out descObj) || descObj == null) manifest.TryGetValue("description", out descObj);
+                if (descObj == null && livelyInfo != null) livelyInfo.TryGetValue("Desc", out descObj);
                 string tDesc = descObj != null ? Convert.ToString(descObj, CultureInfo.InvariantCulture) : "Imported custom theme package.";
                 bool adaptive = manifest.TryGetValue("adaptive", out adapObj) && adapObj is bool && (bool)adapObj;
                 if (!manifest.TryGetValue("thumb", out thumbObj) || thumbObj == null)
@@ -838,6 +986,7 @@ static class CustomThemes
                     if (!manifest.TryGetValue("thumbnail", out thumbObj) || thumbObj == null)
                         manifest.TryGetValue("preview", out thumbObj);
                 }
+                if (thumbObj == null && livelyInfo != null) livelyInfo.TryGetValue("Thumbnail", out thumbObj);
 
                 themeObj = Json.Obj(
                     "id", themeId,
@@ -854,7 +1003,37 @@ static class CustomThemes
                 if (manifest.TryGetValue("groups", out groupsObj)) groups = SanitizeGroups(groupsObj);
                 if ((groups == null || groups.Count == 0) && manifest.TryGetValue("settings", out settingsObj))
                     groups = GroupsFromSettings(settingsObj);
+                if ((groups == null || groups.Count == 0) && livelyProps != null)
+                    groups = GroupsFromSettings(livelyProps);
                 if (groups != null && groups.Count > 0) themeObj["groups"] = groups;
+            }
+            else if (HasExt(ext, ShaderExts))
+            {
+                byte[] rawBytes = File.ReadAllBytes(sourcePath);
+                if (rawBytes.Length == 0 || rawBytes.Length > 2 * 1024 * 1024 || Array.IndexOf(rawBytes, (byte)0) >= 0)
+                    throw new InvalidOperationException("Shader file is empty, too large, or corrupted.");
+                string glsl = Encoding.UTF8.GetString(rawBytes);
+                string title = PrettyTitle(stem);
+                if (title.Length > 60) title = title.Substring(0, 60);
+                File.WriteAllText(Path.Combine(themeDir, "shader.glsl"), glsl, new UTF8Encoding(false));
+                File.WriteAllText(Path.Combine(themeDir, "index.html"), ShaderWrapperHtml(title, glsl), new UTF8Encoding(false));
+                var shaderGroups = new List<Dictionary<string, object>>();
+                shaderGroups.Add(Json.Obj("name", "Shader", "params", new object[] {
+                    Json.Obj("key", "speed", "label", "Speed", "min", 0.1, "max", 3.0, "step", 0.05, "default", 1.0, "format", "times"),
+                    Json.Obj("key", "brightness", "label", "Brightness", "min", 0.4, "max", 1.4, "step", 0.01, "default", 1.0, "format", "percent")
+                }));
+                themeObj = Json.Obj(
+                    "id", themeId,
+                    "name", title,
+                    "desc", "Imported GLSL WebGL fragment shader.",
+                    "page", "__custom/" + themeId + "/index.html",
+                    "entry", "index.html",
+                    "status", "ready",
+                    "product", "free",
+                    "imported", true,
+                    "adaptive", true,
+                    "thumb", "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)",
+                    "groups", shaderGroups);
             }
             else if (HasExt(ext, HtmlExts))
             {
@@ -877,7 +1056,9 @@ static class CustomThemes
             {
                 bool isVideo = HasExt(ext, VideoExts);
                 string mediaName = "media" + ext;
-                File.Copy(sourcePath, Path.Combine(themeDir, mediaName), true);
+                using (FileStream min = File.OpenRead(sourcePath))
+                using (FileStream mout = File.Create(Path.Combine(themeDir, mediaName)))
+                    CopyLimited(min, mout, MaxArchiveBytes);
                 string title = PrettyTitle(stem);
                 File.WriteAllText(Path.Combine(themeDir, "index.html"), MediaWrapperHtml(mediaName, isVideo, title), new UTF8Encoding(false));
                 string thumb = isVideo

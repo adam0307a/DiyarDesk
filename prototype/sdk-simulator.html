@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DiyarDesk Theme SDK Simulator</title>
+<style>
+  :root {
+    --bg: #11151b; --panel: #191f28; --line: #2a3340; --text: #edf2f7; --muted: #93a1b5; --accent: #4aa8ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: grid; grid-template-columns: 300px 1fr; overflow: hidden; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
+  h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: rgba(255,255,255,0.02); display: flex; flex-direction: column; gap: 8px; }
+  label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  select, input[type=text], input[type=range] { accent-color: var(--accent); }
+  select, input[type=text] { background: #10151c; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; width: 100%; font: inherit; }
+  .row { display: flex; gap: 6px; }
+  button { background: #222b38; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 12px; }
+  button:hover { border-color: var(--accent); }
+  main { position: relative; overflow: hidden; background: #000; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .overlay { position: absolute; inset: 0; pointer-events: none; }
+  .sim-icon {
+    position: absolute; width: 76px; height: 84px; border-radius: 10px;
+    border: 1.5px dashed rgba(255,255,255,0.68); background: rgba(25,35,50,0.32);
+    color: #fff; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    pointer-events: auto; cursor: grab; user-select: none; backdrop-filter: blur(2px);
+  }
+  .sim-icon:active { cursor: grabbing; border-color: var(--accent); }
+  .sim-win {
+    position: absolute; border-radius: 12px; border: 2px solid rgba(74,168,255,0.8);
+    background: rgba(18,24,33,0.45); color: #dce9f8; font-size: 12px; padding: 8px 10px;
+    pointer-events: auto; cursor: grab; user-select: none; resize: both; overflow: hidden;
+  }
+  .log { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #b8c7da; max-height: 150px; overflow-y: auto; background: #0d1117; border-radius: 7px; padding: 8px; border: 1px solid var(--line); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<aside>
+  <div>
+    <h1>DiyarDesk SDK Simulator</h1>
+    <div style="color:var(--muted);font-size:11px;margin-top:3px">Drag icons &amp; windows to test theme reactions offline.</div>
+  </div>
+  <div class="card">
+    <h2>Theme</h2>
+    <select id="themeSelect"></select>
+    <div class="row">
+      <button id="btnReload">Reload</button>
+      <button id="btnSnap">Snapshot</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Icons &amp; Windows</h2>
+    <div class="row">
+      <button id="btnAddIcon">+ Icon</button>
+      <button id="btnClearIcons">Clear Icons</button>
+      <button id="btnToggleWin">Toggle Window</button>
+    </div>
+    <label><span>Show Overlay Guides</span><input type="checkbox" id="chkGuides" checked></label>
+  </div>
+  <div class="card">
+    <h2>Solar &amp; Power Environment</h2>
+    <label><span>Solar Hour (<b id="hourVal">14:00</b>)</span></label>
+    <input type="range" id="rngHour" min="0" max="23.5" step="0.5" value="14">
+    <label><span>Solar Sync Filter</span><input type="checkbox" id="chkSolar"></label>
+    <label><span>OS Dark Mode</span><input type="checkbox" id="chkDark"></label>
+    <label><span>Low Power Mode</span><input type="checkbox" id="chkLow"></label>
+    <label><span>On Battery</span><input type="checkbox" id="chkBattery"></label>
+    <label><span>Reduce Motion</span><input type="checkbox" id="chkReduce"></label>
+    <label><span>Paused</span><input type="checkbox" id="chkPause"></label>
+  </div>
+  <div class="card">
+    <h2>Message Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+</aside>
+<main id="stage">
+  <iframe id="frame" title="Theme Preview"></iframe>
+  <div class="overlay" id="overlay"></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const frame = $('frame'), overlay = $('overlay'), logEl = $('log');
+let themes = [];
+let icons = [
+  { x: 40, y: 40, w: 76, h: 84, label: 'Docs' },
+  { x: 40, y: 144, w: 76, h: 84, label: 'Notes' },
+  { x: 140, y: 40, w: 76, h: 84, label: 'Music' },
+  { x: 260, y: 180, w: 76, h: 84, label: 'Photos' },
+];
+let winBox = { visible: true, x: 420, y: 120, w: 340, h: 220 };
+
+function log(dir, msg) {
+  const line = `[${new Date().toLocaleTimeString()}] ${dir} ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
+  logEl.textContent = (line + '\n' + logEl.textContent).slice(0, 4000);
+}
+function send(obj) {
+  if (!frame.contentWindow) return;
+  frame.contentWindow.postMessage(JSON.stringify(obj), '*');
+  log('->', obj);
+}
+function pushIcons() {
+  const dpr = window.devicePixelRatio || 1;
+  const rects = icons.map(ic => [
+    Math.round(ic.x * dpr), Math.round(ic.y * dpr),
+    Math.round((ic.x + ic.w) * dpr), Math.round((ic.y + ic.h) * dpr),
+  ]);
+  send({ t: 'icons', vis: true, r: rects });
+}
+function pushWindows() {
+  const dpr = window.devicePixelRatio || 1;
+  const r = winBox.visible ? [[
+    101,
+    Math.round(winBox.x * dpr), Math.round(winBox.y * dpr),
+    Math.round((winBox.x + winBox.w) * dpr), Math.round((winBox.y + winBox.h) * dpr),
+  ]] : [];
+  send({ t: 'windows', r });
+}
+function pushEnv() {
+  const h = +$('rngHour').value;
+  const hh = String(Math.floor(h)).padStart(2, '0');
+  const mm = h % 1 ? '30' : '00';
+  $('hourVal').textContent = `${hh}:${mm}`;
+  const daylight = Math.max(0, Math.min(1, Math.sin(((h - 6) / 12) * Math.PI)));
+  const phase = (h >= 5 && h < 8) ? 'dawn' : (h >= 8 && h < 17) ? 'day' : (h >= 17 && h < 20) ? 'dusk' : 'night';
+  send({ t: 'environment', hour: h, phase, daylight: +daylight.toFixed(3), darkMode: $('chkDark').checked, solarSync: $('chkSolar').checked });
+}
+function pushPerf() {
+  send({ t: 'lowMode', v: $('chkLow').checked });
+  send({ t: 'perf', onBattery: $('chkBattery').checked, reducedMotion: $('chkReduce').checked });
+  send({ t: 'pause', v: $('chkPause').checked });
+}
+function makeDraggable(el, item, onMove) {
+  el.addEventListener('pointerdown', e => {
+    if (e.target !== el) return;
+    const sx = e.clientX - item.x, sy = e.clientY - item.y;
+    el.setPointerCapture(e.pointerId);
+    const move = ev => {
+      item.x = Math.max(0, Math.round(ev.clientX - sx));
+      item.y = Math.max(0, Math.round(ev.clientY - sy));
+      el.style.left = item.x + 'px';
+      el.style.top = item.y + 'px';
+      onMove();
+    };
+    const up = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  });
+}
+function renderOverlay() {
+  overlay.innerHTML = '';
+  overlay.style.opacity = $('chkGuides').checked ? '1' : '0';
+  icons.forEach((ic, idx) => {
+    const el = document.createElement('div');
+    el.className = 'sim-icon';
+    el.style.left = ic.x + 'px'; el.style.top = ic.y + 'px';
+    el.textContent = ic.label || `Icon ${idx + 1}`;
+    makeDraggable(el, ic, pushIcons);
+    overlay.appendChild(el);
+  });
+  if (winBox.visible) {
+    const w = document.createElement('div');
+    w.className = 'sim-win';
+    w.style.left = winBox.x + 'px'; w.style.top = winBox.y + 'px';
+    w.style.width = winBox.w + 'px'; w.style.height = winBox.h + 'px';
+    w.textContent = 'Simulated Window (drag)';
+    makeDraggable(w, winBox, pushWindows);
+    overlay.appendChild(w);
+  }
+}
+function loadTheme(page) {
+  frame.src = page + '?preview=1';
+}
+frame.addEventListener('load', () => {
+  setTimeout(() => { pushIcons(); pushWindows(); pushEnv(); pushPerf(); }, 180);
+});
+window.addEventListener('message', e => {
+  if (e.source !== frame.contentWindow) return;
+  log('<-', e.data);
+});
+$('themeSelect').addEventListener('change', e => loadTheme(e.target.value));
+$('btnReload').addEventListener('click', () => loadTheme($('themeSelect').value));
+$('btnSnap').addEventListener('click', () => send({ t: 'snapshot' }));
+$('btnAddIcon').addEventListener('click', () => {
+  icons.push({ x: 80 + (icons.length * 42) % 420, y: 80 + (icons.length * 36) % 280, w: 76, h: 84, label: `App ${icons.length + 1}` });
+  renderOverlay(); pushIcons();
+});
+$('btnClearIcons').addEventListener('click', () => { icons = []; renderOverlay(); pushIcons(); });
+$('btnToggleWin').addEventListener('click', () => { winBox.visible = !winBox.visible; renderOverlay(); pushWindows(); });
+$('chkGuides').addEventListener('change', renderOverlay);
+['rngHour', 'chkSolar', 'chkDark'].forEach(id => $(id).addEventListener('input', pushEnv));
+['chkLow', 'chkBattery', 'chkReduce', 'chkPause'].forEach(id => $(id).addEventListener('change', pushPerf));
+
+fetch('themes.json').then(r => r.json()).then(reg => {
+  themes = (reg.themes || []).filter(t => t.status === 'ready');
+  $('themeSelect').innerHTML = themes.map(t => `<option value="${t.page}">${t.name} (${t.id})</option>`).join('');
+  renderOverlay();
+  if (themes.length) loadTheme(themes[0].page);
+});
+</script>
+</body>
+</html>

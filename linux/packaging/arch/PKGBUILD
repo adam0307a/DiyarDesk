@@ -45,9 +45,11 @@ package() {
   cp -a "$src/linux/plasma-wallpaper/org.deskland.preview" "$pkgdir/usr/share/plasma/wallpapers/"
   cp -a "$src/linux/kde-iconspy/org.deskland.iconspy" "$pkgdir/usr/share/plasma/plasmoids/"
   cp -a "$src/linux/gnome-extension/deskland@deskland.app" "$pkgdir/usr/share/gnome-shell/extensions/"
-  # Compile gettext catalogs into the system locale tree; system extensions
-  # bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
-  sh "$src/linux/gnome-extension/build-mo.sh" "$pkgdir/usr/share/locale"
+  # Compile gettext catalogs into the system locale tree when present;
+  # system extensions bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
+  if [ -f "$src/linux/gnome-extension/build-mo.sh" ]; then
+    sh "$src/linux/gnome-extension/build-mo.sh" "$pkgdir/usr/share/locale"
+  fi
   rm -rf "$pkgdir/usr/share/gnome-shell/extensions/deskland@deskland.app/locale" \
          "$pkgdir/usr/share/gnome-shell/extensions/deskland@deskland.app/po"
   install -m644 "$src/linux/packaging/deskland.desktop" \
@@ -63,4 +65,5 @@ export DESKLAND_PROTOTYPE="${DESKLAND_PROTOTYPE:-/usr/lib/deskland/prototype}"
 exec python3 -m deskland_linux "$@"
 EOF
   chmod 755 "$pkgdir/usr/bin/deskland-linux"
+  install -m755 "$src/linux/bin/diyardesk-ctl" "$pkgdir/usr/bin/diyardesk-ctl"
 }

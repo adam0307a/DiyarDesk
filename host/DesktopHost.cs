@@ -30,6 +30,7 @@ static class Program
     public static readonly string ExitEventName = "DesklandHost_Exit" + InstallProfile.Suffix;
     public static readonly string MenuEventName = "DesklandHost_Menu" + InstallProfile.Suffix;
     public static readonly string SettingsEventName = "DesklandHost_Settings" + InstallProfile.Suffix;
+    public static bool DebugMode = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DESKLAND_DEBUG"));
 
     // 通知正在运行的实例（退出 / 弹出菜单）
     static void Signal(string name)
@@ -48,7 +49,25 @@ static class Program
         if (args.Length > 0 && args[0] == "--exit") { Signal(ExitEventName); return; }
         if (args.Length > 0 && args[0] == "--menu") { Signal(MenuEventName); return; }
         if (args.Length > 0 && args[0] == "--settings") { Signal(SettingsEventName); return; }
+        if (args.Length > 0 && args[0] == "--ctl") { Environment.ExitCode = IpcControlClient.Run(args); return; }
         if (args.Length > 0 && args[0] == "--exit-installed") { Environment.ExitCode = InstallProfile.StopInstalled(); return; }
+        if (args.Length > 0)
+        {
+            string a0 = args[0].Trim().ToLowerInvariant();
+            if (a0 == "/s" || a0 == "-s" || a0 == "--screensaver")
+            {
+                if (!Native.SetProcessDpiAwarenessContext(new IntPtr(-4))) Native.SetProcessDPIAware();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Settings.Load();
+                string scrPageDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\prototype"));
+                string scrPage = Themes.PageFor(scrPageDir, Settings.Theme) ?? Themes.PageFor(scrPageDir, Themes.FirstReadyBuiltIn(scrPageDir)) ?? "flat.html";
+                Application.Run(new ScreenSaverForm(scrPageDir, scrPage));
+                return;
+            }
+            if (a0.StartsWith("/p") || a0.StartsWith("-p")) return;
+            if (a0.StartsWith("/c") || a0.StartsWith("-c")) { Signal(SettingsEventName); return; }
+        }
         // Preview never migrates or shares the development edition's settings.                                 // 老名字（Habitat Wallpaper）下的数据目录、开机自启项搬过来
         bool fromAutostart = Array.IndexOf(args, "--autostart") >= 0;
         if (fromAutostart) AutoStartCheck.MarkLaunched();  // 开机自启跑起来了（不管后面是不是已经在运行）
@@ -78,6 +97,7 @@ static class Program
             if (a == "--legacy") attach = "legacy";
             else if (a == "--defview") attach = "defview";
             else if (a == "--autostart") autostart = true;
+            else if (a == "--debug") DebugMode = true;
             else if (!a.StartsWith("--")) pageDir = a;
         }
         WallpaperForm.AttachMode = attach;
@@ -90,15 +110,124 @@ static class Log
 {
     public static readonly string DataDir = InstallProfile.DataDir;
     public static readonly string FilePath = Path.Combine(DataDir, "host.log");
+    const long MaxLogBytes = 2L * 1024L * 1024L;
+    static readonly object Sync = new object();
 
     public static void Write(string msg)
     {
         try
         {
-            Directory.CreateDirectory(DataDir);
-            File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + msg + "\r\n");
+            lock (Sync)
+            {
+                Directory.CreateDirectory(DataDir);
+                if (File.Exists(FilePath))
+                {
+                    var fi = new FileInfo(FilePath);
+                    if (fi.Length >= MaxLogBytes)
+                    {
+                        string backup = FilePath + ".1";
+                        if (File.Exists(backup)) File.Delete(backup);
+                        File.Move(FilePath, backup);
+                    }
+                }
+                File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + msg + "\r\n");
+            }
         }
         catch { }
+    }
+}
+
+static class PowerHelper
+{
+    public static bool IsRemoteSession()
+    {
+        try { return Native.GetSystemMetrics(Native.SM_REMOTESESSION) != 0; }
+        catch { return false; }
+    }
+
+    public static bool IsReducedMotion()
+    {
+        try
+        {
+            bool anim = true;
+            if (Native.SystemParametersInfo(Native.SPI_GETCLIENTAREAANIMATION, 0, out anim, 0))
+                return !anim;
+        }
+        catch { }
+        return false;
+    }
+
+    public static void QueryPower(out bool onBattery, out bool batterySaver)
+    {
+        onBattery = false;
+        batterySaver = false;
+        try
+        {
+            Native.SYSTEM_POWER_STATUS st;
+            if (Native.GetSystemPowerStatus(out st))
+            {
+                onBattery = st.ACLineStatus == 0;
+                batterySaver = (st.SystemStatusFlag & 1) != 0;
+            }
+        }
+        catch { }
+    }
+}
+
+static class Diagnostics
+{
+    static string Sanitize(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(profile))
+            text = text.Replace(profile, "%USERPROFILE%");
+        return text;
+    }
+
+    public static string Export(WallpaperForm form)
+    {
+        string dir = Path.Combine(Log.DataDir, "diagnostics");
+        Directory.CreateDirectory(dir);
+        string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        string outPath = Path.Combine(dir, "diyardesk-diagnostics-" + stamp + ".txt");
+
+        bool onBattery, batterySaver;
+        PowerHelper.QueryPower(out onBattery, out batterySaver);
+        var sb = new StringBuilder();
+        sb.AppendLine("=== DiyarDesk Diagnostics Report ===");
+        sb.AppendLine("Generated (UTC): " + DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+        sb.AppendLine("App Version:     " + Application.ProductVersion);
+        sb.AppendLine("OS Version:      " + Environment.OSVersion.VersionString);
+        sb.AppendLine("64-bit OS/Proc:  " + Environment.Is64BitOperatingSystem + " / " + Environment.Is64BitProcess);
+        sb.AppendLine("Primary Screen:  " + Screen.PrimaryScreen.Bounds + " (WorkingArea=" + Screen.PrimaryScreen.WorkingArea + ")");
+        sb.AppendLine("System DPI:      " + Native.GetDpiForSystem());
+        sb.AppendLine("Active Theme:    " + Settings.Theme);
+        sb.AppendLine("Language:        " + I18n.Code + " (setting=" + Settings.Lang + ")");
+        sb.AppendLine("Low Mode:        " + Settings.LowMode);
+        sb.AppendLine("Auto-Pause Off:  " + Settings.DisableAutoPause);
+        sb.AppendLine("Attach Mode:     " + WallpaperForm.AttachMode + (form != null ? " (24H2NoRedir=" + form.Is24H2NoRedirectionBitmap + ", raised=" + form.IsRaisedDesktop + ")" : ""));
+        sb.AppendLine("WebView2 Ver:    " + (form != null && !string.IsNullOrEmpty(form.WebViewVersion) ? form.WebViewVersion : "(unknown)"));
+        sb.AppendLine("Power State:     onBattery=" + onBattery + ", batterySaver=" + batterySaver + ", remoteSession=" + PowerHelper.IsRemoteSession() + ", reducedMotion=" + PowerHelper.IsReducedMotion());
+        sb.AppendLine();
+        sb.AppendLine("=== Recent host.log (last 200 lines) ===");
+        try
+        {
+            if (File.Exists(Log.FilePath))
+            {
+                string[] lines = File.ReadAllLines(Log.FilePath, Encoding.UTF8);
+                int start = Math.Max(0, lines.Length - 200);
+                for (int i = start; i < lines.Length; i++) sb.AppendLine(lines[i]);
+            }
+            else
+            {
+                sb.AppendLine("(log file does not exist yet)");
+            }
+        }
+        catch (Exception ex) { sb.AppendLine("(could not read log: " + ex.Message + ")"); }
+
+        File.WriteAllText(outPath, Sanitize(sb.ToString()), new UTF8Encoding(false));
+        return outPath;
     }
 }
 
@@ -222,6 +351,13 @@ static class Settings
     public static string VirtualBarMode = "auto";
     public static bool LowMode = false;
     public static bool DisableAutoPause = false;
+    public static string DisplayMode = "primary"; // primary | independent | span | duplicate
+    public static bool SolarSync = false;
+    public static bool WindowAware = false;
+    public static bool PlaylistEnabled = false;
+    public static int PlaylistIntervalMin = 30;
+    public static bool SystemBridge = false;
+    public static bool PreferMpv = false;
 
     public static List<Dictionary<string, object>> SanitizeVirtualIcons(object raw)
     {
@@ -282,6 +418,23 @@ static class Settings
             }
             if (root.TryGetValue("lowMode", out v) && v is bool) LowMode = (bool)v;
             if (root.TryGetValue("disableAutoPause", out v) && v is bool) DisableAutoPause = (bool)v;
+            if (root.TryGetValue("displayMode", out v) && v is string)
+            {
+                string dm = (string)v;
+                if (dm == "primary" || dm == "independent" || dm == "span" || dm == "duplicate") DisplayMode = dm;
+            }
+            if (root.TryGetValue("solarSync", out v) && v is bool) SolarSync = (bool)v;
+            if (root.TryGetValue("windowAware", out v) && v is bool) WindowAware = (bool)v;
+            if (root.TryGetValue("playlistEnabled", out v) && v is bool) PlaylistEnabled = (bool)v;
+            if (root.TryGetValue("playlistIntervalMin", out v) && (v is int || v is long || v is double))
+            {
+                int iv = Convert.ToInt32(v);
+                if (iv < 1) iv = 1;
+                if (iv > 1440) iv = 1440;
+                PlaylistIntervalMin = iv;
+            }
+            if (root.TryGetValue("systemBridge", out v) && v is bool) SystemBridge = (bool)v;
+            if (root.TryGetValue("preferMpv", out v) && v is bool) PreferMpv = (bool)v;
             Log.Write("已读取设置：主题 " + Theme);
         }
         catch (Exception ex) { Log.Write("读取设置失败（将使用默认值）：" + ex.Message); }
@@ -301,7 +454,14 @@ static class Settings
                 "virtualBarCollapsed", VirtualBarCollapsed,
                 "virtualBarMode", VirtualBarMode,
                 "lowMode", LowMode,
-                "disableAutoPause", DisableAutoPause)), new UTF8Encoding(false));
+                "disableAutoPause", DisableAutoPause,
+                "displayMode", DisplayMode,
+                "solarSync", SolarSync,
+                "windowAware", WindowAware,
+                "playlistEnabled", PlaylistEnabled,
+                "playlistIntervalMin", PlaylistIntervalMin,
+                "systemBridge", SystemBridge,
+                "preferMpv", PreferMpv)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -329,7 +489,7 @@ static class I18n
         bool zhHant = n.StartsWith("zh") && (n.Contains("hant") || n.EndsWith("-tw") || n.EndsWith("-hk") || n.EndsWith("-mo"));
         string want = n.StartsWith("zh") ? (zhHant ? "zh-TW" : "zh-CN") : two == "pt" ? "pt-BR" : two;
         if (Array.IndexOf(Supported, want) >= 0) return want;
-        return n.StartsWith("zh") ? "zh-CN" : "en";       // 其他中文变体先用简体
+        return n.StartsWith("zh") ? "zh-CN" : "en";       // 繁体中文还没做：先用简体
     }
 
     public static void Load(string pageDir, string setting)
@@ -381,10 +541,22 @@ class HostContext : ApplicationContext
     readonly HotkeyWindow hotkey = new HotkeyWindow();
     readonly Queue<DateTime> restarts = new Queue<DateTime>();
     WallpaperForm form, dead;
+    readonly List<WallpaperForm> extraForms = new List<WallpaperForm>();
+    readonly LanSyncServer lanSync = new LanSyncServer();
+    readonly WinResourceWatchdog resourceWatchdog = new WinResourceWatchdog(1536, 3);
+    readonly WinMpvBackend mpvBackend = new WinMpvBackend();
+    readonly WinSystemBridge sysBridge = new WinSystemBridge();
+    DateTime lastSysBridgePush = DateTime.MinValue;
+    readonly Control uiInvoker = new Control();
+    IpcControlServer ipcServer;
     SettingsForm settingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
+    DateTime lastPlaylistSwitch = DateTime.UtcNow, lastEnvPush = DateTime.MinValue;
+    string lastEnvJson = "";
+    readonly Random rng = new Random();
     bool manualPause, wallpaperPaused, exiting;
     string autoStartSw;                                 // 开机自启没跑起来（只在手动打开时检查）：正在运行的安全软件名（没认出来是 ""）；没问题是 null
+    string lastDiagnostics;
     string updateVersion, updateUrl, updateStatus = "", updateError = "";
     double updateProgress = -1;                         // -1 = 当前阶段没有可显示的百分比
 
@@ -408,7 +580,7 @@ class HostContext : ApplicationContext
         {
             manualPause = !manualPause;
             pauseItem.Checked = manualPause;
-            if (form != null) form.SetManualPause(manualPause);
+            ForEachWallpaper(delegate(WallpaperForm w) { w.SetManualPause(manualPause); });
         });
         lowModeItem = new MenuItem(I18n.T("trayLowMode"), delegate { SetLowMode(!Settings.LowMode); });
         lowModeItem.Checked = Settings.LowMode;
@@ -453,6 +625,9 @@ class HostContext : ApplicationContext
         watch.Interval = 500;
         watch.Tick += delegate { Watch(); };
         watch.Start();
+        IntPtr _invHandle = uiInvoker.Handle;
+        ipcServer = new IpcControlServer(DispatchIpc);
+        ipcServer.Start();
         StartForm();
         if (showSettings) OpenSettings();                // 用户双击程序启动：直接打开设置
     }
@@ -474,13 +649,30 @@ class HostContext : ApplicationContext
         catch { }
     }
 
+    void ForEachWallpaper(Action<WallpaperForm> act)
+    {
+        if (form != null) act(form);
+        for (int i = 0; i < extraForms.Count; i++)
+            if (extraForms[i] != null && !extraForms[i].IsDisposed) act(extraForms[i]);
+    }
+
+    void ShutdownExtraForms()
+    {
+        for (int i = 0; i < extraForms.Count; i++)
+        {
+            try { if (extraForms[i] != null && !extraForms[i].IsDisposed) extraForms[i].Shutdown(); } catch { }
+            try { if (extraForms[i] != null) extraForms[i].Dispose(); } catch { }
+        }
+        extraForms.Clear();
+    }
+
     void SetLowMode(bool enabled)
     {
         Settings.LowMode = enabled;
         lowModeItem.Checked = enabled;
         ApplyProcessPriority(enabled && wallpaperPaused);
         SaveSoon();
-        if (form != null) form.SetLowMode(enabled);
+        ForEachWallpaper(delegate(WallpaperForm w) { w.SetLowMode(enabled); });
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lowMode", "v", enabled)));
         Log.Write(enabled ? "已开启低功耗模式（Low Mode）" : "已关闭低功耗模式");
     }
@@ -489,9 +681,328 @@ class HostContext : ApplicationContext
     {
         Settings.DisableAutoPause = enabled;
         SaveSoon();
-        if (form != null) form.SetDisableAutoPause(enabled);
+        ForEachWallpaper(delegate(WallpaperForm w) { w.SetDisableAutoPause(enabled); });
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "disableAutoPause", "v", enabled)));
         Log.Write(enabled ? "已关闭自动暂停（最大化/全屏保持运行）" : "已开启自动暂停");
+    }
+
+    void SetDisplayMode(string mode)
+    {
+        if (mode != "primary" && mode != "independent" && mode != "span" && mode != "duplicate") return;
+        if (mode == Settings.DisplayMode) return;
+        Settings.DisplayMode = mode;
+        SaveSoon();
+        ShutdownExtraForms();
+        if (form != null)
+        {
+            var old = form;
+            form = null;
+            old.HandleDestroyed -= OnFormGone;
+            try { old.Shutdown(); } catch { }
+            try { old.Dispose(); } catch { }
+        }
+        StartForm();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "displayMode", "v", mode)));
+        Log.Write("多屏显示模式已切换为：" + mode);
+    }
+
+    void PushEnvironment(bool force)
+    {
+        if (!force && (DateTime.UtcNow - lastEnvPush).TotalSeconds < 60) return;
+        lastEnvPush = DateTime.UtcNow;
+        string msg = EnvironmentHelper.BuildSolarMessage(Settings.SolarSync);
+        if (!force && msg == lastEnvJson) return;
+        lastEnvJson = msg;
+        ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+    }
+
+    void SetSolarSync(bool enabled)
+    {
+        Settings.SolarSync = enabled;
+        SaveSoon();
+        PushEnvironment(true);
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "solarSync", "v", enabled)));
+        Log.Write(enabled ? "已开启昼夜节律同步（Solar Sync）" : "已关闭昼夜节律同步");
+    }
+
+    void SetWindowAware(bool enabled)
+    {
+        Settings.WindowAware = enabled;
+        SaveSoon();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "windowAware", "v", enabled)));
+        Log.Write(enabled ? "已开启窗口感知场景（Window-Aware）" : "已关闭窗口感知场景");
+    }
+
+    void SetPlaylist(bool? enabled, int? intervalMin)
+    {
+        if (enabled.HasValue) Settings.PlaylistEnabled = enabled.Value;
+        if (intervalMin.HasValue && intervalMin.Value >= 1)
+        {
+            int iv = intervalMin.Value;
+            if (iv > 1440) iv = 1440;
+            Settings.PlaylistIntervalMin = iv;
+        }
+        lastPlaylistSwitch = DateTime.UtcNow;
+        SaveSoon();
+        if (settingsWin != null)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "playlistState", "enabled", Settings.PlaylistEnabled, "intervalMin", Settings.PlaylistIntervalMin)));
+    }
+
+    void SyncMpvVideo()
+    {
+        mpvBackend.Stop();
+        if (!Settings.PreferMpv || form == null || form.IsDisposed) return;
+        string vpath = WinMpvBackend.FindThemeVideo(Settings.Theme);
+        if (string.IsNullOrEmpty(vpath)) return;
+        var p = Settings.For(Settings.Theme);
+        double spd = 1.0, bright = 1.0;
+        object v;
+        if (p.TryGetValue("speed", out v)) try { spd = Convert.ToDouble(v); } catch { }
+        if (p.TryGetValue("brightness", out v)) try { bright = Convert.ToDouble(v); } catch { }
+        mpvBackend.Start(vpath, form.Handle, spd, bright);
+    }
+
+    void SetSystemBridge(bool enabled)
+    {
+        Settings.SystemBridge = enabled;
+        SaveSoon();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "systemBridge", "v", enabled)));
+        Log.Write(enabled ? "已开启本地系统/音频桥接" : "已关闭本地系统/音频桥接");
+    }
+
+    void SetPreferMpv(bool enabled)
+    {
+        Settings.PreferMpv = enabled;
+        SaveSoon();
+        SyncMpvVideo();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "preferMpv", "v", enabled)));
+        Log.Write(enabled ? "已启用 mpv 硬件视频后端" : "已切回 WebView2 视频播放");
+    }
+
+    void SyncLockscreen()
+    {
+        if (form == null)
+        {
+            if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lockscreenSynced", "ok", false, "msg", I18n.T("errNotReady"))));
+            return;
+        }
+        form.RequestSnapshot(delegate(string thumb, string png, string err)
+        {
+            if (err != null || string.IsNullOrEmpty(png))
+            {
+                if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lockscreenSynced", "ok", false, "msg", err ?? I18n.T("errNoImage"))));
+                return;
+            }
+            try
+            {
+                int comma = png.IndexOf(',');
+                byte[] bytes = Convert.FromBase64String(comma >= 0 ? png.Substring(comma + 1) : png);
+                string outPath = Path.Combine(Log.DataDir, "lockscreen.png");
+                Directory.CreateDirectory(Log.DataDir);
+                File.WriteAllBytes(outPath, bytes);
+                Log.Write("锁屏静态图已保存：" + outPath);
+                if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lockscreenSynced", "ok", true, "path", outPath)));
+            }
+            catch (Exception ex)
+            {
+                Log.Write("保存锁屏静态图失败：" + ex.Message);
+                if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lockscreenSynced", "ok", false, "msg", ex.Message)));
+            }
+        });
+    }
+
+    List<string> ReadyThemeIds()
+    {
+        var ids = new List<string>();
+        var builtIn = Themes.LoadBuiltIn(pageDir);
+        for (int i = 0; i < builtIn.Count; i++)
+        {
+            object idObj, stObj;
+            if (builtIn[i].TryGetValue("id", out idObj) && idObj is string &&
+                builtIn[i].TryGetValue("status", out stObj) && string.Equals(stObj as string, "ready", StringComparison.OrdinalIgnoreCase))
+            {
+                string id = (string)idObj;
+                if (ThemeAllowed(id)) ids.Add(id);
+            }
+        }
+        var custom = CustomThemes.Load();
+        for (int i = 0; i < custom.Count; i++)
+        {
+            object idObj;
+            if (custom[i].TryGetValue("id", out idObj) && idObj is string)
+                ids.Add((string)idObj);
+        }
+        return ids;
+    }
+
+    bool SwitchThemeById(string id)
+    {
+        if (string.IsNullOrEmpty(id) || !ThemeAllowed(id)) return false;
+        string page = Themes.PageFor(pageDir, id);
+        if (string.IsNullOrEmpty(page) || !Themes.PageExists(pageDir, page)) return false;
+        Settings.Theme = id;
+        lastPlaylistSwitch = DateTime.UtcNow;
+        SaveSoon();
+        ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page); });
+        SyncMpvVideo();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "themeChanged", "id", id)));
+        Log.Write("切换主题：" + id);
+        return true;
+    }
+
+    Dictionary<string, object> DispatchIpc(Dictionary<string, object> req)
+    {
+        if (exiting) return Json.Obj("ok", false, "error", "host exiting");
+        Dictionary<string, object> resp = null;
+        try
+        {
+            if (uiInvoker.IsHandleCreated && uiInvoker.InvokeRequired)
+            {
+                uiInvoker.Invoke((MethodInvoker)delegate { resp = HandleIpcOnUi(req); });
+            }
+            else
+            {
+                resp = HandleIpcOnUi(req);
+            }
+        }
+        catch (Exception ex)
+        {
+            resp = Json.Obj("ok", false, "error", ex.Message);
+        }
+        return resp ?? Json.Obj("ok", false, "error", "no response");
+    }
+
+    Dictionary<string, object> HandleIpcOnUi(Dictionary<string, object> req)
+    {
+        object cmdObj;
+        string cmd = (req.TryGetValue("cmd", out cmdObj) && cmdObj is string) ? ((string)cmdObj).Trim().ToLowerInvariant() : "";
+        if (cmd == "status")
+        {
+            return Json.Obj(
+                "ok", true,
+                "theme", Settings.Theme,
+                "paused", manualPause,
+                "lowMode", Settings.LowMode,
+                "displayMode", Settings.DisplayMode,
+                "solarSync", Settings.SolarSync,
+                "windowAware", Settings.WindowAware,
+                "playlistEnabled", Settings.PlaylistEnabled,
+                "playlistIntervalMin", Settings.PlaylistIntervalMin,
+                "message", "theme=" + Settings.Theme + " paused=" + manualPause + " lowMode=" + Settings.LowMode + " displayMode=" + Settings.DisplayMode);
+        }
+        if (cmd == "setwp")
+        {
+            object tidObj;
+            string tid = req.TryGetValue("theme", out tidObj) ? tidObj as string : null;
+            if (!SwitchThemeById(tid)) return Json.Obj("ok", false, "error", "unknown or unavailable theme: " + (tid ?? ""));
+            return Json.Obj("ok", true, "theme", tid, "message", "theme=" + tid);
+        }
+        if (cmd == "setprop")
+        {
+            object keyObj, valObj, tidObj;
+            string key = req.TryGetValue("key", out keyObj) ? keyObj as string : null;
+            string tid = (req.TryGetValue("theme", out tidObj) && tidObj is string && !string.IsNullOrEmpty((string)tidObj)) ? (string)tidObj : Settings.Theme;
+            req.TryGetValue("value", out valObj);
+            if (string.IsNullOrEmpty(key) || !ThemeAllowed(tid)) return Json.Obj("ok", false, "error", "invalid theme or key");
+            Settings.For(tid)[key] = valObj;
+            if (tid == Settings.Theme)
+            {
+                string msg = Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, valObj)));
+                ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+            }
+            SaveSoon();
+            return Json.Obj("ok", true, "theme", tid, "key", key, "value", valObj, "message", tid + "." + key + "=" + Convert.ToString(valObj));
+        }
+        if (cmd == "pause" || cmd == "play" || cmd == "toggle")
+        {
+            manualPause = (cmd == "pause") ? true : (cmd == "play" ? false : !manualPause);
+            pauseItem.Checked = manualPause;
+            ForEachWallpaper(delegate(WallpaperForm w) { w.SetManualPause(manualPause); });
+            return Json.Obj("ok", true, "paused", manualPause, "message", manualPause ? "paused" : "playing");
+        }
+        if (cmd == "random")
+        {
+            var ids = ReadyThemeIds();
+            if (ids.Count == 0) return Json.Obj("ok", false, "error", "no ready themes");
+            var choices = new List<string>();
+            for (int i = 0; i < ids.Count; i++) if (ids[i] != Settings.Theme) choices.Add(ids[i]);
+            if (choices.Count == 0) choices = ids;
+            string pick = choices[rng.Next(choices.Count)];
+            SwitchThemeById(pick);
+            return Json.Obj("ok", true, "theme", pick, "message", "theme=" + pick);
+        }
+        if (cmd == "lowmode")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.LowMode : st == "on";
+            SetLowMode(target);
+            return Json.Obj("ok", true, "lowMode", target, "message", "lowMode=" + target);
+        }
+        if (cmd == "solar")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.SolarSync : st == "on";
+            SetSolarSync(target);
+            return Json.Obj("ok", true, "solarSync", target, "message", "solarSync=" + target);
+        }
+        if (cmd == "window-aware")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.WindowAware : st == "on";
+            SetWindowAware(target);
+            return Json.Obj("ok", true, "windowAware", target, "message", "windowAware=" + target);
+        }
+        if (cmd == "playlist")
+        {
+            object actObj, ivObj;
+            string act = req.TryGetValue("action", out actObj) ? (actObj as string ?? "status") : "status";
+            int? iv = null;
+            if (req.TryGetValue("interval", out ivObj) && (ivObj is int || ivObj is long || ivObj is double))
+                iv = Convert.ToInt32(ivObj);
+            if (act == "on") SetPlaylist(true, iv);
+            else if (act == "off") SetPlaylist(false, iv);
+            else if (act == "next")
+            {
+                var ids = ReadyThemeIds();
+                if (ids.Count > 1)
+                {
+                    int idx = ids.IndexOf(Settings.Theme);
+                    SwitchThemeById(ids[(idx + 1) % ids.Count]);
+                }
+            }
+            return Json.Obj("ok", true, "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin, "theme", Settings.Theme,
+                "message", "playlist=" + Settings.PlaylistEnabled + " interval=" + Settings.PlaylistIntervalMin + "m theme=" + Settings.Theme);
+        }
+        if (cmd == "reload")
+        {
+            ForEachWallpaper(delegate(WallpaperForm w) { w.Reload(); });
+            return Json.Obj("ok", true, "message", "reloaded");
+        }
+        if (cmd == "system-bridge")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.SystemBridge : st == "on";
+            SetSystemBridge(target);
+            return Json.Obj("ok", true, "systemBridge", target, "message", "systemBridge=" + target);
+        }
+        if (cmd == "mpv")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.PreferMpv : st == "on";
+            SetPreferMpv(target);
+            return Json.Obj("ok", true, "preferMpv", target, "message", "preferMpv=" + target);
+        }
+        if (cmd == "lockscreen-sync")
+        {
+            SyncLockscreen();
+            return Json.Obj("ok", true, "message", "lockscreen sync requested");
+        }
+        if (cmd == "exit")
+        {
+            uiInvoker.BeginInvoke((MethodInvoker)delegate { Exit(); });
+            return Json.Obj("ok", true, "message", "exiting");
+        }
+        return Json.Obj("ok", false, "error", "unknown command: " + cmd);
     }
 
     // ---------------------------------------------------------------- 设置窗口
@@ -575,7 +1086,10 @@ class HostContext : ApplicationContext
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
                     "lang", Settings.Lang, "langEff", I18n.Code, "langSys", I18n.Sys,
                     "customBase", WebCustomHelper.CustomBaseUrl, "customThemes", CustomThemes.Load(),
-                    "virtualBarMode", Settings.VirtualBarMode, "lowMode", Settings.LowMode, "disableAutoPause", Settings.DisableAutoPause)));
+                    "virtualBarMode", Settings.VirtualBarMode, "lowMode", Settings.LowMode, "disableAutoPause", Settings.DisableAutoPause,
+                    "displayMode", Settings.DisplayMode, "solarSync", Settings.SolarSync, "windowAware", Settings.WindowAware,
+                    "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin,
+                    "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv)));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -590,8 +1104,11 @@ class HostContext : ApplicationContext
                     if (p.TryGetValue("audioFile", out oldVal)) CleanupAudioFile(oldVal as string);
                 }
                 p[key] = m["value"];
-                if (theme == Settings.Theme && form != null)
-                    form.Post(Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, m["value"]))));
+                if (theme == Settings.Theme)
+                {
+                    string msg = Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, m["value"])));
+                    ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+                }
                 SaveSoon();
                 break;
             }
@@ -609,7 +1126,7 @@ class HostContext : ApplicationContext
                 string theme = m["theme"] as string;
                 if (theme == null) return;
                 Settings.Params.Remove(theme);
-                if (theme == Settings.Theme && form != null) form.Post("{\"t\":\"reset\"}");
+                if (theme == Settings.Theme) ForEachWallpaper(delegate(WallpaperForm w) { w.Post("{\"t\":\"reset\"}"); });
                 SaveSoon();
                 Log.Write("恢复默认设置：" + theme);
                 break;
@@ -633,7 +1150,7 @@ class HostContext : ApplicationContext
                 if (id == Settings.Theme) return;
                 Settings.Theme = id;
                 SaveSoon();
-                if (form != null) form.LoadPage(page);
+                ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page); });
                 Log.Write("切换主题：" + id);
                 break;
             }
@@ -679,6 +1196,23 @@ class HostContext : ApplicationContext
             case "revealShare":
                 if (lastShare != null && File.Exists(lastShare)) Process.Start("explorer.exe", "/select,\"" + lastShare + "\"");
                 break;
+            case "exportDiagnostics":
+                try
+                {
+                    lastDiagnostics = Diagnostics.Export(form);
+                    Log.Write("诊断日志已导出：" + lastDiagnostics);
+                    if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "diagExported", "ok", true, "path", lastDiagnostics)));
+                }
+                catch (Exception ex)
+                {
+                    Log.Write("导出诊断日志失败：" + ex.Message);
+                    if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "diagExported", "ok", false, "msg", ex.Message)));
+                }
+                break;
+            case "revealDiagnostics":
+                if (lastDiagnostics != null && File.Exists(lastDiagnostics))
+                    Process.Start("explorer.exe", "/select,\"" + lastDiagnostics + "\"");
+                break;
             case "updateProgram":
                 if (updateUrl != null) Process.Start(updateUrl);
                 break;
@@ -691,6 +1225,63 @@ class HostContext : ApplicationContext
                 break;
             case "disableAutoPause":
                 SetDisableAutoPause(m.ContainsKey("v") && m["v"] is bool && (bool)m["v"]);
+                break;
+            case "displayMode":
+                SetDisplayMode(m.ContainsKey("v") ? m["v"] as string : null);
+                break;
+            case "startLanPair":
+                try
+                {
+                    var info = lanSync.Start();
+                    info["t"] = "lanPairState";
+                    info["ok"] = true;
+                    Log.Write("LAN 配对已启动：" + info["host"] + ":" + info["port"]);
+                    if (settingsWin != null) settingsWin.Post(Json.Stringify(info));
+                }
+                catch (Exception ex)
+                {
+                    Log.Write("启动 LAN 配对失败：" + ex.Message);
+                    if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lanPairState", "ok", false, "active", false, "msg", ex.Message)));
+                }
+                break;
+            case "stopLanPair":
+                lanSync.Stop();
+                if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lanPairState", "ok", true, "active", false)));
+                break;
+            case "solarSync":
+            {
+                object sv;
+                if (m.TryGetValue("v", out sv) && sv is bool) SetSolarSync((bool)sv);
+                break;
+            }
+            case "windowAware":
+            {
+                object wv;
+                if (m.TryGetValue("v", out wv) && wv is bool) SetWindowAware((bool)wv);
+                break;
+            }
+            case "playlist":
+            {
+                object ev, iv;
+                bool? en = (m.TryGetValue("enabled", out ev) && ev is bool) ? (bool?)((bool)ev) : null;
+                int? mins = (m.TryGetValue("intervalMin", out iv) && (iv is int || iv is long || iv is double)) ? (int?)Convert.ToInt32(iv) : null;
+                SetPlaylist(en, mins);
+                break;
+            }
+            case "systemBridge":
+            {
+                object sbv;
+                if (m.TryGetValue("v", out sbv) && sbv is bool) SetSystemBridge((bool)sbv);
+                break;
+            }
+            case "preferMpv":
+            {
+                object mpvv;
+                if (m.TryGetValue("v", out mpvv) && mpvv is bool) SetPreferMpv((bool)mpvv);
+                break;
+            }
+            case "syncLockscreen":
+                SyncLockscreen();
                 break;
         }
     }
@@ -760,7 +1351,7 @@ class HostContext : ApplicationContext
         {
             string title = I18n.T("importTheme");
             dlg.Title = string.IsNullOrEmpty(title) || title == "importTheme" ? "Import theme" : title;
-            dlg.Filter = "Theme packages, HTML, images, videos (*.zip;*.deskland;*.html;*.htm;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp;*.mp4;*.webm;*.mkv;*.mov)|*.zip;*.deskland;*.html;*.htm;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp;*.mp4;*.webm;*.mkv;*.mov|All Files (*.*)|*.*";
+            dlg.Filter = "Theme packages, HTML, GLSL, images, videos (*.zip;*.deskland;*.html;*.htm;*.glsl;*.frag;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp;*.mp4;*.webm;*.mkv;*.mov)|*.zip;*.deskland;*.html;*.htm;*.glsl;*.frag;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp;*.mp4;*.webm;*.mkv;*.mov|All Files (*.*)|*.*";
             dlg.RestoreDirectory = true;
             if (dlg.ShowDialog(settingsWin) != DialogResult.OK) return;
             chosen = dlg.FileName;
@@ -1032,7 +1623,11 @@ class HostContext : ApplicationContext
             nextStart = DateTime.Now.AddSeconds(5);
             return;
         }
-        form = new WallpaperForm(pageDir, page, manualPause, Settings.LowMode, Settings.DisableAutoPause);
+        ShutdownExtraForms();
+        bool spanAll = Settings.DisplayMode == "span" && Screen.AllScreens.Length > 1;
+        bool duplicateIcons = Settings.DisplayMode == "duplicate";
+        form = new WallpaperForm(pageDir, page, manualPause, Settings.LowMode, Settings.DisableAutoPause,
+            spanAll ? null : Screen.PrimaryScreen, spanAll, duplicateIcons);
         form.SettingsJson = SettingsMessage;
         form.VirtualStateJson = VirtualStateMessage;
         form.AudioPlayChanged += delegate(bool play)
@@ -1066,6 +1661,25 @@ class HostContext : ApplicationContext
         form.RecordProgress += delegate(string p) { if (settingsWin != null) settingsWin.Post("{\"t\":\"recProgress\",\"p\":" + p + "}"); };
         form.HandleDestroyed += OnFormGone;
         form.Show();
+
+        if (Settings.DisplayMode == "independent" || Settings.DisplayMode == "duplicate")
+        {
+            Screen[] screens = Screen.AllScreens;
+            for (int i = 0; i < screens.Length; i++)
+            {
+                if (screens[i].Primary) continue;
+                try
+                {
+                    var extra = new WallpaperForm(pageDir, page, manualPause, Settings.LowMode, Settings.DisableAutoPause,
+                        screens[i], false, duplicateIcons);
+                    extra.SettingsJson = SettingsMessage;
+                    extra.VirtualStateJson = VirtualStateMessage;
+                    extraForms.Add(extra);
+                    extra.Show();
+                }
+                catch (Exception ex) { Log.Write("副屏壁纸启动失败：" + ex.Message); }
+            }
+        }
     }
 
     void OnFormGone(object sender, EventArgs e)
@@ -1101,6 +1715,35 @@ class HostContext : ApplicationContext
         if (settingsEvent.WaitOne(0)) OpenSettings();
         if (DateTime.Now >= saveDue) { saveDue = DateTime.MaxValue; Settings.Save(); }
         if (form == null && !exiting && DateTime.Now >= nextStart) StartForm();
+        if (!exiting && form != null)
+        {
+            PushEnvironment(false);
+            string wdTrip = resourceWatchdog.Poll(form.BrowserProcessId);
+            if (wdTrip != null)
+            {
+                Log.Write("失控脚本资源保护触发（" + wdTrip + "），正在重载壁纸");
+                ForEachWallpaper(delegate(WallpaperForm w) { w.Reload(); });
+            }
+            if (Settings.SystemBridge && !manualPause && !wallpaperPaused && (DateTime.UtcNow - lastSysBridgePush).TotalSeconds >= 2.0)
+            {
+                lastSysBridgePush = DateTime.UtcNow;
+                string statsJson = sysBridge.SampleJson();
+                ForEachWallpaper(delegate(WallpaperForm w) { w.Post(statsJson); });
+            }
+            if (Settings.PlaylistEnabled && !manualPause && (DateTime.UtcNow - lastPlaylistSwitch).TotalMinutes >= Settings.PlaylistIntervalMin)
+            {
+                var ids = ReadyThemeIds();
+                if (ids.Count > 1)
+                {
+                    int idx = ids.IndexOf(Settings.Theme);
+                    SwitchThemeById(ids[(idx + 1) % ids.Count]);
+                }
+                else
+                {
+                    lastPlaylistSwitch = DateTime.UtcNow;
+                }
+            }
+        }
     }
 
     void Exit()
@@ -1112,6 +1755,11 @@ class HostContext : ApplicationContext
         if (settingsWin != null) { try { settingsWin.Close(); } catch { } }
         hotkey.Dispose();
         tray.Visible = false;
+        if (ipcServer != null) ipcServer.Stop();
+        mpvBackend.Stop();
+        try { uiInvoker.Dispose(); } catch { }
+        lanSync.Stop();
+        ShutdownExtraForms();
         if (form != null) form.Shutdown();
         Log.Write("退出");
         ExitThread();
@@ -1226,6 +1874,113 @@ static class WebViewConfig
     }
 }
 
+static class WebViewSecurity
+{
+    static readonly HashSet<string> AllowedHosts = new HashSet<string>(
+        new string[] { "app.local", "custom.local", "audio.local", "share.local" },
+        StringComparer.OrdinalIgnoreCase);
+
+    static readonly HashSet<string> AllowedMessageHosts = new HashSet<string>(
+        new string[] { "app.local", "custom.local" },
+        StringComparer.OrdinalIgnoreCase);
+
+    const string CspPolicy =
+        "default-src 'self' https://app.local https://custom.local https://audio.local https://share.local data: blob:; "
+        + "script-src 'self' https://app.local https://custom.local 'unsafe-inline' 'unsafe-eval' data: blob:; "
+        + "style-src 'self' https://app.local https://custom.local 'unsafe-inline' data: blob:; "
+        + "img-src 'self' https://app.local https://custom.local https://share.local data: blob:; "
+        + "media-src 'self' https://app.local https://custom.local https://audio.local https://share.local data: blob:; "
+        + "font-src 'self' https://app.local https://custom.local data: blob:; "
+        + "connect-src 'self' https://app.local https://custom.local https://audio.local https://share.local data: blob:; "
+        + "frame-src 'self' https://app.local https://custom.local data: blob:; "
+        + "object-src 'none'; "
+        + "base-uri 'self'; "
+        + "form-action 'none';";
+
+    static readonly string CspInjectJs =
+        "(function(){try{"
+        + "if(document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]'))return;"
+        + "var m=document.createElement('meta');"
+        + "m.setAttribute('http-equiv','Content-Security-Policy');"
+        + "m.setAttribute('content'," + Json.Stringify(CspPolicy) + ");"
+        + "(document.head||document.documentElement).insertBefore(m,(document.head||document.documentElement).firstChild);"
+        + "}catch(e){}})();";
+
+    public static bool IsAllowedLocalUri(string uri)
+    {
+        if (string.IsNullOrEmpty(uri)) return false;
+        Uri parsed;
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out parsed)) return false;
+        string scheme = parsed.Scheme.ToLowerInvariant();
+        if (scheme == "about" || scheme == "data" || scheme == "blob") return true;
+        if (scheme == "https" && AllowedHosts.Contains(parsed.Host)) return true;
+        return false;
+    }
+
+    public static bool IsAllowedMessageSource(string source)
+    {
+        if (string.IsNullOrEmpty(source)) return false;
+        Uri parsed;
+        if (!Uri.TryCreate(source, UriKind.Absolute, out parsed)) return false;
+        return string.Equals(parsed.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+            && AllowedMessageHosts.Contains(parsed.Host);
+    }
+
+    public static bool IsSafeExternalHttpUri(string uri)
+    {
+        if (string.IsNullOrEmpty(uri)) return false;
+        Uri parsed;
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out parsed)) return false;
+        string scheme = parsed.Scheme.ToLowerInvariant();
+        return (scheme == "http" || scheme == "https") && !AllowedHosts.Contains(parsed.Host);
+    }
+
+    public static void OpenExternalUrl(string uri)
+    {
+        if (!IsSafeExternalHttpUri(uri)) return;
+        try { Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Write("打开外部链接失败：" + ex.Message); }
+    }
+
+    public static void Harden(CoreWebView2 core, bool allowExternalLinks)
+    {
+        core.Settings.AreDefaultContextMenusEnabled = false;
+        core.Settings.AreDefaultScriptDialogsEnabled = false;
+        core.Settings.AreHostObjectsAllowed = false;
+        core.Settings.AreDevToolsEnabled = Program.DebugMode;
+        core.Settings.IsStatusBarEnabled = false;
+        core.Settings.IsZoomControlEnabled = false;
+
+        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+        core.WebResourceRequested += delegate(object s, CoreWebView2WebResourceRequestedEventArgs a)
+        {
+            if (IsAllowedLocalUri(a.Request.Uri)) return;
+            a.Response = core.Environment.CreateWebResourceResponse(null, 403, "Blocked", "Content-Type: text/plain");
+        };
+        core.NavigationStarting += delegate(object s, CoreWebView2NavigationStartingEventArgs a)
+        {
+            if (IsAllowedLocalUri(a.Uri)) return;
+            a.Cancel = true;
+            if (allowExternalLinks) OpenExternalUrl(a.Uri);
+        };
+        core.FrameNavigationStarting += delegate(object s, CoreWebView2NavigationStartingEventArgs a)
+        {
+            if (IsAllowedLocalUri(a.Uri)) return;
+            a.Cancel = true;
+        };
+        core.NewWindowRequested += delegate(object s, CoreWebView2NewWindowRequestedEventArgs a)
+        {
+            a.Handled = true;
+            if (allowExternalLinks) OpenExternalUrl(a.Uri);
+        };
+    }
+
+    public static System.Threading.Tasks.Task InjectCspAsync(CoreWebView2 core)
+    {
+        return core.AddScriptToExecuteOnDocumentCreatedAsync(CspInjectJs);
+    }
+}
+
 class SettingsForm : Form
 {
     readonly WebView2 web;
@@ -1273,6 +2028,17 @@ class SettingsForm : Form
     protected override void WndProc(ref Message m)
     {
         if (m.Msg == 0x001A /* WM_SETTINGCHANGE */) ThemeTitleBar();   // 系统切深浅色时标题栏跟着换
+        else if (m.Msg == 0x02E0 /* WM_DPICHANGED */ && m.LParam != IntPtr.Zero)
+        {
+            try
+            {
+                var suggested = (Native.RECT)Marshal.PtrToStructure(m.LParam, typeof(Native.RECT));
+                Native.SetWindowPos(Handle, IntPtr.Zero, suggested.Left, suggested.Top,
+                    suggested.Right - suggested.Left, suggested.Bottom - suggested.Top,
+                    Native.SWP_NOACTIVATE | Native.SWP_NOZORDER);
+            }
+            catch { }
+        }
         base.WndProc(ref m);
     }
 
@@ -1289,11 +2055,12 @@ class SettingsForm : Form
             Directory.CreateDirectory(audioDir);
             core.SetVirtualHostNameToFolderMapping("audio.local", audioDir, CoreWebView2HostResourceAccessKind.Allow);
             WebCustomHelper.Attach(core, pageDir);
-            core.Settings.AreDefaultContextMenusEnabled = false;
-            core.Settings.IsStatusBarEnabled = false;
-            core.Settings.IsZoomControlEnabled = false;
+            WebViewSecurity.Harden(core, true);
+            try { await WebViewSecurity.InjectCspAsync(core); } catch { }
+            if (IsDisposed) return;
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
+                if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
                 try { host.OnSettingsMessage(a.TryGetWebMessageAsString()); }
                 catch (Exception ex) { Log.Write("处理设置消息失败：" + ex.Message); }
             };
@@ -1332,15 +2099,23 @@ class WallpaperForm : Form
     readonly System.Windows.Forms.Timer iconTimer, fgTimer, winTimer;
     readonly string pageDir;
     readonly IconReader reader = new IconReader();
+    readonly Screen targetScreen;
+    readonly bool spanAll;
+    readonly bool duplicateIcons;
     Rectangle screen;
     IntPtr parentHwnd, insertAfter;
     string lastIcons = "";
     string lastWindows = "";
     int lastPause = -1;
     bool manualPause, lowMode, disableAutoPause, shuttingDown, allowMoveIcons;
+    bool sessionLocked, lastOnBattery, lastReducedMotion, hasPerfSent;
+    bool systemEventsBound;
     long lastMoveIconsMs;
 
     public bool Fatal { get; private set; }
+    public bool Is24H2NoRedirectionBitmap { get; private set; }
+    public bool IsRaisedDesktop { get { return raised; } }
+    public string WebViewVersion { get; private set; }
 
     string page;                                        // 当前主题的页面（themes.json 里的 page）
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
@@ -1353,13 +2128,17 @@ class WallpaperForm : Form
     public string LastIcons { get { return lastIcons; } }
     protected override bool ShowWithoutActivation { get { return true; } }
 
-    public WallpaperForm(string pageDir, string page, bool manualPause, bool lowMode, bool disableAutoPause = false)
+    public WallpaperForm(string pageDir, string page, bool manualPause, bool lowMode, bool disableAutoPause = false,
+        Screen targetScreen = null, bool spanAll = false, bool duplicateIcons = false)
     {
         this.pageDir = pageDir;
         this.page = page;
         this.manualPause = manualPause;
         this.lowMode = lowMode;
         this.disableAutoPause = disableAutoPause;
+        this.targetScreen = targetScreen;
+        this.spanAll = spanAll;
+        this.duplicateIcons = duplicateIcons;
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
@@ -1385,6 +2164,15 @@ class WallpaperForm : Form
         winTimer = new System.Windows.Forms.Timer();
         winTimer.Interval = lowMode ? 320 : 120;
         winTimer.Tick += delegate { PollWindows(); };
+    }
+
+    public uint BrowserProcessId
+    {
+        get
+        {
+            try { return (web != null && web.CoreWebView2 != null) ? web.CoreWebView2.BrowserProcessId : 0u; }
+            catch { return 0u; }
+        }
     }
 
     public void SetManualPause(bool v) { manualPause = v; PollForeground(); }
@@ -1690,9 +2478,9 @@ class WallpaperForm : Form
             Directory.CreateDirectory(audioDir);
             core.SetVirtualHostNameToFolderMapping("audio.local", audioDir, CoreWebView2HostResourceAccessKind.Allow);
             WebCustomHelper.Attach(core, pageDir);
-            core.Settings.AreDefaultContextMenusEnabled = false;
-            core.Settings.AreDevToolsEnabled = true;
-            core.Settings.IsStatusBarEnabled = false;
+            WebViewSecurity.Harden(core, false);
+            try { await WebViewSecurity.InjectCspAsync(core); } catch { }
+            if (shuttingDown || IsDisposed) return;
             ApplyWebViewLowMode(lowMode);
             string lowJsPath = Path.Combine(pageDir, "low-mode.js");
             if (File.Exists(lowJsPath))
@@ -1705,6 +2493,7 @@ class WallpaperForm : Form
             // 一键分享：页面画好分享图后发来 "snapshot|缩略图|整张 PNG"（都是 data URL；整张图很大，不走 JSON）
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
+                if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
                 string msg = null;
                 try { msg = a.TryGetWebMessageAsString(); } catch { }
                 if (msg == null) return;
@@ -1729,6 +2518,8 @@ class WallpaperForm : Form
                     )));
                     if (VirtualStateJson != null) core.PostWebMessageAsString(VirtualStateJson());
                     core.PostWebMessageAsString(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
+                    SyncPowerPerf(true);
+                    core.PostWebMessageAsString(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
                     if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
                     lastIcons = ""; lastWindows = ""; lastPause = -1; PollIcons(); PollWindows(); PollForeground();
                     return;
@@ -1746,10 +2537,12 @@ class WallpaperForm : Form
             core.Navigate(PageUrl);
             EnsureWallpaperBounds();
             StartWindowTrackHooks();
+            BindSystemEvents();
             iconTimer.Start();
             fgTimer.Start();
             winTimer.Start();
-            Log.Write("WebView2 就绪：" + core.Environment.BrowserVersionString);
+            WebViewVersion = core.Environment.BrowserVersionString;
+            Log.Write("WebView2 就绪：" + WebViewVersion);
         }
         catch (Exception ex)
         {
@@ -1915,16 +2708,101 @@ class WallpaperForm : Form
         return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
     }
 
-    void StartMouseHook()
+    void RefreshUiScale()
     {
-        if (mouseHook != IntPtr.Zero) return;
         try
         {
             using (Graphics g = Graphics.FromHwnd(Handle)) { uiScale = g.DpiX / 96.0; }
         }
         catch { uiScale = Native.GetDpiForSystem() / 96.0; }
+        if (uiScale <= 0.1) uiScale = 1.0;
+    }
+
+    void StartMouseHook()
+    {
+        if (mouseHook != IntPtr.Zero) return;
+        RefreshUiScale();
         mouseHookProc = OnMouseHook;
         mouseHook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, mouseHookProc, Native.GetModuleHandle(null), 0);
+    }
+
+    void BindSystemEvents()
+    {
+        if (systemEventsBound) return;
+        systemEventsBound = true;
+        SystemEvents.SessionSwitch += OnSessionSwitch;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+    }
+
+    void UnbindSystemEvents()
+    {
+        if (!systemEventsBound) return;
+        systemEventsBound = false;
+        try { SystemEvents.SessionSwitch -= OnSessionSwitch; } catch { }
+        try { SystemEvents.PowerModeChanged -= OnPowerModeChanged; } catch { }
+        try { SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged; } catch { }
+    }
+
+    void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
+    {
+        if (e.Reason == SessionSwitchReason.SessionLock
+            || e.Reason == SessionSwitchReason.RemoteDisconnect
+            || e.Reason == SessionSwitchReason.ConsoleDisconnect)
+        {
+            sessionLocked = true;
+        }
+        else if (e.Reason == SessionSwitchReason.SessionUnlock
+            || e.Reason == SessionSwitchReason.RemoteConnect
+            || e.Reason == SessionSwitchReason.ConsoleConnect)
+        {
+            sessionLocked = false;
+        }
+        try { if (!shuttingDown && IsHandleCreated) BeginInvoke((Action)delegate { PollForeground(); }); } catch { }
+    }
+
+    void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Suspend) sessionLocked = true;
+        else if (e.Mode == PowerModes.Resume) sessionLocked = false;
+        try { if (!shuttingDown && IsHandleCreated) BeginInvoke((Action)delegate { SyncPowerPerf(false); PollForeground(); }); } catch { }
+    }
+
+    void OnDisplaySettingsChanged(object sender, EventArgs e)
+    {
+        try
+        {
+            if (!shuttingDown && IsHandleCreated)
+            {
+                BeginInvoke((Action)delegate
+                {
+                    RefreshUiScale();
+                    EnsureWallpaperBounds();
+                    EnsureZOrder();
+                    lastIcons = "";
+                    PollIcons();
+                });
+            }
+        }
+        catch { }
+    }
+
+    void SyncPowerPerf(bool force)
+    {
+        if (web == null || web.CoreWebView2 == null) return;
+        bool onBattery, batterySaver;
+        PowerHelper.QueryPower(out onBattery, out batterySaver);
+        bool reducedMotion = PowerHelper.IsReducedMotion();
+        if (!force && hasPerfSent && onBattery == lastOnBattery && reducedMotion == lastReducedMotion) return;
+        hasPerfSent = true;
+        lastOnBattery = onBattery;
+        lastReducedMotion = reducedMotion;
+        Post(Json.Stringify(Json.Obj(
+            "t", "perf",
+            "adaptiveFps", true,
+            "onBattery", onBattery,
+            "reducedMotion", reducedMotion
+        )));
     }
 
     void StopMouseHook()
@@ -1957,12 +2835,32 @@ class WallpaperForm : Form
         for (int i = 0; i < 20 && !ready(); i++) Thread.Sleep(100);
     }
 
+    Rectangle ResolveTargetBounds()
+    {
+        if (spanAll) return SystemInformation.VirtualScreen;
+        if (targetScreen != null)
+        {
+            Screen[] all = Screen.AllScreens;
+            for (int i = 0; i < all.Length; i++)
+                if (all[i].DeviceName == targetScreen.DeviceName) return all[i].Bounds;
+            return targetScreen.Bounds;
+        }
+        return Screen.PrimaryScreen.Bounds;
+    }
+
     bool AttachToDesktop()
     {
-        screen = Screen.PrimaryScreen.Bounds;          // 进程是 DPI 感知的 → 物理像素
+        screen = ResolveTargetBounds();          // 进程是 DPI 感知的 → 物理像素
         IntPtr progman = Native.FindWindow("Progman", null);
         if (progman == IntPtr.Zero) { Log.Write("找不到 Progman"); return false; }
+        int progmanEx = Native.GetWindowLong(progman, Native.GWL_EXSTYLE);
+        Is24H2NoRedirectionBitmap = (progmanEx & Native.WS_EX_NOREDIRECTIONBITMAP) != 0;
         IntPtr defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        if (defView == IntPtr.Zero && Is24H2NoRedirectionBitmap)
+        {
+            RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero; });
+            defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        }
         string mode;
         raised = defView != IntPtr.Zero;
 
@@ -1971,7 +2869,7 @@ class WallpaperForm : Form
             if (Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) == IntPtr.Zero)
                 RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) != IntPtr.Zero; });
             IntPtr listView = Native.FindWindowEx(defView, IntPtr.Zero, "SysListView32", null);
-            if (AttachMode == "legacy")
+            if (AttachMode == "legacy" && !Is24H2NoRedirectionBitmap)
             {
                 parentHwnd = Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
                 if (parentHwnd == IntPtr.Zero) { Log.Write("找不到 WorkerW"); return false; }
@@ -1986,7 +2884,9 @@ class WallpaperForm : Form
             else
             {
                 parentHwnd = progman; insertAfter = defView; zAnchor = defView;
-                mode = "24H2+：Progman 的分层子窗口，位于图标层之下";
+                mode = Is24H2NoRedirectionBitmap
+                    ? "Win11 24H2+ (WS_EX_NOREDIRECTIONBITMAP)：Progman 分层子窗口，位于图标层之下"
+                    : "24H2+：Progman 的分层子窗口，位于图标层之下";
             }
             if (raised)
             {
@@ -2039,7 +2939,7 @@ class WallpaperForm : Form
     void EnsureWallpaperBounds()
     {
         if (shuttingDown || IsDisposed || !IsHandleCreated || parentHwnd == IntPtr.Zero) return;
-        Rectangle cur = Screen.PrimaryScreen.Bounds;
+        Rectangle cur = ResolveTargetBounds();
         bool screenChanged = cur != screen;
         if (screenChanged) screen = cur;
 
@@ -2123,20 +3023,46 @@ class WallpaperForm : Form
         bool visible;
         List<DesktopIcon> items = reader.Read(out visible);
         if (items == null) return;
-        var sb = new StringBuilder();
-        sb.Append("{\"t\":\"icons\",\"vis\":").Append(visible ? "true" : "false").Append(",\"r\":[");
+        Rectangle primaryBounds = Screen.PrimaryScreen.Bounds;
+        bool useDuplicate = duplicateIcons && targetScreen != null && !targetScreen.Primary;
+        bool filterToMonitor = !spanAll && !duplicateIcons && targetScreen != null && !targetScreen.Primary;
+        double sx = useDuplicate && primaryBounds.Width > 0 ? (double)screen.Width / primaryBounds.Width : 1.0;
+        double sy = useDuplicate && primaryBounds.Height > 0 ? (double)screen.Height / primaryBounds.Height : 1.0;
+        var filtered = new List<DesktopIcon>(items.Count);
         for (int i = 0; i < items.Count; i++)
         {
             Native.RECT r = items[i].Rect;
+            if (filterToMonitor)
+            {
+                int cx = (r.Left + r.Right) / 2, cy = (r.Top + r.Bottom) / 2;
+                if (!screen.Contains(cx, cy)) continue;
+            }
+            filtered.Add(items[i]);
+        }
+        var sb = new StringBuilder();
+        sb.Append("{\"t\":\"icons\",\"vis\":").Append(visible ? "true" : "false").Append(",\"r\":[");
+        for (int i = 0; i < filtered.Count; i++)
+        {
+            Native.RECT r = filtered[i].Rect;
             if (i > 0) sb.Append(',');
-            sb.Append('[').Append(r.Left - screen.X).Append(',').Append(r.Top - screen.Y).Append(',')
-              .Append(r.Right - screen.X).Append(',').Append(r.Bottom - screen.Y).Append(']');
+            if (useDuplicate)
+            {
+                sb.Append('[').Append((int)Math.Round((r.Left - primaryBounds.X) * sx)).Append(',')
+                  .Append((int)Math.Round((r.Top - primaryBounds.Y) * sy)).Append(',')
+                  .Append((int)Math.Round((r.Right - primaryBounds.X) * sx)).Append(',')
+                  .Append((int)Math.Round((r.Bottom - primaryBounds.Y) * sy)).Append(']');
+            }
+            else
+            {
+                sb.Append('[').Append(r.Left - screen.X).Append(',').Append(r.Top - screen.Y).Append(',')
+                  .Append(r.Right - screen.X).Append(',').Append(r.Bottom - screen.Y).Append(']');
+            }
         }
         sb.Append("],\"n\":[");
-        for (int i = 0; i < items.Count; i++)
+        for (int i = 0; i < filtered.Count; i++)
         {
             if (i > 0) sb.Append(',');
-            sb.Append(Json.Stringify(items[i].Name ?? ""));
+            sb.Append(Json.Stringify(filtered[i].Name ?? ""));
         }
         sb.Append("]}");
         string json = sb.ToString();
@@ -2215,12 +3141,21 @@ class WallpaperForm : Form
         Post(json);
     }
 
-    // ---------------------------------------------------------------- 最大化 / 全屏时暂停
+    // ---------------------------------------------------------------- 最大化 / 全屏 / 锁屏 / 省电时暂停
     void PollForeground()
     {
         if (web.CoreWebView2 == null) return;
+        SyncPowerPerf(false);
         bool pause = manualPause;
         string pauseBy = "";
+        if (!pause && sessionLocked) { pause = true; pauseBy = "SessionLock"; }
+        if (!pause && !disableAutoPause && PowerHelper.IsRemoteSession()) { pause = true; pauseBy = "RemoteSession"; }
+        if (!pause && !disableAutoPause)
+        {
+            bool onBattery, batterySaver;
+            PowerHelper.QueryPower(out onBattery, out batterySaver);
+            if (batterySaver) { pause = true; pauseBy = "BatterySaver"; }
+        }
         IntPtr fg = Native.GetForegroundWindow();
         int cloaked = 0;
         if (!pause && !disableAutoPause && fg != IntPtr.Zero && fg != Handle && Native.IsWindowVisible(fg)
@@ -2260,6 +3195,7 @@ class WallpaperForm : Form
     {
         if (shuttingDown) return;
         shuttingDown = true;
+        UnbindSystemEvents();
         StopMouseHook();
         StopWindowTrackHooks();
         iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
@@ -2276,6 +3212,7 @@ class WallpaperForm : Form
 
     protected override void OnHandleDestroyed(EventArgs e)
     {
+        UnbindSystemEvents();
         StopMouseHook();
         StopWindowTrackHooks();
         if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
@@ -2709,8 +3646,23 @@ class IconReader : IDisposable
 
 static class Native
 {
-    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000;
-    public const uint LWA_ALPHA = 0x2, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002;
+    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000, WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+    public const uint LWA_ALPHA = 0x2, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOZORDER = 0x0004;
+    public const int SM_REMOTESESSION = 0x1000;
+    public const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SYSTEM_POWER_STATUS
+    {
+        public byte ACLineStatus;
+        public byte BatteryFlag;
+        public byte BatteryLifePercent;
+        public byte SystemStatusFlag;
+        public int BatteryLifeTime;
+        public int BatteryFullLifeTime;
+    }
+    [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
+    [DllImport("user32.dll", SetLastError = true)] public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out bool pvParam, uint fWinIni);
+    [DllImport("kernel32.dll")] public static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS status);
     public const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_NOREPEAT = 0x4000;
     public const int SW_SHOW = 5, SW_RESTORE = 9;
     [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint vk);

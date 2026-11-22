@@ -84,6 +84,24 @@
     "helpWallpaperStep1": "Windows Ayarlar → Kişiselleştirme → Arka Plan bölümünü açın.",
     "helpWallpaperStep2": "‘Arka planınızı kişiselleştirin’ ayarını ‘Resim’ veya ‘Düz renk’ yapın. ‘Slayt gösterisi’ veya ‘Windows Spotlight’ kullanmayın.",
     "helpWallpaperStep3": "Bu ayarı değiştirdikten sonra DiyarDesk'i yeniden başlatın.",
+    "exportDiag": "Tanılama günlüğü",
+    "exportDiagTitle": "Gizlilik korumalı tanılama raporu ve son uygulama günlüğünü dışa aktar",
+    "exportDiagDoneTitle": "Tanılama günlüğü dışa aktarıldı",
+    "exportDiagFailTitle": "Tanılama günlüğü dışa aktarılamadı",
+    "displayModeTitle": "Çoklu monitör duvar kağıdı yerleşimi",
+    "displayPrimary": "Ekran: Ana monitör",
+    "displayIndependent": "Ekran: Bağımsız",
+    "displaySpan": "Ekran: Genişletilmiş",
+    "displayDuplicate": "Ekran: Aynala",
+    "lanPairBtn": "LAN Eşleştirme",
+    "lanPairTitle": "Yerel Wi-Fi Eşleştirme (Bulutsuz)",
+    "lanPairSubtitle": "Aktif temanızı ve ayarlarınızı bulut hesabı olmadan yerel Wi-Fi ağı üzerinden masaüstü ile Android tablet arasında doğrudan aktarın.",
+    "lanStart": "Eşleştirmeyi başlat",
+    "lanStop": "Eşleştirmeyi durdur",
+    "lanPairActive": "Eşleştirme {sec} dk boyunca etkin. Android tabletinizde adresi ve 4 haneli PIN'i girin.",
+    "lanSyncNow": "Masaüstünden eşitle",
+    "lanSyncing": "Yerel Wi-Fi üzerinden bağlanılıyor…",
+    "lanSyncDone": "Aktif tema ve ayarlar masaüstünden eşitlendi.",
     "badgeOn": "Kullanımda",
     "badgeReady": "Hazır",
     "badgeSoon": "Yakında",
@@ -134,7 +152,27 @@
     "lowMode": "Eco mod (Düşük)",
     "lowModeTitle": "Sıkı eko optimizasyon: 15 FPS sınırı, 0.75x ölçek, yoğun bulanıklık/gölgeleri kapatır ve pencereler arkasında daha hızlı duraklatır",
     "disableAutoPause": "Otomatik duraklatmayı kapat",
-    "disableAutoPauseTitle": "Aktifleştirildiğinde büyük veya tam ekran pencere açılsa bile animasyonlar duraklatılmaz"
+    "disableAutoPauseTitle": "Aktifleştirildiğinde büyük veya tam ekran pencere açılsa bile animasyonlar duraklatılmaz",
+    "solarSync": "Güneş döngüsü",
+    "solarSyncTitle": "Yerel şafak, gündüz, gün batımı ve gece saatlerine göre duvar kağıdı tonunu uyarlar (%100 çevrimdışı)",
+    "windowAware": "Pencere duyarlı",
+    "windowAwareTitle": "Simge bulunmayan Wayland (Hyprland/Sway/niri) ve masaüstünde açık pencerelere tepki verir",
+    "playlistTitle": "Otomatik yerel tema döngüsü",
+    "playlistOff": "Döngü: Kapalı",
+    "playlist15": "Döngü: 15 dk",
+    "playlist30": "Döngü: 30 dk",
+    "playlist60": "Döngü: 1 saat",
+    "playlist180": "Döngü: 3 saat",
+    "systemBridge": "Ses/Sistem köprüsü",
+    "systemBridgeTitle": "İsteğe bağlı yerel CPU/RAM/pil ve ses spektrumu köprüsü (%100 çevrimdışı)",
+    "preferMpv": "mpv donanım video",
+    "preferMpvTitle": "Yüklüyse içe aktarılan video duvar kağıtlarını donanım hızlandırmalı mpv ile oynatır",
+    "syncLockscreen": "Kilit ekranını eşitle",
+    "syncLockscreenTitle": "Aktif duvar kağıdından bulanıklaştırılmış kilit ekranı görseli oluşturur",
+    "qualityProfileTitle": "Görüntü kalitesi ve FPS profili",
+    "qualityEco": "Kalite: Eco (15 FPS)",
+    "qualityBalanced": "Kalite: Dengeli (30 FPS)",
+    "qualityHigh": "Kalite: Yüksek (60 FPS)"
   },
   "host": {
     "traySettings": "Ayarlar…",
@@ -176,7 +214,14 @@
         "preset": {
           "label": "Işık önayarı",
           "hint": "Otomatik saat veya beş 3B stüdyo ışığı arasında yumuşak geçiş yapın",
-          "options": ["Otomatik", "Sabah", "Fırtına", "Öğleden Sonra", "Gün Batımı", "Gece"]
+          "options": [
+            "Otomatik",
+            "Sabah",
+            "Fırtına",
+            "Öğleden Sonra",
+            "Gün Batımı",
+            "Gece"
+          ]
         },
         "blinds": {
           "label": "Panjur açıklığı",
@@ -205,7 +250,10 @@
         "showHud": {
           "label": "Cam ışık kontrol paneli",
           "hint": "Üstte sürüklenebilir, gerçek kırılmalı Studio Lighting cam kartlarını ve parlaklık kaydırıcısını göster",
-          "options": ["Gizle", "Göster"]
+          "options": [
+            "Gizle",
+            "Göster"
+          ]
         },
         "refraction": {
           "label": "Kırılma ve kromatik dağılım",
@@ -218,12 +266,20 @@
         "iconGlass": {
           "label": "Simge cam biçimi",
           "hint": "Masaüstü simgelerinin altında oluşan 3B kırılmalı cam plakanın stili",
-          "options": ["Cam Kart", "Prizma", "Kapalı"]
+          "options": [
+            "Cam Kart",
+            "Prizma",
+            "Kapalı"
+          ]
         },
         "quality": {
           "label": "Kalite",
           "hint": "Three.js 3B sahne ve kırılma geçişi çözünürlük bütçesi",
-          "options": ["Düşük", "Dengeli", "Yüksek"]
+          "options": [
+            "Düşük",
+            "Dengeli",
+            "Yüksek"
+          ]
         }
       }
     },
@@ -241,7 +297,12 @@
         "mode": {
           "label": "Mevsim modu",
           "hint": "Gerçekçi kar, camda süzülen yağmur damlaları, sonbahar yaprakları ve kiraz çiçeği arasında anında geçiş yapın",
-          "options": ["Kar", "Yağmur", "Sonbahar Yaprakları", "Kiraz Çiçeği"]
+          "options": [
+            "Kar",
+            "Yağmur",
+            "Sonbahar Yaprakları",
+            "Kiraz Çiçeği"
+          ]
         },
         "intensity": {
           "label": "Yağış yoğunluğu",
@@ -258,12 +319,19 @@
         "accumulate": {
           "label": "Birikme yüzeyi",
           "hint": "Karın, yaprakların veya yağmur damlalarının yalnızca zeminde mi yoksa masaüstü simgelerinde de mi birikeceğini seçin",
-          "options": ["Kapalı", "Yalnızca Zemin", "Zemin ve Simgeler"]
+          "options": [
+            "Kapalı",
+            "Yalnızca Zemin",
+            "Zemin ve Simgeler"
+          ]
         },
         "windows": {
           "label": "Pencerelerde birikme",
           "hint": "Kar, yapraklar ve yağmur açık pencerelerin üst kenarlarında da birikir; pencere taşınınca veya kapanınca dökülür",
-          "options": ["Kapalı", "Açık"]
+          "options": [
+            "Kapalı",
+            "Açık"
+          ]
         },
         "melt": {
           "label": "Doğal erime / solma",
@@ -272,7 +340,11 @@
         "cursor": {
           "label": "İmleç etkileşimi",
           "hint": "Fareyi gezdirerek karı süpürün, yaprakları havalandırın veya yağmur damlalarını sıyırın",
-          "options": ["Kapalı", "Yumuşak", "Güçlü"]
+          "options": [
+            "Kapalı",
+            "Yumuşak",
+            "Güçlü"
+          ]
         },
         "depth": {
           "label": "Yığın derinliği",
@@ -281,7 +353,12 @@
         "atmosphere": {
           "label": "Arka plan atmosferi",
           "hint": "Sakin kış atmosferi ve ortam ışıklandırmasını seçin",
-          "options": ["Gece Sessizliği", "Mavi Saat", "Sisli Kış Sabahı", "Sokak Lambası Sıcaklığı"]
+          "options": [
+            "Gece Sessizliği",
+            "Mavi Saat",
+            "Sisli Kış Sabahı",
+            "Sokak Lambası Sıcaklığı"
+          ]
         },
         "sparkle": {
           "label": "Parıltı ve ışık dokusu",
@@ -294,7 +371,11 @@
         "quality": {
           "label": "Kalite",
           "hint": "Çizim çözünürlüğü ve parçacık bütçesi",
-          "options": ["Düşük", "Dengeli", "Yüksek"]
+          "options": [
+            "Düşük",
+            "Dengeli",
+            "Yüksek"
+          ]
         }
       }
     },
@@ -313,7 +394,13 @@
         "time": {
           "label": "Zaman dilimi",
           "hint": "Otomatik mod sistem saatine göre sabah, öğle, gün batımı veya gece paletine geçer",
-          "options": ["Otomatik", "Sabah", "Öğle", "Gün batımı", "Gece"]
+          "options": [
+            "Otomatik",
+            "Sabah",
+            "Öğle",
+            "Gün batımı",
+            "Gece"
+          ]
         },
         "light": {
           "label": "Işık yönü",
@@ -326,7 +413,12 @@
         "palette": {
           "label": "Palet",
           "hint": "Katmanların ve çiçeklerin renk ailesi",
-          "options": ["Gül Bahçesi", "Turkuaz-Mercan", "Lacivert-Altın", "Pastel"]
+          "options": [
+            "Gül Bahçesi",
+            "Turkuaz-Mercan",
+            "Lacivert-Altın",
+            "Pastel"
+          ]
         },
         "grain": {
           "label": "Kâğıt dokusu",
@@ -343,22 +435,35 @@
         "trees": {
           "label": "Selvi ve çınar",
           "hint": "Kenarlardaki yaprak delikli ağaç katmanı",
-          "options": ["Gizle", "Göster"]
+          "options": [
+            "Gizle",
+            "Göster"
+          ]
         },
         "critters": {
           "label": "Kuş ve kelebek",
           "hint": "Gökte uçan kâğıt kuşlar ve çiçek üstünde kelebekler",
-          "options": ["Yok", "Az", "Çok"]
+          "options": [
+            "Yok",
+            "Az",
+            "Çok"
+          ]
         },
         "skyline": {
           "label": "Şehir silüeti",
           "hint": "Kubbe, minare ve Galata Kulesi silüeti",
-          "options": ["Gizle", "Göster"]
+          "options": [
+            "Gizle",
+            "Göster"
+          ]
         },
         "frame": {
           "label": "Kutu çerçevesi",
           "hint": "Ekran kenarında kabartmalı kâğıt çerçeve",
-          "options": ["Gizle", "Göster"]
+          "options": [
+            "Gizle",
+            "Göster"
+          ]
         },
         "sway": {
           "label": "Rüzgâr",
@@ -371,12 +476,19 @@
         "fstyle": {
           "label": "Çerçeve biçimi",
           "hint": "Niş kemer üstten yuvarlak, alttan düzdür",
-          "options": ["Niş kemer", "Yuvarlak"]
+          "options": [
+            "Niş kemer",
+            "Yuvarlak"
+          ]
         },
         "quality": {
           "label": "Kalite",
           "hint": "Çizim çözünürlüğü ve çiçek sayısı bütçesi",
-          "options": ["Düşük", "Dengeli", "Yüksek"]
+          "options": [
+            "Düşük",
+            "Dengeli",
+            "Yüksek"
+          ]
         }
       }
     },

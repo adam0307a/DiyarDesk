@@ -159,4 +159,110 @@ class CustomThemeImporterTest {
         assertEquals("shootingStars", ss.getString("key"))
         assertEquals(true, ss.getBoolean("default"))
     }
+
+    @Test
+    fun rejectsDisallowedArchiveExtensionsAndSymlinks() {
+        val root = tmp.newFolder("custom_ext_sec")
+        val importer = CustomThemeImporter(root)
+
+        val badExtZip = ByteArrayOutputStream().use { baos ->
+            ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(ZipEntry("index.html"))
+                zos.write("<!doctype html><html><body>ok</body></html>".toByteArray())
+                zos.closeEntry()
+                zos.putNextEntry(ZipEntry("dropper.exe"))
+                zos.write("MZ".toByteArray())
+                zos.closeEntry()
+            }
+            baos.toByteArray()
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            importer.importStream(ByteArrayInputStream(badExtZip), "evil.zip")
+        }
+
+        // Craft a ZIP containing a Unix symlink entry (S_IFLNK = 0o120000 in upper 16 bits of external attributes)
+        val rawZip = ByteArrayOutputStream().use { baos ->
+            ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(ZipEntry("index.html"))
+                zos.write("<!doctype html><html><body>ok</body></html>".toByteArray())
+                zos.closeEntry()
+                zos.putNextEntry(ZipEntry("link.txt"))
+                zos.write("/etc/passwd".toByteArray())
+                zos.closeEntry()
+            }
+            baos.toByteArray()
+        }
+        // Locate second Central Directory header (0x02014b50) and set externalFileAttributes to 0xA1FF0000
+        var cenCount = 0
+        for (i in 0 until rawZip.size - 46) {
+            if (rawZip[i] == 0x50.toByte() && rawZip[i + 1] == 0x4B.toByte() &&
+                rawZip[i + 2] == 0x01.toByte() && rawZip[i + 3] == 0x02.toByte()
+            ) {
+                cenCount++
+                if (cenCount == 2) {
+                    rawZip[i + 38] = 0x00
+                    rawZip[i + 39] = 0x00
+                    rawZip[i + 40] = 0xFF.toByte()
+                    rawZip[i + 41] = 0xA1.toByte()
+                    break
+                }
+            }
+        }
+        assertEquals(2, cenCount)
+        assertThrows(IllegalArgumentException::class.java) {
+            importer.importStream(ByteArrayInputStream(rawZip), "symlink.zip")
+        }
+    }
+
+    @Test
+    fun importsLivelyInfoAndPropertiesWithColorAndDropdown() {
+        val root = tmp.newFolder("custom_lively")
+        val importer = CustomThemeImporter(root)
+
+        val zipBytes = ByteArrayOutputStream().use { baos ->
+            ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(ZipEntry("scene.html"))
+                zos.write("<!doctype html><html><body>Lively</body></html>".toByteArray())
+                zos.closeEntry()
+                zos.putNextEntry(ZipEntry("LivelyInfo.json"))
+                zos.write("""{"Title":"Lively Aurora","Desc":"Shader demo","FileName":"scene.html"}""".toByteArray())
+                zos.closeEntry()
+                zos.putNextEntry(ZipEntry("LivelyProperties.json"))
+                zos.write(
+                    """
+                    {
+                      "tint": {"type":"color","text":"Tint","value":"#f0a"},
+                      "preset": {"type":"dropdown","text":"Preset","items":["Soft","Vivid"],"value":1},
+                      "btn": {"type":"button","text":"Reset"}
+                    }
+                    """.trimIndent().toByteArray()
+                )
+                zos.closeEntry()
+            }
+            baos.toByteArray()
+        }
+
+        val entry = importer.importStream(ByteArrayInputStream(zipBytes), "lively.zip")
+        assertEquals("Lively Aurora", entry.getString("name"))
+        assertEquals("Shader demo", entry.getString("desc"))
+        val params = entry.getJSONArray("groups").getJSONObject(0).getJSONArray("params")
+        assertEquals(2, params.length())
+        val byKey = (0 until params.length()).map { params.getJSONObject(it) }.associateBy { it.getString("key") }
+        assertEquals("color", byKey.getValue("tint").getString("type"))
+        assertEquals("#ff00aa", byKey.getValue("tint").getString("default"))
+        assertEquals(1, byKey.getValue("preset").getInt("default"))
+    }
+
+    @Test
+    fun importsSingleGlslShaderFile() {
+        val root = tmp.newFolder("custom_glsl")
+        val importer = CustomThemeImporter(root)
+        val glsl = "void mainImage(out vec4 c, in vec2 p){ c = vec4(p / u_resolution, 0.5, 1.0); }"
+        val entry = importer.importStream(ByteArrayInputStream(glsl.toByteArray()), "neon_wave.frag")
+        assertTrue(entry.getBoolean("imported"))
+        assertTrue(entry.getBoolean("adaptive"))
+        val html = File(File(root, entry.getString("id")), "index.html").readText(Charsets.UTF_8)
+        assertTrue(html.contains("uniform vec4 u_icons[32];"))
+        assertTrue(html.contains("desklandSnapshot"))
+    }
 }

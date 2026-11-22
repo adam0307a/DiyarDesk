@@ -130,9 +130,9 @@ jobs:
           STAGE_DIR=$(mktemp -d)
           PKG_ROOT="$STAGE_DIR/DiyarDesk-${VER}-linux"
           mkdir -p "$PKG_ROOT/linux"
-          cp LICENSE NOTICE README.md THIRD_PARTY_NOTICES.md TRADEMARKS.md "$PKG_ROOT/"
+          cp LICENSE NOTICE README.md SECURITY.md THIRD_PARTY_NOTICES.md TRADEMARKS.md "$PKG_ROOT/"
           cp -a prototype "$PKG_ROOT/"
-          cp -a linux/deskland_linux linux/gnome-extension linux/kde-iconspy linux/packaging linux/plasma-wallpaper linux/tests linux/README.md linux/run.sh "$PKG_ROOT/linux/"
+          cp -a linux/bin linux/deskland_linux linux/gnome-extension linux/kde-iconspy linux/packaging linux/plasma-wallpaper linux/tests linux/README.md linux/run.sh "$PKG_ROOT/linux/"
           find "$PKG_ROOT" \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} +
           find "$PKG_ROOT" -name '*.pyc' -delete
 
@@ -211,6 +211,25 @@ jobs:
           path: out-arch/*
           if-no-files-found: error
 
+  build-macos:
+    name: Build macOS (.dmg)
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Swift tests & build macOS DMG
+        run: bash macos/build-app.sh
+
+      - name: Upload macOS release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: |
+            out-macos/DiyarDesk-*-macos-*.dmg
+            out-macos/DiyarDesk-*-macos-*.dmg.sha256
+          if-no-files-found: error
+
   publish-release:
     name: Publish GitHub Release
     needs:
@@ -218,6 +237,7 @@ jobs:
       - build-android
       - build-linux-deb-tar
       - build-linux-arch
+      - build-macos
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -259,6 +279,7 @@ jobs:
               "diyardesk_*_all.deb",
               "diyardesk-*-any.pkg.tar.zst",
               "DiyarDesk-*-linux-any.tar.gz",
+              "DiyarDesk-*-macos-*.dmg",
           ):
               matches = list(root.glob(pattern))
               assert len(matches) == 1, f"Expected 1 file for {pattern}, found {matches}"

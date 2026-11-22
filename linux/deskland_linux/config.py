@@ -16,7 +16,7 @@ VERSION = "0.1.4-linux.1"
 
 THEME_DEFAULT = "papercut"
 LANG_DEFAULT = "auto"
-SUPPORTED_LANGS = ("zh-CN", "zh-TW", "en", "tr", "de", "fr", "ja", "ko")
+SUPPORTED_LANGS = ("zh-CN", "en", "tr")
 
 
 def repo_root() -> Path:
@@ -107,15 +107,26 @@ def atomic_write(path: Path, data: bytes) -> None:
 
 
 class Log:
+    MAX_BYTES = 2 * 1024 * 1024
+
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or log_path()
         self._lock = threading.Lock()
+
+    def _rotate_if_needed(self) -> None:
+        try:
+            if self.path.is_file() and self.path.stat().st_size >= self.MAX_BYTES:
+                backup = self.path.with_name(self.path.name + ".1")
+                os.replace(self.path, backup)
+        except OSError:
+            pass
 
     def write(self, message: str) -> None:
         line = time.strftime("%Y-%m-%d %H:%M:%S ") + message + "\n"
         with self._lock:
             try:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
+                self._rotate_if_needed()
                 with self.path.open("a", encoding="utf-8") as fh:
                     fh.write(line)
             except OSError:
@@ -131,6 +142,7 @@ class Log:
 
 
 VIRTUAL_BAR_MODES = ("auto", "always", "off")
+DISPLAY_MODES = ("primary", "independent", "span", "duplicate")
 _ALLOWED_ICON_TYPES = {"folder", "txt", "pdf", "xlsx", "png", "zip"}
 
 
@@ -171,6 +183,15 @@ class SettingsStore:
         self.virtual_bar_mode: str = "auto"
         self.low_mode: bool = False
         self.disable_auto_pause: bool = False
+        self.disable_dmabuf: bool = False
+        self.display_mode: str = "primary"
+        self.solar_sync: bool = False
+        self.window_aware: bool = False
+        self.playlist_enabled: bool = False
+        self.playlist_interval_min: int = 30
+        self.playlist_themes: list[str] = []
+        self.system_bridge: bool = False
+        self.prefer_mpv: bool = False
         self._lock = threading.Lock()
 
     def load(self) -> None:
@@ -206,6 +227,33 @@ class SettingsStore:
             disable_auto_pause = data.get("disableAutoPause")
             if isinstance(disable_auto_pause, bool):
                 self.disable_auto_pause = disable_auto_pause
+            disable_dmabuf = data.get("disableDmabuf")
+            if isinstance(disable_dmabuf, bool):
+                self.disable_dmabuf = disable_dmabuf
+            display_mode = data.get("displayMode")
+            if isinstance(display_mode, str) and display_mode in DISPLAY_MODES:
+                self.display_mode = display_mode
+            solar_sync = data.get("solarSync")
+            if isinstance(solar_sync, bool):
+                self.solar_sync = solar_sync
+            window_aware = data.get("windowAware")
+            if isinstance(window_aware, bool):
+                self.window_aware = window_aware
+            playlist_enabled = data.get("playlistEnabled")
+            if isinstance(playlist_enabled, bool):
+                self.playlist_enabled = playlist_enabled
+            playlist_interval = data.get("playlistIntervalMin")
+            if isinstance(playlist_interval, (int, float)) and not isinstance(playlist_interval, bool):
+                self.playlist_interval_min = max(1, min(1440, int(playlist_interval)))
+            playlist_themes = data.get("playlistThemes")
+            if isinstance(playlist_themes, list):
+                self.playlist_themes = [str(x) for x in playlist_themes if isinstance(x, str) and x][:64]
+            system_bridge = data.get("systemBridge")
+            if isinstance(system_bridge, bool):
+                self.system_bridge = system_bridge
+            prefer_mpv = data.get("preferMpv")
+            if isinstance(prefer_mpv, bool):
+                self.prefer_mpv = prefer_mpv
         except (OSError, ValueError, TypeError):
             self.theme = THEME_DEFAULT
             self.lang = LANG_DEFAULT
@@ -215,6 +263,15 @@ class SettingsStore:
             self.virtual_bar_mode = "auto"
             self.low_mode = False
             self.disable_auto_pause = False
+            self.disable_dmabuf = False
+            self.display_mode = "primary"
+            self.solar_sync = False
+            self.window_aware = False
+            self.playlist_enabled = False
+            self.playlist_interval_min = 30
+            self.playlist_themes = []
+            self.system_bridge = False
+            self.prefer_mpv = False
 
     def save(self) -> None:
         with self._lock:
@@ -228,6 +285,15 @@ class SettingsStore:
                 "virtualBarMode": self.virtual_bar_mode,
                 "lowMode": self.low_mode,
                 "disableAutoPause": self.disable_auto_pause,
+                "disableDmabuf": self.disable_dmabuf,
+                "displayMode": self.display_mode,
+                "solarSync": self.solar_sync,
+                "windowAware": self.window_aware,
+                "playlistEnabled": self.playlist_enabled,
+                "playlistIntervalMin": self.playlist_interval_min,
+                "playlistThemes": self.playlist_themes,
+                "systemBridge": self.system_bridge,
+                "preferMpv": self.prefer_mpv,
             }
             raw = json.dumps(payload, ensure_ascii=False, indent=1).encode("utf-8")
             try:
@@ -369,14 +435,10 @@ class I18n:
             if not value:
                 continue
             first = value.split(":", 1)[0].split(".", 1)[0].split("@", 1)[0]
-            tag = first.lower().replace("_", "-")
-            if tag.startswith("zh"):
-                if "hant" in tag or tag.endswith(("-tw", "-hk", "-mo")):
-                    return "zh-TW"
+            if first.lower().startswith("zh"):
                 return "zh-CN"
-            two = tag.split("-", 1)[0]
-            if two in SUPPORTED_LANGS:
-                return two
+            if first.lower().startswith("tr"):
+                return "tr"
             if first:
                 return "en"
         return "en"

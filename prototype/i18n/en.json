@@ -84,6 +84,24 @@
     "helpWallpaperStep1": "Open Windows Settings → Personalization → Background.",
     "helpWallpaperStep2": "Set ‘Personalize your background’ to ‘Picture’ or ‘Solid color’. Do not use ‘Slideshow’ or ‘Windows spotlight’.",
     "helpWallpaperStep3": "Restart DiyarDesk after changing this setting.",
+    "exportDiag": "Export diagnostics",
+    "exportDiagTitle": "Export a privacy-safe diagnostic report and recent host log",
+    "exportDiagDoneTitle": "Diagnostics exported",
+    "exportDiagFailTitle": "Could not export diagnostics",
+    "displayModeTitle": "Multi-monitor wallpaper layout",
+    "displayPrimary": "Display: Primary",
+    "displayIndependent": "Display: Independent",
+    "displaySpan": "Display: Span",
+    "displayDuplicate": "Display: Duplicate",
+    "lanPairBtn": "LAN Sync",
+    "lanPairTitle": "Local Wi-Fi Pairing (Cloud-Free)",
+    "lanPairSubtitle": "Transfer your active theme and settings directly between desktop and Android tablet over your local Wi-Fi network — no cloud account required.",
+    "lanStart": "Start pairing",
+    "lanStop": "Stop pairing",
+    "lanPairActive": "Pairing active for {sec} min. Enter the address and 4-digit PIN on your Android tablet.",
+    "lanSyncNow": "Sync from desktop",
+    "lanSyncing": "Connecting over local Wi-Fi…",
+    "lanSyncDone": "Synced active theme and settings from desktop.",
     "badgeOn": "In use",
     "badgeReady": "Available",
     "badgeSoon": "Coming soon",
@@ -134,7 +152,27 @@
     "lowMode": "Low mode",
     "lowModeTitle": "Strict eco optimization: 15 FPS limit, 0.75x scale, disables heavy blurs/shadows and pauses faster behind windows",
     "disableAutoPause": "Disable auto-pause",
-    "disableAutoPauseTitle": "When enabled, animations keep playing even when a maximized or fullscreen window is open"
+    "disableAutoPauseTitle": "When enabled, animations keep playing even when a maximized or fullscreen window is open",
+    "solarSync": "Solar sync",
+    "solarSyncTitle": "Subtly adapt wallpaper tone across local dawn, day, dusk, and night (100% offline)",
+    "windowAware": "Window-aware",
+    "windowAwareTitle": "Let adaptive scenes react to open windows on iconless Wayland compositors (Hyprland/Sway/niri) and desktop",
+    "playlistTitle": "Automatic local theme rotation",
+    "playlistOff": "Playlist: Off",
+    "playlist15": "Playlist: 15 min",
+    "playlist30": "Playlist: 30 min",
+    "playlist60": "Playlist: 1 hr",
+    "playlist180": "Playlist: 3 hr",
+    "systemBridge": "Audio/Sys bridge",
+    "systemBridgeTitle": "Opt-in local CPU/RAM/battery & audio spectrum bridge for reactive themes (100% offline)",
+    "preferMpv": "mpv HW video",
+    "preferMpvTitle": "Use hardware-accelerated mpv for imported video wallpapers when installed",
+    "syncLockscreen": "Sync lock screen",
+    "syncLockscreenTitle": "Save a blurred lock screen image from the active wallpaper",
+    "qualityProfileTitle": "Rendering quality & FPS profile",
+    "qualityEco": "Quality: Eco (15 FPS)",
+    "qualityBalanced": "Quality: Balanced (30 FPS)",
+    "qualityHigh": "Quality: High (60 FPS)"
   },
   "host": {
     "traySettings": "Settings…",
@@ -176,7 +214,14 @@
         "preset": {
           "label": "Lighting preset",
           "hint": "Blend smoothly between Auto time-of-day and five 3D studio lighting moods",
-          "options": ["Auto", "Morning", "Thunderstorm", "Afternoon", "Sunset", "Night"]
+          "options": [
+            "Auto",
+            "Morning",
+            "Thunderstorm",
+            "Afternoon",
+            "Sunset",
+            "Night"
+          ]
         },
         "blinds": {
           "label": "Wooden blinds",
@@ -205,7 +250,10 @@
         "showHud": {
           "label": "Glass lighting panel",
           "hint": "Show the movable refractive-glass Studio Lighting cards and brightness slider",
-          "options": ["Hide", "Show"]
+          "options": [
+            "Hide",
+            "Show"
+          ]
         },
         "refraction": {
           "label": "Refraction & dispersion",
@@ -218,12 +266,20 @@
         "iconGlass": {
           "label": "Icon glass shape",
           "hint": "Geometry of the refractive glass plaque placed beneath each desktop icon",
-          "options": ["Glass Card", "Prism", "Off"]
+          "options": [
+            "Glass Card",
+            "Prism",
+            "Off"
+          ]
         },
         "quality": {
           "label": "Quality",
           "hint": "Three.js 3D scene and refractive glass resolution budget",
-          "options": ["Low", "Balanced", "High"]
+          "options": [
+            "Low",
+            "Balanced",
+            "High"
+          ]
         }
       }
     },
@@ -241,7 +297,12 @@
         "mode": {
           "label": "Season mode",
           "hint": "Switch live between realistic snow, rain with glass beads, autumn leaves, and cherry blossom",
-          "options": ["Snow", "Rain", "Autumn Leaves", "Cherry Blossom"]
+          "options": [
+            "Snow",
+            "Rain",
+            "Autumn Leaves",
+            "Cherry Blossom"
+          ]
         },
         "intensity": {
           "label": "Intensity",
@@ -258,12 +319,19 @@
         "accumulate": {
           "label": "Accumulate on",
           "hint": "Choose whether snow, leaves, or rain beads settle on the ground only or also on desktop icons",
-          "options": ["Off", "Ground only", "Ground & Icons"]
+          "options": [
+            "Off",
+            "Ground only",
+            "Ground & Icons"
+          ]
         },
         "windows": {
           "label": "Accumulate on windows",
           "hint": "Settle snow, leaves, petals, and rain splashes on top edges of open windows, shedding when windows move or close",
-          "options": ["Off", "On"]
+          "options": [
+            "Off",
+            "On"
+          ]
         },
         "melt": {
           "label": "Natural melt / fade",
@@ -272,7 +340,11 @@
         "cursor": {
           "label": "Cursor interaction",
           "hint": "Sweep snow drifts apart, scatter leaves and petals, or smear rain drops with your pointer",
-          "options": ["Off", "Soft", "Strong"]
+          "options": [
+            "Off",
+            "Soft",
+            "Strong"
+          ]
         },
         "depth": {
           "label": "Drift depth",
@@ -281,7 +353,12 @@
         "atmosphere": {
           "label": "Atmosphere",
           "hint": "Choose a calm seasonal backdrop and ambient lighting",
-          "options": ["Quiet Night", "Blue Hour", "Misty Morning", "Streetlamp Warmth"]
+          "options": [
+            "Quiet Night",
+            "Blue Hour",
+            "Misty Morning",
+            "Streetlamp Warmth"
+          ]
         },
         "sparkle": {
           "label": "Sparkle & sheen",
@@ -294,7 +371,11 @@
         "quality": {
           "label": "Quality",
           "hint": "Render resolution and physics particle budget",
-          "options": ["Low", "Balanced", "High"]
+          "options": [
+            "Low",
+            "Balanced",
+            "High"
+          ]
         }
       }
     },
@@ -1344,7 +1425,13 @@
         "time": {
           "label": "Time of day",
           "hint": "Auto switches between morning, noon, sunset, and night palettes using system clock",
-          "options": ["Auto", "Morning", "Noon", "Sunset", "Night"]
+          "options": [
+            "Auto",
+            "Morning",
+            "Noon",
+            "Sunset",
+            "Night"
+          ]
         },
         "light": {
           "label": "Light angle",
@@ -1357,7 +1444,12 @@
         "palette": {
           "label": "Palette",
           "hint": "Color family for paper layers and flowers",
-          "options": ["Rose Garden", "Turquoise-Coral", "Navy-Gold", "Pastel"]
+          "options": [
+            "Rose Garden",
+            "Turquoise-Coral",
+            "Navy-Gold",
+            "Pastel"
+          ]
         },
         "grain": {
           "label": "Paper grain",
@@ -1374,22 +1466,35 @@
         "trees": {
           "label": "Cypress & plane trees",
           "hint": "Side tree layer with cut-out leaf perforations",
-          "options": ["Hide", "Show"]
+          "options": [
+            "Hide",
+            "Show"
+          ]
         },
         "critters": {
           "label": "Birds & butterflies",
           "hint": "Paper birds flying overhead and butterflies over flowers",
-          "options": ["None", "Few", "Many"]
+          "options": [
+            "None",
+            "Few",
+            "Many"
+          ]
         },
         "skyline": {
           "label": "City skyline",
           "hint": "Domes, minarets, and Galata Tower silhouette",
-          "options": ["Hide", "Show"]
+          "options": [
+            "Hide",
+            "Show"
+          ]
         },
         "frame": {
           "label": "Box frame",
           "hint": "Embossed paper border around the screen edge",
-          "options": ["Hide", "Show"]
+          "options": [
+            "Hide",
+            "Show"
+          ]
         },
         "sway": {
           "label": "Breeze",
@@ -1402,12 +1507,19 @@
         "fstyle": {
           "label": "Frame shape",
           "hint": "Arch niche is rounded at the top and flat at the bottom",
-          "options": ["Arch niche", "Rounded"]
+          "options": [
+            "Arch niche",
+            "Rounded"
+          ]
         },
         "quality": {
           "label": "Quality",
           "hint": "Render resolution scale and flower count budget",
-          "options": ["Low", "Balanced", "High"]
+          "options": [
+            "Low",
+            "Balanced",
+            "High"
+          ]
         }
       }
     },

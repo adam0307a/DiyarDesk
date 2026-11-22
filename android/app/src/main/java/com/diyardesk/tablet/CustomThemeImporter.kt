@@ -6,6 +6,9 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.Locale
 import java.util.UUID
 import java.util.zip.ZipInputStream
@@ -84,9 +87,10 @@ class CustomThemeImporter(private val customThemesRoot: File) {
             val entry = when (ext) {
                 "zip", "deskland" -> importZipPackage(buffered, destDir, id, baseTitle)
                 "html", "htm" -> importSingleHtml(buffered, destDir, id, baseTitle)
+                "glsl", "frag" -> importSingleShader(buffered, destDir, id, baseTitle)
                 in IMAGE_EXTS -> importImageWallpaper(buffered, cleanName, destDir, id, baseTitle)
                 in VIDEO_EXTS -> importVideoWallpaper(buffered, cleanName, destDir, id, baseTitle)
-                else -> throw IllegalArgumentException("Unsupported format: .$ext (supported: .zip, .deskland, .html, images, videos)")
+                else -> throw IllegalArgumentException("Unsupported format: .$ext (supported: .zip, .deskland, .html, .glsl, .frag, images, videos)")
             }
             val current = loadCustomThemes().toMutableList()
             current.add(entry)
@@ -120,6 +124,86 @@ class CustomThemeImporter(private val customThemesRoot: File) {
         return if (target == rootCanonical || target.path.startsWith(rootPrefix)) target else null
     }
 
+    private fun importSingleShader(input: InputStream, destDir: File, id: String, fallbackName: String): JSONObject {
+        val shaderFile = File(destDir, "shader.glsl")
+        copyLimited(input, shaderFile, 2L * 1024L * 1024L)
+        val bytes = shaderFile.readBytes()
+        if (bytes.isEmpty() || bytes.any { it == 0.toByte() }) {
+            throw IllegalArgumentException("Shader file is empty or corrupted")
+        }
+        val glsl = String(bytes, Charsets.UTF_8)
+        val title = fallbackName.take(60)
+        val encodedGlsl = JSONObject.quote(glsl)
+        val safeTitle = title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+        val wrapper = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>$safeTitle</title>
+<style>html,body,canvas{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#090c14;display:block;}</style>
+</head><body><canvas id="gl"></canvas><script>
+(() => {
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
+  if (!gl) return;
+  const rawFrag = $encodedGlsl;
+  const hasMainImage = /void\s+mainImage\s*\(/.test(rawFrag);
+  const header = 'precision highp float;\nuniform float u_time;\nuniform vec2 u_resolution;\nuniform vec2 u_mouse;\nuniform float u_speed;\nuniform float u_brightness;\nuniform float u_audio;\nuniform int u_iconCount;\nuniform vec4 u_icons[32];\nuniform vec3 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n';
+  const stripped = rawFrag.replace(/^\s*precision\s+\w+\s+float\s*;/gm, '');
+  const fragSrc = header + stripped + (hasMainImage ? '\nvoid main(){ vec4 c=vec4(0.0); mainImage(c, gl_FragCoord.xy); gl_FragColor=vec4(c.rgb*u_brightness, 1.0); }\n' : '');
+  const vertSrc = 'attribute vec2 a_pos; void main(){ gl_Position = vec4(a_pos, 0.0, 1.0); }';
+  function compile(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'shader error'); return s; }
+  const prog = gl.createProgram();
+  try { gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc)); gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc)); gl.linkProgram(prog); }
+  catch (err) { document.body.innerHTML = '<pre style="color:#f78;padding:20px;font:13px monospace">' + String(err) + '</pre>'; return; }
+  gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const locPos = gl.getAttribLocation(prog, 'a_pos'); gl.enableVertexAttribArray(locPos); gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(prog, n);
+  const uTime=U('u_time'), uRes=U('u_resolution'), uMouse=U('u_mouse'), uSpeed=U('u_speed'), uBright=U('u_brightness'), uAudio=U('u_audio'), uIconCount=U('u_iconCount'), uIcons=U('u_icons'), iRes=U('iResolution'), iTime=U('iTime'), iMouse=U('iMouse');
+  const cfg = { speed: 1.0, brightness: 1.0 };
+  let paused = false, mouseX = 0, mouseY = 0, audioRms = 0, icons = new Float32Array(128), iconCount = 0, simTime = 0, lastTs = performance.now();
+  function resize(){ const dpr = Math.min(window.devicePixelRatio || 1, 1.5); canvas.width = Math.max(1, Math.floor(innerWidth * dpr)); canvas.height = Math.max(1, Math.floor(innerHeight * dpr)); gl.viewport(0, 0, canvas.width, canvas.height); }
+  addEventListener('resize', resize); resize();
+  function applyMsg(raw){ let m = raw; if (typeof m === 'string') { try { m = JSON.parse(m); } catch (_) { return; } } if (!m || typeof m !== 'object') return;
+    if (m.t === 'settings' && m.v) { if (typeof m.v.speed === 'number') cfg.speed = m.v.speed; if (typeof m.v.brightness === 'number') cfg.brightness = m.v.brightness; }
+    else if (m.t === 'reset') { cfg.speed = 1.0; cfg.brightness = 1.0; }
+    else if (m.t === 'pause') { paused = !!m.v; }
+    else if (m.t === 'icons' && Array.isArray(m.r)) { iconCount = Math.min(32, m.r.length); for (let i = 0; i < iconCount; i++) { const r = m.r[i] || [0,0,0,0]; icons[i*4]=r[0]||0; icons[i*4+1]=r[1]||0; icons[i*4+2]=r[2]||0; icons[i*4+3]=r[3]||0; } }
+  }
+  addEventListener('message', e => applyMsg(e.data));
+  if (window.chrome && window.chrome.webview) window.chrome.webview.addEventListener('message', e => applyMsg(e.data));
+  function render(ts){ requestAnimationFrame(render); const dt = Math.min(0.1, Math.max(0, (ts - lastTs) / 1000)); lastTs = ts; if (paused) return; simTime += dt * cfg.speed;
+    if (uTime) gl.uniform1f(uTime, simTime); if (iTime) gl.uniform1f(iTime, simTime); if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height); if (iRes) gl.uniform3f(iRes, canvas.width, canvas.height, 1.0);
+    if (uMouse) gl.uniform2f(uMouse, mouseX, mouseY); if (iMouse) gl.uniform4f(iMouse, mouseX, mouseY, 0, 0); if (uSpeed) gl.uniform1f(uSpeed, cfg.speed); if (uBright) gl.uniform1f(uBright, cfg.brightness); if (uAudio) gl.uniform1f(uAudio, audioRms);
+    if (uIconCount) gl.uniform1i(uIconCount, iconCount); if (uIcons) gl.uniform4fv(uIcons, icons); gl.drawArrays(gl.TRIANGLES, 0, 6); }
+  window.desklandSnapshot = () => canvas.toDataURL('image/png');
+  requestAnimationFrame(render);
+  if (new URLSearchParams(location.search).get('preview') === '1') parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
+  else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage('ready');
+})();
+</script></body></html>"""
+        File(destDir, "index.html").writeText(wrapper, Charsets.UTF_8)
+        val groups = JSONArray().put(
+            JSONObject().apply {
+                put("name", "Shader")
+                put(
+                    "params",
+                    JSONArray()
+                        .put(JSONObject().put("key", "speed").put("label", "Speed").put("min", 0.1).put("max", 3.0).put("step", 0.05).put("default", 1.0).put("format", "times"))
+                        .put(JSONObject().put("key", "brightness").put("label", "Brightness").put("min", 0.4).put("max", 1.4).put("step", 0.01).put("default", 1.0).put("format", "percent"))
+                )
+            }
+        )
+        return buildEntry(
+            id = id,
+            name = title,
+            desc = "Imported GLSL WebGL fragment shader",
+            page = "__custom/$id/index.html",
+            adaptive = true,
+            groups = groups,
+            thumb = "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)"
+        )
+    }
+
     private fun importZipPackage(input: InputStream, destDir: File, id: String, fallbackName: String): JSONObject {
         var totalBytes = 0L
         var fileCount = 0
@@ -127,46 +211,75 @@ class CustomThemeImporter(private val customThemesRoot: File) {
         val destCanonical = destDir.canonicalFile
         val destPrefix = destCanonical.path + File.separator
 
-        ZipInputStream(BufferedInputStream(input)).use { zis ->
-            while (true) {
-                val ze = zis.nextEntry ?: break
-                val rawName = ze.name.replace('\\', '/')
-                if (rawName.startsWith("/") || rawName.contains("..") || rawName.startsWith("./..")) {
-                    throw IllegalArgumentException("Unsafe archive path: ${ze.name}")
+        val tmpZip = File.createTempFile("diyardesk-import-", ".zip", customThemesRoot)
+        try {
+            FileOutputStream(tmpZip).use { fos ->
+                var compressedBytes = 0L
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n <= 0) break
+                    compressedBytes += n
+                    if (compressedBytes > MAX_ARCHIVE_BYTES) {
+                        throw IllegalArgumentException("Archive exceeds 150 MB limit")
+                    }
+                    fos.write(buffer, 0, n)
                 }
-                val cleanRel = rawName.trimStart('/')
-                if (cleanRel.isEmpty()) {
-                    zis.closeEntry()
-                    continue
-                }
-                fileCount++
-                if (fileCount > MAX_ARCHIVE_FILES) {
-                    throw IllegalArgumentException("Archive exceeds maximum $MAX_ARCHIVE_FILES files")
-                }
+            }
+            if (containsZipSymlink(tmpZip)) {
+                throw IllegalArgumentException("Archive contains unsupported symbolic link")
+            }
 
-                val outFile = File(destCanonical, cleanRel).canonicalFile
-                if (!outFile.path.startsWith(destPrefix) && outFile != destCanonical) {
-                    throw IllegalArgumentException("Zip-slip traversal detected: ${ze.name}")
-                }
+            ZipInputStream(BufferedInputStream(tmpZip.inputStream())).use { zis ->
+                while (true) {
+                    val ze = zis.nextEntry ?: break
+                    val rawName = ze.name.replace('\\', '/')
+                    if (rawName.startsWith("/") || rawName.contains("..") || rawName.startsWith("./..") || rawName.contains(':')) {
+                        throw IllegalArgumentException("Unsafe archive path: ${ze.name}")
+                    }
+                    val cleanRel = rawName.trimStart('/')
+                    if (cleanRel.isEmpty()) {
+                        zis.closeEntry()
+                        continue
+                    }
+                    val firstSeg = cleanRel.substringBefore('/')
+                    if (firstSeg.equals("__MACOSX", ignoreCase = true)) {
+                        zis.closeEntry()
+                        continue
+                    }
 
-                if (ze.isDirectory) {
-                    outFile.mkdirs()
-                } else {
-                    outFile.parentFile?.mkdirs()
-                    FileOutputStream(outFile).use { fos ->
-                        while (true) {
-                            val n = zis.read(buffer)
-                            if (n <= 0) break
-                            totalBytes += n
-                            if (totalBytes > MAX_ARCHIVE_BYTES) {
-                                throw IllegalArgumentException("Archive exceeds 150 MB limit")
+                    val outFile = File(destCanonical, cleanRel).canonicalFile
+                    if (!outFile.path.startsWith(destPrefix) && outFile != destCanonical) {
+                        throw IllegalArgumentException("Zip-slip traversal detected: ${ze.name}")
+                    }
+
+                    if (ze.isDirectory) {
+                        outFile.mkdirs()
+                    } else {
+                        if (!isAllowedArchiveMember(outFile.name)) {
+                            throw IllegalArgumentException("Unsupported file type in theme archive: ${ze.name}")
+                        }
+                        fileCount++
+                        if (fileCount > MAX_ARCHIVE_FILES) {
+                            throw IllegalArgumentException("Archive exceeds maximum $MAX_ARCHIVE_FILES files")
+                        }
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { fos ->
+                            while (true) {
+                                val n = zis.read(buffer)
+                                if (n <= 0) break
+                                totalBytes += n
+                                if (totalBytes > MAX_ARCHIVE_BYTES) {
+                                    throw IllegalArgumentException("Archive exceeds 150 MB limit")
+                                }
+                                fos.write(buffer, 0, n)
                             }
-                            fos.write(buffer, 0, n)
                         }
                     }
+                    zis.closeEntry()
                 }
-                zis.closeEntry()
             }
+        } finally {
+            tmpZip.delete()
         }
 
         // Flatten single wrapping directory if present
@@ -183,9 +296,16 @@ class CustomThemeImporter(private val customThemesRoot: File) {
         val manifest = manifestFile?.let {
             try { JSONObject(it.readText(Charsets.UTF_8)) } catch (_: Exception) { null }
         }
+        val livelyInfo = File(destDir, "LivelyInfo.json").takeIf { it.isFile }?.let {
+            try { JSONObject(it.readText(Charsets.UTF_8)) } catch (_: Exception) { null }
+        }
+        val livelyProps = File(destDir, "LivelyProperties.json").takeIf { it.isFile }?.let {
+            try { JSONObject(it.readText(Charsets.UTF_8)) } catch (_: Exception) { null }
+        }
 
         val requestedEntry = listOf("entry", "page", "main", "file")
             .firstNotNullOfOrNull { k -> manifest?.optString(k)?.trim()?.ifBlank { null } }
+            ?: livelyInfo?.optString("FileName")?.trim()?.ifBlank { null }
         val entryRel = if (requestedEntry != null) {
             val cleanEntry = requestedEntry.trimStart('/')
             val entryFile = File(destDir, cleanEntry).canonicalFile
@@ -210,17 +330,25 @@ class CustomThemeImporter(private val customThemesRoot: File) {
 
         val name = (manifest?.optString("name")?.ifBlank { null }
             ?: manifest?.optString("title")?.ifBlank { null }
+            ?: livelyInfo?.optString("Title")?.ifBlank { null }
             ?: extractHtmlTitle(File(destDir, entryRel))
             ?: fallbackName).take(60)
         val desc = manifest?.optString("desc")?.ifBlank { null }
             ?: manifest?.optString("description")?.ifBlank { null }
+            ?: livelyInfo?.optString("Desc")?.ifBlank { null }
             ?: "Imported HTML/Canvas theme"
         val adaptive = manifest?.optBoolean("adaptive", true) ?: true
         val thumbSpec = listOf("thumb", "thumbnail", "preview")
             .firstNotNullOfOrNull { k -> manifest?.optString(k)?.trim()?.ifBlank { null } }
+            ?: livelyInfo?.optString("Thumbnail")?.trim()?.ifBlank { null }
         val thumbCss = findArchiveThumb(destDir, id, thumbSpec)
         val sanitizedGroups = sanitizeGroups(manifest?.optJSONArray("groups"))
-        val groups = if (sanitizedGroups.length() > 0) sanitizedGroups else groupsFromSettings(manifest?.opt("settings"))
+        val groups = when {
+            sanitizedGroups.length() > 0 -> sanitizedGroups
+            manifest?.opt("settings") != null -> groupsFromSettings(manifest.opt("settings"))
+            livelyProps != null -> groupsFromSettings(livelyProps)
+            else -> JSONArray()
+        }
 
         return buildEntry(
             id = id,
@@ -261,6 +389,15 @@ class CustomThemeImporter(private val customThemesRoot: File) {
         return DEFAULT_ARCHIVE_THUMB
     }
 
+    private fun sanitizeColor(raw: Any?): String {
+        val s = raw?.toString()?.trim() ?: ""
+        if (Regex("^#[0-9a-fA-F]{6}$").matches(s)) return s.lowercase(Locale.US)
+        if (Regex("^#[0-9a-fA-F]{3}$").matches(s)) {
+            return "#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}".lowercase(Locale.US)
+        }
+        return "#4a90e2"
+    }
+
     private fun sanitizeGroups(rawGroups: JSONArray?): JSONArray {
         val out = JSONArray()
         if (rawGroups == null) return out
@@ -279,6 +416,14 @@ class CustomThemeImporter(private val customThemesRoot: File) {
                 }
                 val hint = p.optString("hint").trim()
                 if (hint.isNotEmpty()) item.put("hint", hint.take(180))
+
+                if (p.optString("type").trim().lowercase(Locale.US) == "color") {
+                    item.put("type", "color")
+                    val cDef = if (p.has("default")) p.opt("default") else p.opt("value")
+                    item.put("default", sanitizeColor(cDef))
+                    cleanParams.put(item)
+                    continue
+                }
 
                 val rawOpts = p.optJSONArray("options")
                 if (rawOpts != null && rawOpts.length() > 0) {
@@ -398,9 +543,10 @@ class CustomThemeImporter(private val customThemesRoot: File) {
                 .ifBlank { spec.optString("category").trim() }
                 .ifBlank { "Settings" }
             val ptype = spec.optString("type").trim().lowercase(Locale.US)
+            if (ptype in setOf("button", "label", "folderdropdown", "file")) continue
             val param = JSONObject().apply {
                 put("key", key)
-                put("label", spec.optString("label").ifBlank { spec.optString("title").ifBlank { key } })
+                put("label", spec.optString("label").ifBlank { spec.optString("title").ifBlank { spec.optString("text").ifBlank { key } } })
             }
             val hint = spec.optString("hint").ifBlank { spec.optString("description") }.trim()
             if (hint.isNotEmpty()) param.put("hint", hint)
@@ -409,6 +555,10 @@ class CustomThemeImporter(private val customThemesRoot: File) {
             val rawDef = if (spec.has("default")) spec.opt("default") else spec.opt("value")
 
             when {
+                ptype == "color" -> {
+                    param.put("type", "color")
+                    param.put("default", sanitizeColor(rawDef))
+                }
                 ptype in setOf("checkbox", "boolean", "bool", "toggle") -> {
                     param.put("options", JSONArray(listOf("Off", "On")))
                     param.put("values", JSONArray(listOf(false, true)))
@@ -420,8 +570,9 @@ class CustomThemeImporter(private val customThemesRoot: File) {
                     }
                     param.put("default", b)
                 }
-                (spec.optJSONArray("options")?.takeIf { it.length() > 0 } != null) -> {
-                    param.put("options", spec.optJSONArray("options"))
+                (spec.optJSONArray("options")?.takeIf { it.length() > 0 } != null) ||
+                    (ptype in setOf("dropdown", "select") && spec.optJSONArray("items")?.takeIf { it.length() > 0 } != null) -> {
+                    param.put("options", spec.optJSONArray("options")?.takeIf { it.length() > 0 } ?: spec.optJSONArray("items"))
                     if (hasDef) param.put("default", rawDef)
                 }
                 else -> {
@@ -662,7 +813,72 @@ class CustomThemeImporter(private val customThemesRoot: File) {
                 "linear-gradient(150deg, #1e2130 0%, #342f48 55%, #1b1d29 100%)"
         private val IMAGE_EXTS = setOf("png", "jpg", "jpeg", "webp", "gif", "svg", "avif", "bmp")
         private val VIDEO_EXTS = setOf("mp4", "webm", "mkv", "mov")
-        private val SUPPORTED_EXTS = setOf("zip", "deskland", "html", "htm") + IMAGE_EXTS + VIDEO_EXTS
+        private val SUPPORTED_EXTS = setOf("zip", "deskland", "html", "htm", "glsl", "frag") + IMAGE_EXTS + VIDEO_EXTS
+        private val ARCHIVE_ALLOWED_EXTS = setOf(
+            "html", "htm", "css", "js", "mjs", "json",
+            "glsl", "vert", "frag", "wgsl", "wasm",
+            "txt", "md", "xml", "csv", "map",
+            "png", "jpg", "jpeg", "webp", "gif", "svg", "avif", "bmp", "ico",
+            "mp4", "webm", "mkv", "mov", "ogv",
+            "mp3", "wav", "ogg", "opus", "m4a", "aac", "flac",
+            "woff", "woff2", "ttf", "otf", "eot",
+            "obj", "mtl", "gltf", "glb", "bin", "hdr", "exr", "ktx", "ktx2", "dds", "ply", "stl", "fbx"
+        )
+        private val ARCHIVE_ALLOWED_BASENAMES = setOf("license", "notice", "readme", "copying", "authors", "changelog")
+
+        fun isAllowedArchiveMember(fileName: String): Boolean {
+            if (fileName.isBlank()) return false
+            val dot = fileName.lastIndexOf('.')
+            if (dot > 0 && dot < fileName.length - 1) {
+                val ext = fileName.substring(dot + 1).lowercase(Locale.US)
+                return ext in ARCHIVE_ALLOWED_EXTS
+            }
+            return fileName.lowercase(Locale.US) in ARCHIVE_ALLOWED_BASENAMES
+        }
+
+        /** Inspects ZIP Central Directory Unix external attributes for symbolic links (S_IFLNK = 0o120000). */
+        fun containsZipSymlink(zipFile: File): Boolean {
+            val length = zipFile.length()
+            if (length < 22L) return false
+            RandomAccessFile(zipFile, "r").use { raf ->
+                val tailLen = minOf(length, 65557L).toInt()
+                val tail = ByteArray(tailLen)
+                raf.seek(length - tailLen)
+                raf.readFully(tail)
+                var eocdOffset = -1
+                for (i in tailLen - 22 downTo 0) {
+                    if (tail[i] == 0x50.toByte() && tail[i + 1] == 0x4B.toByte() &&
+                        tail[i + 2] == 0x05.toByte() && tail[i + 3] == 0x06.toByte()
+                    ) {
+                        eocdOffset = i
+                        break
+                    }
+                }
+                if (eocdOffset < 0) return false
+                val eocd = ByteBuffer.wrap(tail, eocdOffset, 22).order(ByteOrder.LITTLE_ENDIAN)
+                val totalEntries = eocd.getShort(10).toInt() and 0xFFFF
+                val cdOffset = eocd.getInt(16).toLong() and 0xFFFFFFFFL
+                if (cdOffset < 0 || cdOffset >= length) return false
+                raf.seek(cdOffset)
+                val hdr = ByteArray(46)
+                for (i in 0 until totalEntries) {
+                    if (raf.filePointer + 46 > length) break
+                    raf.readFully(hdr)
+                    val bb = ByteBuffer.wrap(hdr).order(ByteOrder.LITTLE_ENDIAN)
+                    if (bb.getInt(0) != 0x02014B50) break
+                    val nameLen = bb.getShort(28).toInt() and 0xFFFF
+                    val extraLen = bb.getShort(30).toInt() and 0xFFFF
+                    val commentLen = bb.getShort(32).toInt() and 0xFFFF
+                    val extAttrs = bb.getInt(38)
+                    val unixType = (extAttrs ushr 16) and 0xF000
+                    if (unixType == 0xA000) return true
+                    val skip = (nameLen + extraLen + commentLen).toLong()
+                    if (raf.filePointer + skip > length) break
+                    raf.seek(raf.filePointer + skip)
+                }
+            }
+            return false
+        }
 
         fun guessMimeType(name: String): String {
             return when (name.substringAfterLast('.', "").lowercase(Locale.US)) {

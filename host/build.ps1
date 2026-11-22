@@ -55,10 +55,10 @@ using System.Reflection;
 & $csc /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 /win32manifest:"$root\app.manifest" `
     /win32icon:"$root\DesklandPreview.ico" `
     /out:"$bin\Deskland.exe" `
-    /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
+    /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
     /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
-    "$root\DesktopHost.cs" "$root\Themes.cs" "$versionSource"
+    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force

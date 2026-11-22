@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Cleartext HTTP is permitted only so LanSyncClient can talk to user-entered RFC1918 LAN peers.
+         All WebViews enforce strict local-only origin blocking (403) + CSP. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

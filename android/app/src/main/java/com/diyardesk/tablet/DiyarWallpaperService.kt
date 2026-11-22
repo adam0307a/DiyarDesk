@@ -2,12 +2,19 @@ package com.diyardesk.tablet
 
 import android.annotation.SuppressLint
 import android.app.Presentation
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.os.BatteryManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
 import android.service.wallpaper.WallpaperService
 import android.view.MotionEvent
 import android.view.SurfaceHolder
@@ -49,14 +56,92 @@ class DiyarWallpaperService : WallpaperService() {
         private var surfaceW: Int = 1
         private var surfaceH: Int = 1
         private var engineVisible: Boolean = true
+        private var screenOff: Boolean = false
+        private var powerReceiverRegistered: Boolean = false
+
+        private val powerReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> screenOff = true
+                    Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> screenOff = false
+                }
+                mainHandler.post { applyPowerAndPauseState() }
+            }
+        }
+
+        private fun isPowerSaveMode(): Boolean {
+            val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            return pm?.isPowerSaveMode == true
+        }
+
+        private fun isOnBattery(): Boolean {
+            val bm = getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+            return if (bm != null) !bm.isCharging else true
+        }
+
+        private fun isReducedMotion(): Boolean {
+            return try {
+                val scale = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+                scale == 0f
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        private fun shouldPause(): Boolean {
+            if (!engineVisible || screenOff) return true
+            if (!store.disableAutoPause && isPowerSaveMode()) return true
+            return false
+        }
+
+        private fun applyPowerAndPauseState() {
+            val wv = webView ?: return
+            val paused = shouldPause()
+            if (paused) wv.onPause() else wv.onResume()
+            if (pageReady) {
+                PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
+                    put("t", "perf")
+                    put("adaptiveFps", true)
+                    put("onBattery", isOnBattery())
+                    put("reducedMotion", isReducedMotion())
+                })
+                PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
+                    put("t", "pause")
+                    put("v", paused)
+                })
+            }
+        }
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
             setTouchEventsEnabled(true)
             store.addListener(this)
+            val filter = IntentFilter().apply {
+                addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(powerReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    @Suppress("DEPRECATION")
+                    registerReceiver(powerReceiver, filter)
+                }
+                powerReceiverRegistered = true
+            } catch (_: Exception) {
+            }
         }
 
         override fun onDestroy() {
+            if (powerReceiverRegistered) {
+                try {
+                    unregisterReceiver(powerReceiver)
+                } catch (_: Exception) {
+                }
+                powerReceiverRegistered = false
+            }
             store.removeListener(this)
             mainHandler.post { tearDownPresentation() }
             super.onDestroy()
@@ -76,14 +161,8 @@ class DiyarWallpaperService : WallpaperService() {
 
         override fun onVisibilityChanged(visible: Boolean) {
             engineVisible = visible
-            mainHandler.post {
-                val wv = webView ?: return@post
-                if (visible) wv.onResume() else wv.onPause()
-                PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
-                    put("t", "pause")
-                    put("v", !visible)
-                })
-            }
+            if (visible) screenOff = false
+            mainHandler.post { applyPowerAndPauseState() }
         }
 
         override fun onTouchEvent(event: MotionEvent) {
@@ -166,12 +245,23 @@ class DiyarWallpaperService : WallpaperService() {
                         }
                     }
                 }, "DiyarNative")
+                webChromeClient = PrototypeAssets.createSilentWebChromeClient()
                 webViewClient = object : WebViewClient() {
                     override fun shouldInterceptRequest(
                         view: WebView,
                         request: WebResourceRequest
                     ): WebResourceResponse? {
+                        if (!PrototypeAssets.isAllowedInWebView(request.url)) {
+                            return PrototypeAssets.blockedResponse()
+                        }
                         return assetLoader.shouldInterceptRequest(request.url)
+                    }
+
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): Boolean {
+                        return !PrototypeAssets.isAllowedInWebView(request.url)
                     }
 
                     override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
@@ -210,11 +300,23 @@ class DiyarWallpaperService : WallpaperService() {
                 put("t", "lowMode")
                 put("v", store.lowMode)
             })
+            PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
+                put("t", "qualityProfile")
+                put("v", store.qualityProfile)
+            })
+            PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
+                put("t", "perf")
+                put("adaptiveFps", true)
+                put("onBattery", isOnBattery())
+                put("reducedMotion", isReducedMotion())
+            })
             PrototypeAssets.dispatchMessage(wv, store.buildWallpaperSettingsMessage())
             PrototypeAssets.dispatchMessage(wv, store.buildIconsMessage(surfaceW, surfaceH))
+            val paused = shouldPause()
+            if (paused) wv.onPause() else wv.onResume()
             PrototypeAssets.dispatchMessage(wv, JSONObject().apply {
                 put("t", "pause")
-                put("v", !engineVisible)
+                put("v", paused)
             })
         }
 

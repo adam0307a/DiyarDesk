@@ -18,10 +18,68 @@ ARCHIVE_EXTS = {".zip", ".deskland"}
 HTML_EXTS = {".html", ".htm"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif", ".bmp"}
 VIDEO_EXTS = {".mp4", ".webm", ".mkv", ".mov"}
-SUPPORTED_EXTS = ARCHIVE_EXTS | HTML_EXTS | IMAGE_EXTS | VIDEO_EXTS
+SHADER_EXTS = {".glsl", ".frag"}
+SUPPORTED_EXTS = ARCHIVE_EXTS | HTML_EXTS | IMAGE_EXTS | VIDEO_EXTS | SHADER_EXTS
+
+ARCHIVE_ALLOWED_EXTS = (
+    HTML_EXTS
+    | IMAGE_EXTS
+    | VIDEO_EXTS
+    | {
+        ".css",
+        ".js",
+        ".mjs",
+        ".json",
+        ".glsl",
+        ".vert",
+        ".frag",
+        ".wgsl",
+        ".wasm",
+        ".txt",
+        ".md",
+        ".xml",
+        ".csv",
+        ".map",
+        ".ico",
+        ".ogv",
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".opus",
+        ".m4a",
+        ".aac",
+        ".flac",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".otf",
+        ".eot",
+        ".obj",
+        ".mtl",
+        ".gltf",
+        ".glb",
+        ".bin",
+        ".hdr",
+        ".exr",
+        ".ktx",
+        ".ktx2",
+        ".dds",
+        ".ply",
+        ".stl",
+        ".fbx",
+    }
+)
+ARCHIVE_ALLOWED_BASENAMES = {"license", "notice", "readme", "copying", "authors", "changelog"}
 
 MAX_ARCHIVE_BYTES = 150 * 1024 * 1024
 MAX_ARCHIVE_FILES = 2000
+
+
+def _is_allowed_archive_member(file_name: str) -> bool:
+    ext = Path(file_name).suffix.lower()
+    if ext:
+        return ext in ARCHIVE_ALLOWED_EXTS
+    return file_name.lower() in ARCHIVE_ALLOWED_BASENAMES
 
 
 def custom_themes_dir() -> Path:
@@ -102,6 +160,8 @@ def _safe_zip_members(zf: zipfile.ZipFile) -> list[tuple[zipfile.ZipInfo, list[s
             raise ValueError(f"Unsafe archive entry path: {info.filename}")
         if parts[0] == "__MACOSX":
             continue
+        if not _is_allowed_archive_member(parts[-1]):
+            raise ValueError(f"Unsupported file type in theme archive: {info.filename}")
         total_size += max(0, info.file_size)
         if total_size > MAX_ARCHIVE_BYTES:
             raise ValueError("Theme archive exceeds 150 MB size limit")
@@ -148,6 +208,16 @@ def _find_entry_html(theme_dir: Path, preferred: str | None = None) -> str:
     raise ValueError("No .html entry page found in archive")
 
 
+def _sanitize_color(value: Any, fallback: str = "#4a9eff") -> str:
+    if isinstance(value, str):
+        s = value.strip()
+        if re.match(r"^#[0-9a-fA-F]{6}$", s):
+            return s.lower()
+        if re.match(r"^#[0-9a-fA-F]{3}$", s):
+            return ("#" + s[1] * 2 + s[2] * 2 + s[3] * 2).lower()
+    return fallback
+
+
 def _sanitize_groups(raw_groups: Any) -> list[dict[str, Any]]:
     if not isinstance(raw_groups, list):
         return []
@@ -166,7 +236,10 @@ def _sanitize_groups(raw_groups: Any) -> list[dict[str, Any]]:
             item: dict[str, Any] = {"key": key, "label": label[:48]}
             if isinstance(p.get("hint"), str):
                 item["hint"] = p["hint"][:180]
-            if isinstance(p.get("options"), list) and p["options"]:
+            if str(p.get("type") or "").strip().lower() == "color":
+                item["type"] = "color"
+                item["default"] = _sanitize_color(p.get("default") if "default" in p else p.get("value"))
+            elif isinstance(p.get("options"), list) and p["options"]:
                 raw_opts = p["options"][:8]
                 opts: list[str] = []
                 vals: list[Any] = []
@@ -242,9 +315,11 @@ def _groups_from_settings(raw_settings: Any) -> list[dict[str, Any]]:
     for key, spec in items:
         group_name = str(spec.get("group") or spec.get("category") or "Settings").strip() or "Settings"
         ptype = str(spec.get("type") or "").strip().lower()
+        if ptype in ("button", "label", "folderdropdown", "file"):
+            continue
         param: dict[str, Any] = {
             "key": key,
-            "label": spec.get("label") or spec.get("title") or key,
+            "label": spec.get("label") or spec.get("title") or spec.get("text") or key,
         }
         if isinstance(spec.get("hint"), str):
             param["hint"] = spec["hint"]
@@ -253,7 +328,10 @@ def _groups_from_settings(raw_settings: Any) -> list[dict[str, Any]]:
 
         raw_default = spec["default"] if "default" in spec else spec.get("value")
 
-        if ptype in ("checkbox", "boolean", "bool", "toggle"):
+        if ptype == "color":
+            param["type"] = "color"
+            param["default"] = _sanitize_color(raw_default)
+        elif ptype in ("checkbox", "boolean", "bool", "toggle"):
             param["options"] = ["Off", "On"]
             param["values"] = [False, True]
             if isinstance(raw_default, bool):
@@ -264,8 +342,10 @@ def _groups_from_settings(raw_settings: Any) -> list[dict[str, Any]]:
                 param["default"] = raw_default.strip().lower() in ("1", "true", "yes", "on")
             else:
                 param["default"] = False
-        elif isinstance(spec.get("options"), list) and spec["options"]:
-            param["options"] = spec["options"]
+        elif (isinstance(spec.get("options"), list) and spec["options"]) or (
+            ptype in ("dropdown", "select") and isinstance(spec.get("items"), list) and spec["items"]
+        ):
+            param["options"] = spec.get("options") if isinstance(spec.get("options"), list) and spec["options"] else spec["items"]
             if "default" in spec or "value" in spec:
                 param["default"] = raw_default
         else:
@@ -281,6 +361,143 @@ def _groups_from_settings(raw_settings: Any) -> list[dict[str, Any]]:
         grouped.setdefault(group_name, []).append(param)
 
     return _sanitize_groups([{"name": gname, "params": params} for gname, params in grouped.items()])
+
+
+def _shader_wrapper_html(title: str, glsl_source: str) -> str:
+    safe_title = html.escape(title)
+    encoded_glsl = json.dumps(glsl_source)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{safe_title}</title>
+<style>html,body,canvas{{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#090c14;display:block;}}</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script>
+(() => {{
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl', {{ preserveDrawingBuffer: true, antialias: false }});
+  if (!gl) return;
+  const rawFrag = {encoded_glsl};
+  const hasMainImage = /void\\s+mainImage\\s*\\(/.test(rawFrag);
+  const header = [
+    'precision highp float;',
+    'uniform float u_time;',
+    'uniform vec2 u_resolution;',
+    'uniform vec2 u_mouse;',
+    'uniform float u_speed;',
+    'uniform float u_brightness;',
+    'uniform float u_audio;',
+    'uniform int u_iconCount;',
+    'uniform vec4 u_icons[32];',
+    'uniform vec3 iResolution;',
+    'uniform float iTime;',
+    'uniform vec4 iMouse;',
+  ].join('\\n') + '\\n';
+  const stripped = rawFrag.replace(/^\\s*precision\\s+\\w+\\s+float\\s*;/gm, '');
+  const fragSrc = header + stripped + (hasMainImage
+    ? '\\nvoid main(){{ vec4 c=vec4(0.0); mainImage(c, gl_FragCoord.xy); gl_FragColor=vec4(c.rgb*u_brightness, 1.0); }}\\n'
+    : '');
+  const vertSrc = 'attribute vec2 a_pos; void main(){{ gl_Position = vec4(a_pos, 0.0, 1.0); }}';
+  function compile(type, src) {{
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'shader compile error');
+    return s;
+  }}
+  const prog = gl.createProgram();
+  try {{
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc));
+    gl.linkProgram(prog);
+  }} catch (err) {{
+    document.body.innerHTML = '<pre style="color:#f78;padding:20px;font:13px monospace">' + String(err) + '</pre>';
+    return;
+  }}
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const locPos = gl.getAttribLocation(prog, 'a_pos');
+  gl.enableVertexAttribArray(locPos);
+  gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+
+  const U = name => gl.getUniformLocation(prog, name);
+  const uTime = U('u_time'), uRes = U('u_resolution'), uMouse = U('u_mouse'),
+        uSpeed = U('u_speed'), uBright = U('u_brightness'), uAudio = U('u_audio'),
+        uIconCount = U('u_iconCount'), uIcons = U('u_icons'),
+        iRes = U('iResolution'), iTime = U('iTime'), iMouse = U('iMouse');
+
+  const cfg = {{ speed: 1.0, brightness: 1.0 }};
+  let paused = false, mouseX = 0, mouseY = 0, audioRms = 0, icons = new Float32Array(128), iconCount = 0;
+  let simTime = 0, lastTs = performance.now();
+
+  function resize() {{
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = Math.max(1, Math.floor(innerWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(innerHeight * dpr));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }}
+  addEventListener('resize', resize);
+  resize();
+
+  function applyMsg(raw) {{
+    let m = raw;
+    if (typeof m === 'string') {{ try {{ m = JSON.parse(m); }} catch (_) {{ return; }} }}
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'settings' && m.v) {{
+      if (typeof m.v.speed === 'number') cfg.speed = m.v.speed;
+      if (typeof m.v.brightness === 'number') cfg.brightness = m.v.brightness;
+    }} else if (m.t === 'reset') {{
+      cfg.speed = 1.0; cfg.brightness = 1.0;
+    }} else if (m.t === 'pause') {{
+      paused = !!m.v;
+    }} else if (m.t === 'pointer' && typeof m.x === 'number') {{
+      mouseX = m.x * (window.devicePixelRatio || 1);
+      mouseY = canvas.height - m.y * (window.devicePixelRatio || 1);
+    }} else if (m.t === 'audioLevels' && typeof m.rms === 'number') {{
+      audioRms = m.rms;
+    }} else if (m.t === 'icons' && Array.isArray(m.r)) {{
+      iconCount = Math.min(32, m.r.length);
+      for (let i = 0; i < iconCount; i++) {{
+        const r = m.r[i] || [0,0,0,0];
+        icons[i*4] = r[0] || 0; icons[i*4+1] = r[1] || 0; icons[i*4+2] = r[2] || 0; icons[i*4+3] = r[3] || 0;
+      }}
+    }}
+  }}
+  addEventListener('message', e => applyMsg(e.data));
+  if (window.chrome && window.chrome.webview) window.chrome.webview.addEventListener('message', e => applyMsg(e.data));
+  addEventListener('pointermove', e => {{ mouseX = e.clientX * (window.devicePixelRatio||1); mouseY = canvas.height - e.clientY * (window.devicePixelRatio||1); }}, {{ passive: true }});
+
+  function render(ts) {{
+    requestAnimationFrame(render);
+    const dt = Math.min(0.1, Math.max(0, (ts - lastTs) / 1000));
+    lastTs = ts;
+    if (paused) return;
+    simTime += dt * cfg.speed;
+    if (uTime) gl.uniform1f(uTime, simTime);
+    if (iTime) gl.uniform1f(iTime, simTime);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (iRes) gl.uniform3f(iRes, canvas.width, canvas.height, 1.0);
+    if (uMouse) gl.uniform2f(uMouse, mouseX, mouseY);
+    if (iMouse) gl.uniform4f(iMouse, mouseX, mouseY, 0, 0);
+    if (uSpeed) gl.uniform1f(uSpeed, cfg.speed);
+    if (uBright) gl.uniform1f(uBright, cfg.brightness);
+    if (uAudio) gl.uniform1f(uAudio, audioRms);
+    if (uIconCount) gl.uniform1i(uIconCount, iconCount);
+    if (uIcons) gl.uniform4fv(uIcons, icons);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }}
+  window.desklandSnapshot = () => canvas.toDataURL('image/png');
+  requestAnimationFrame(render);
+  if (new URLSearchParams(location.search).get('preview') === '1') parent.postMessage(JSON.stringify({{ t: 'ready' }}), '*');
+  else if (window.chrome && window.chrome.webview) window.chrome.webview.postMessage('ready');
+}})();
+</script>
+</body>
+</html>
+"""
 
 
 def _validate_html_file(path: Path) -> str:
@@ -587,6 +804,8 @@ def import_theme_file(
     ext = src.suffix.lower()
     if ext not in SUPPORTED_EXTS:
         raise ValueError(f"Unsupported file type: {ext or 'none'}")
+    if ext not in ARCHIVE_EXTS and src.stat().st_size > MAX_ARCHIVE_BYTES:
+        raise ValueError("Selected file exceeds 150 MB size limit.")
 
     target_root = custom_dir or custom_themes_dir()
     target_root.mkdir(parents=True, exist_ok=True)
@@ -624,6 +843,27 @@ def import_theme_file(
                         raise ValueError(f"Invalid {mname} structure (expected JSON object).")
                     manifest = parsed
                     break
+            if not manifest:
+                lively_info = theme_dir / "LivelyInfo.json"
+                if lively_info.is_file():
+                    try:
+                        li = json.loads(lively_info.read_text(encoding="utf-8"))
+                        if isinstance(li, dict):
+                            manifest = {
+                                "name": li.get("Title"),
+                                "desc": li.get("Desc"),
+                                "entry": li.get("FileName"),
+                                "thumb": li.get("Thumbnail") or li.get("Preview"),
+                            }
+                    except (OSError, ValueError):
+                        pass
+            lively_props_raw: Any = None
+            lively_props = theme_dir / "LivelyProperties.json"
+            if lively_props.is_file():
+                try:
+                    lively_props_raw = json.loads(lively_props.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    lively_props_raw = None
             preferred_entry = (
                 manifest.get("entry")
                 or manifest.get("page")
@@ -646,9 +886,47 @@ def import_theme_file(
                 "adaptive": bool(manifest.get("adaptive", False)),
                 "thumb": _find_archive_thumb(theme_dir, theme_id, thumb_spec),
             }
-            groups = _sanitize_groups(manifest.get("groups")) or _groups_from_settings(manifest.get("settings"))
+            groups = (
+                _sanitize_groups(manifest.get("groups"))
+                or _groups_from_settings(manifest.get("settings"))
+                or _groups_from_settings(lively_props_raw)
+            )
             if groups:
                 theme_obj["groups"] = groups
+
+        elif ext in SHADER_EXTS:
+            raw_glsl = src.read_bytes()
+            if not raw_glsl or b"\x00" in raw_glsl or len(raw_glsl) > 2 * 1024 * 1024:
+                raise ValueError(f"Shader file is empty, too large, or corrupted: {src.name}")
+            glsl_src = raw_glsl.decode("utf-8", errors="replace")
+            title = _pretty_title(src.stem)
+            (theme_dir / "shader.glsl").write_text(glsl_src, encoding="utf-8")
+            (theme_dir / "index.html").write_text(_shader_wrapper_html(title, glsl_src), encoding="utf-8")
+            theme_obj = {
+                "id": theme_id,
+                "name": title[:60],
+                "desc": "Imported GLSL WebGL fragment shader.",
+                "page": f"__custom/{theme_id}/index.html",
+                "entry": "index.html",
+                "status": "ready",
+                "product": "free",
+                "imported": True,
+                "adaptive": True,
+                "thumb": (
+                    "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), "
+                    "radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), "
+                    "linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)"
+                ),
+                "groups": [
+                    {
+                        "name": "Shader",
+                        "params": [
+                            {"key": "speed", "label": "Speed", "min": 0.1, "max": 3.0, "step": 0.05, "default": 1.0, "format": "times"},
+                            {"key": "brightness", "label": "Brightness", "min": 0.4, "max": 1.4, "step": 0.01, "default": 1.0, "format": "percent"},
+                        ],
+                    }
+                ],
+            }
 
         elif ext in HTML_EXTS:
             raw_html = _validate_html_file(src)
@@ -674,7 +952,8 @@ def import_theme_file(
         else:
             is_video = ext in VIDEO_EXTS
             media_name = f"media{ext}"
-            shutil.copy2(src, theme_dir / media_name)
+            with src.open("rb") as min_f, (theme_dir / media_name).open("wb") as mout_f:
+                _copy_limited(min_f, mout_f, MAX_ARCHIVE_BYTES)
             title = _pretty_title(src.stem)
             (theme_dir / "index.html").write_text(
                 _media_wrapper_html(media_name, is_video, title),

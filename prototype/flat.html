@@ -1257,23 +1257,39 @@ function startHostedMode() {
   commit(true);                                   // 先是一片海
   syncBirds(false);
   let first = true;
+  let realIcons = [], winBoxes = [], panelBoxes = [];
   const settlePaused = () => {
     if (!paused || !iconsSeen) return;
     curMix = 1; morphT0 = -1e9;                  // 暂停只冻结动画，首次地形和图标布局仍要完成
     draw(performance.now());
   };
+  const syncSceneRects = () => {
+    const k = window.devicePixelRatio || 1;
+    const base = realIcons.length ? realIcons : winBoxes;
+    icons = base.concat(panelBoxes).map(([l, t, r, b]) => ({ x: l / k, y: t / k, w: (r - l) / k, h: (b - t) / k }));
+    if (PREVIEW) drawGhosts();
+    iconsSeen = true;
+    commit(first);
+    if (first) { curMix = 1; kayaks.length = 0; syncKayaks(); curMix = 0; first = false; }
+    settlePaused();
+  };
   const handle = m => {
     if (m.t === 'pause') { _setPaused(PREVIEW ? false : m.v); settlePaused(); return; }
     if (m.t === 'settings') { applySettings(m.v || {}); return; }
     if (m.t === 'reset') { applySettings(Object.assign({}, DEFAULTS, m.v || {})); return; }
+    if (m.t === 'windows' && Array.isArray(m.r)) {
+      winBoxes = m.r.map(w => w.length >= 5 ? [w[1], w[2], w[3], w[4]] : w);
+      if (!realIcons.length) syncSceneRects();
+      return;
+    }
+    if (m.t === 'workspace' && Array.isArray(m.panels)) {
+      panelBoxes = m.panels;
+      if (panelBoxes.length || winBoxes.length) syncSceneRects();
+      return;
+    }
     if (m.t !== 'icons') return;
-    const k = window.devicePixelRatio || 1;       // 物理像素 → CSS 像素
-    icons = m.vis ? m.r.map(([l, t, r, b]) => ({ x: l / k, y: t / k, w: (r - l) / k, h: (b - t) / k })) : [];
-    if (PREVIEW) drawGhosts();
-    iconsSeen = true;
-    commit(first);                                // 第一次：陆地从海里"长"出来；之后：岸线平滑移动
-    if (first) { curMix = 1; kayaks.length = 0; syncKayaks(); curMix = 0; first = false; }
-    settlePaused();
+    realIcons = m.vis && Array.isArray(m.r) ? m.r : [];
+    syncSceneRects();
   };
   if (PREVIEW) {
     addEventListener('message', ev => { if (ev.source === parent) handle(typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data); });

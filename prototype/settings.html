@@ -287,6 +287,12 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; }
   }
+  .color-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .color-row input[type=color] {
+    width: 44px; height: 28px; padding: 2px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); cursor: pointer;
+  }
+  .color-hex { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -296,6 +302,15 @@
     <div class="section-title" data-i18n="themes">主题</div>
   </div>
   <div class="top-right">
+    <label class="lang-row" data-i18n-title="displayModeTitle" title="Multi-monitor display mode">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="3" width="6" height="5" rx="0.8"/><rect x="8.5" y="3" width="6" height="5" rx="0.8"/><path d="M4.5 8v2.5M11.5 8v2.5M3 10.5h3M10 10.5h3" stroke-linecap="round"/></svg>
+      <select id="displayMode" aria-label="Display mode">
+        <option value="primary" data-i18n="displayPrimary">Display: Primary</option>
+        <option value="independent" data-i18n="displayIndependent">Display: Independent</option>
+        <option value="span" data-i18n="displaySpan">Display: Span</option>
+        <option value="duplicate" data-i18n="displayDuplicate">Display: Duplicate</option>
+      </select>
+    </label>
     <label class="lang-row" data-i18n-title="virtualBarTitle" title="Virtual icons bar on desktop">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2.2" y="2.2" width="4.6" height="4.6" rx="1"/><rect x="9.2" y="2.2" width="4.6" height="4.6" rx="1"/><rect x="2.2" y="9.2" width="4.6" height="4.6" rx="1"/><path d="M11.5 9.2v4.6M9.2 11.5h4.6" stroke-linecap="round"/></svg>
       <select id="virtualBarMode" aria-label="Virtual icons bar">
@@ -304,9 +319,39 @@
         <option value="off" data-i18n="virtualBarOff">Icons: Hidden</option>
       </select>
     </label>
+    <label class="lang-row" data-i18n-title="playlistTitle" title="Automatic local theme playlist rotation">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2.5 4h11M2.5 8h7M2.5 12h7M11.5 9l2.5 1.8-2.5 1.8V9z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <select id="playlistMode" aria-label="Playlist rotation">
+        <option value="0" data-i18n="playlistOff">Playlist: Off</option>
+        <option value="15" data-i18n="playlist15">Playlist: 15 min</option>
+        <option value="30" data-i18n="playlist30">Playlist: 30 min</option>
+        <option value="60" data-i18n="playlist60">Playlist: 1 hr</option>
+        <option value="180" data-i18n="playlist180">Playlist: 3 hr</option>
+      </select>
+    </label>
     <label class="lang-row">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"/></svg>
       <select id="lang" data-i18n-title="language" aria-label="Language"></select>
+    </label>
+    <label class="switch-row" data-i18n-title="solarSyncTitle" title="Adjust wallpaper mood automatically across local dawn, day, dusk, and night">
+      <span data-i18n="solarSync">Solar sync</span><input type="checkbox" id="solarSync"><i class="switch"></i>
+    </label>
+    <label class="switch-row" data-i18n-title="windowAwareTitle" title="Let wallpapers react to open desktop windows (Hyprland/Sway/niri/Windows)">
+      <span data-i18n="windowAware">Window-aware</span><input type="checkbox" id="windowAware"><i class="switch"></i>
+    </label>
+    <label class="lang-row" id="qualityProfileRow" hidden data-i18n-title="qualityProfileTitle" title="Rendering quality & FPS profile">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2.5 11.5a6 6 0 1 1 11 0" stroke-linecap="round"/><path d="M8 8.5l2.8-2.5" stroke-linecap="round"/></svg>
+      <select id="qualityProfile" aria-label="Quality profile">
+        <option value="eco" data-i18n="qualityEco">Quality: Eco (15 FPS)</option>
+        <option value="balanced" data-i18n="qualityBalanced">Quality: Balanced (30 FPS)</option>
+        <option value="high" data-i18n="qualityHigh">Quality: High (60 FPS)</option>
+      </select>
+    </label>
+    <label class="switch-row" data-i18n-title="systemBridgeTitle" title="Opt-in local CPU/RAM/battery & audio spectrum bridge for reactive themes">
+      <span data-i18n="systemBridge">Audio/Sys bridge</span><input type="checkbox" id="systemBridge"><i class="switch"></i>
+    </label>
+    <label class="switch-row" data-i18n-title="preferMpvTitle" title="Use hardware-accelerated mpv for imported video wallpapers when installed">
+      <span data-i18n="preferMpv">mpv HW video</span><input type="checkbox" id="preferMpv"><i class="switch"></i>
     </label>
     <label class="switch-row" data-i18n-title="lowModeTitle" title="Strict eco optimization: 15 FPS cap, reduced scale, no heavy blurs">
       <span data-i18n="lowMode">Low mode</span><input type="checkbox" id="lowMode"><i class="switch"></i>
@@ -403,7 +448,10 @@
         <li data-i18n="helpWallpaperStep3">改完后重新打开 Deskland。</li>
       </ol>
     </section>
-    <div class="actions"><button class="ghost-btn primary" id="helpDone" data-i18n="gotIt">知道了</button></div>
+    <div class="actions">
+      <button class="ghost-btn" id="helpExportDiag" hidden data-i18n="exportDiag">Export diagnostics</button>
+      <button class="ghost-btn primary" id="helpDone" data-i18n="gotIt">知道了</button>
+    </div>
   </div>
 </div>
 
@@ -464,14 +512,46 @@
   </div>
 </div>
 
+<div class="modal" id="lanModal" hidden role="dialog" aria-modal="true" aria-labelledby="lanTitle">
+  <div class="box help-box">
+    <button class="auth-close" id="lanCloseX" data-i18n-title="close" title="Close" aria-label="Close">×</button>
+    <h3 id="lanTitle" data-i18n="lanPairTitle">Local Wi-Fi Pairing (Cloud-Free)</h3>
+    <p class="sub" data-i18n="lanPairSubtitle">Transfer your active theme and settings directly between desktop and Android tablet over your local Wi-Fi network — no cloud account required.</p>
+    <div id="lanDesktopPane" class="help-article">
+      <div id="lanQrBox" style="margin:8px 0;display:flex;justify-content:center" hidden></div>
+      <p id="lanPairInfo" style="font-family:monospace;word-break:break-all"></p>
+      <div class="actions" style="justify-content:flex-start;margin-top:10px">
+        <button class="ghost-btn primary" id="lanStartBtn" data-i18n="lanStart">Start pairing</button>
+        <button class="ghost-btn" id="lanStopBtn" hidden data-i18n="lanStop">Stop pairing</button>
+      </div>
+    </div>
+    <div id="lanAndroidPane" class="help-article" hidden>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <input id="lanAddrInput" type="text" placeholder="diyardesk://pair?host=192.168.1.10&port=...&pin=... or 192.168.1.10:54321" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+        <input id="lanPinInput" type="text" maxlength="4" placeholder="4-digit PIN (if not in URI)" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+      </div>
+      <div class="actions" style="justify-content:flex-start;margin-top:10px">
+        <button class="ghost-btn primary" id="lanSyncBtn" data-i18n="lanSyncNow">Sync from desktop</button>
+      </div>
+    </div>
+    <p class="sub" id="lanStatusMsg"></p>
+    <div class="actions"><button class="ghost-btn" id="lanDone" data-i18n="gotIt">Got it</button></div>
+  </div>
+</div>
+
 <footer class="bottom">
   <span class="saved" id="saved" data-i18n="autosave">设置会自动保存，并立即应用到桌面</span>
   <div class="bottom-actions">
+    <button class="ghost-btn" id="syncLockscreen" hidden data-i18n="syncLockscreen" data-i18n-title="syncLockscreenTitle" title="Render blurred lock screen image from active wallpaper">Sync lock screen</button>
+    <button class="ghost-btn" id="lanPairOpen" hidden data-i18n="lanPairBtn" data-i18n-title="lanPairTitle" title="Local Wi-Fi Pairing">LAN Sync</button>
+    <button class="ghost-btn" id="exportDiag" hidden data-i18n="exportDiag" data-i18n-title="exportDiagTitle" title="Export a privacy-safe diagnostic log">Export diagnostics</button>
+    <button class="ghost-btn" id="revealDiag" hidden data-i18n="openFolder">打开所在文件夹</button>
     <button class="ghost-btn help-button" id="helpOpen" data-i18n-title="helpButtonTitle" title="常见问题" aria-label="Help">?</button>
   </div>
 </footer>
 
 <script src="thumbs-data.js"></script>
+<script src="qr.js"></script>
 <script>
 'use strict';
 const host = window.chrome && window.chrome.webview;
@@ -598,6 +678,7 @@ function optValue(p, idx) {
 }
 function fmt(p, v) {
   if (p.type === 'audio') return '';
+  if (p.type === 'color') return String(v || p.default || '#4a90e2').toUpperCase();
   if (p.options) return p.options[optIndex(p, v)] || '';
   if (p.format === 'times') return '×' + v.toFixed(2);
   if (p.format === 'percent') return Math.round(v * 100) + '%';
@@ -605,7 +686,9 @@ function fmt(p, v) {
   return p.unit ? s + ' ' + p.unit : s;
 }
 
-let customBaseUrl = location.hostname === 'app.local' ? 'https://custom.local/' : '__custom/';
+let customBaseUrl = location.hostname === 'app.local'
+  ? 'https://custom.local/'
+  : (location.protocol === 'diyardesk:' ? 'diyardesk://custom/' : '__custom/');
 function resolveCustomPath(p) {
   const s = String(p || '');
   if (!s.startsWith('__custom/')) return s;
@@ -677,6 +760,21 @@ function renderControls() {
           </div>
         </div>`;
         }
+        if (p.type === 'color') {
+          const cv = String(vals[p.key] || p.default || '#4a90e2').toLowerCase();
+          return `
+        <div class="param${cv !== String(p.default || '').toLowerCase() ? ' changed' : ''}" id="p-${p.key}">
+          <div class="row"><span class="label">${p.label}${p.hint ? `<span class="hint">${p.hint}</span>` : ''}</span>
+            <span class="right">
+              <button class="undo" data-reset="${p.key}" title="${t('resetOne', { v: fmt(p, p.default) })}" aria-label="${t('resetOneAria', { label: p.label })}">↺</button>
+              <span class="value" id="v-${p.key}">${fmt(p, cv)}</span>
+            </span></div>
+          <div class="color-row">
+            <input type="color" data-key="${p.key}" value="${escHtml(cv)}" aria-label="${escHtml(p.label)}">
+            <span class="color-hex">${escHtml(cv.toUpperCase())}</span>
+          </div>
+        </div>`;
+        }
         return `
         <div class="param${vals[p.key] !== p.default ? ' changed' : ''}" id="p-${p.key}">
           <div class="row"><span class="label">${p.label}${p.hint ? `<span class="hint">${p.hint}</span>` : ''}</span>
@@ -724,7 +822,14 @@ function setParam(key, v) {
     $('adaptive').checked = v === 1;
   } else {
     const p = paramOf(key);
-    if (p.options) {
+    if (p.type === 'color') {
+      const inp = document.querySelector(`input[type=color][data-key="${key}"]`);
+      const cv = String(v || p.default || '#4a90e2').toLowerCase();
+      if (inp && inp.value.toLowerCase() !== cv) inp.value = cv;
+      const hex = inp && inp.parentElement && inp.parentElement.querySelector('.color-hex');
+      if (hex) hex.textContent = cv.toUpperCase();
+      v = cv;
+    } else if (p.options) {
       const activeIdx = optIndex(p, v);
       document.querySelectorAll(`.opts[data-key="${key}"] button`).forEach(b => { const on = +b.dataset.opt === activeIdx; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
     } else {
@@ -740,7 +845,11 @@ function setParam(key, v) {
   // 不用 requestAnimationFrame：窗口在后台或被遮住时它会暂停，消息就积压了
   if (!scheduled) { scheduled = true; setTimeout(flush, 30); }
 }
-$('controls').addEventListener('input', e => { if (e.target.dataset.key) setParam(e.target.dataset.key, +e.target.value); });
+$('controls').addEventListener('input', e => {
+  if (!e.target.dataset.key) return;
+  const val = e.target.type === 'color' ? e.target.value : +e.target.value;
+  setParam(e.target.dataset.key, val);
+});
 // 单项恢复默认：点 ↺，或双击滑块
 let previewAudioBlobUrl = '';
 $('controls').addEventListener('click', e => {
@@ -818,6 +927,37 @@ $('lowMode').addEventListener('change', e => {
   send({ t: 'lowMode', v });
   toPreview({ t: 'lowMode', v });
 });
+$('solarSync').addEventListener('change', e => {
+  const v = !!e.target.checked;
+  send({ t: 'solarSync', v });
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes() / 60;
+  const dl = Math.max(0, Math.min(1, Math.sin(((h - 6) / 12) * Math.PI)));
+  const phase = (h >= 5 && h < 8) ? 'dawn' : (h >= 8 && h < 17) ? 'day' : (h >= 17 && h < 20) ? 'dusk' : 'night';
+  toPreview({ t: 'environment', hour: +h.toFixed(2), phase, daylight: +dl.toFixed(3), darkMode: false, solarSync: v });
+});
+$('windowAware').addEventListener('change', e => {
+  send({ t: 'windowAware', v: !!e.target.checked });
+});
+$('playlistMode').addEventListener('change', e => {
+  const mins = +e.target.value || 0;
+  send({ t: 'playlist', enabled: mins > 0, intervalMin: mins > 0 ? mins : 30 });
+});
+if ($('systemBridge')) {
+  if (window.DiyarNative && $('systemBridge').parentElement) $('systemBridge').parentElement.hidden = true;
+  $('systemBridge').addEventListener('change', e => send({ t: 'systemBridge', v: !!e.target.checked }));
+}
+if ($('preferMpv')) {
+  if (window.DiyarNative && $('preferMpv').parentElement) $('preferMpv').parentElement.hidden = true;
+  $('preferMpv').addEventListener('change', e => send({ t: 'preferMpv', v: !!e.target.checked }));
+}
+if ($('qualityProfile')) {
+  if (window.DiyarNative && $('qualityProfileRow')) $('qualityProfileRow').hidden = false;
+  $('qualityProfile').addEventListener('change', e => {
+    send({ t: 'qualityProfile', v: e.target.value });
+    toPreview({ t: 'qualityProfile', v: e.target.value });
+  });
+}
 $('disableAutoPause').addEventListener('change', e => {
   const v = !!e.target.checked;
   state.disableAutoPause = v;
@@ -947,10 +1087,16 @@ function renderHead() {
   $('adaptive').checked = valuesOf(th).adaptive !== 0;
   $('adaptive').setAttribute('aria-label', t('adaptive'));
 }
+function showInlineWarn(title, msg) {
+  $('importWarnTitle').textContent = title;
+  $('importWarnText').textContent = msg;
+  $('importWarn').hidden = false;
+  $('importWarn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 $('importTheme').addEventListener('click', () => {
   $('importWarn').hidden = true;
   if (host) send({ t: 'importTheme' });
-  else alert('Import theme is available in the desktop app (supports .zip, .deskland, .html, images, and videos).');
+  else showInlineWarn(t('importTheme'), 'Import theme is available in the desktop app (supports .zip, .deskland, .html, images, and videos).');
 });
 $('importWarnOk').addEventListener('click', () => { $('importWarn').hidden = true; });
 $('removeTheme').addEventListener('click', () => {
@@ -980,7 +1126,13 @@ function shareBusy(which) {                                  // which：null（�
 function shareProgress(p) { $('shareVideoText').textContent = p < 1 ? t('recording', { p: Math.round(p * 100) }) : t('savingVideo'); }
 function showShare(r) {
   shareBusy(null);
-  if (!r.ok) { alert(t(r.kind === 'video' ? 'shareFailVideo' : 'shareFailImage', { msg: r.msg || t('unknownReason') })); return; }
+  if (!r.ok) {
+    showInlineWarn(
+      t(r.kind === 'video' ? 'shareVideo' : 'shareImage'),
+      t(r.kind === 'video' ? 'shareFailVideo' : 'shareFailImage', { msg: r.msg || t('unknownReason') })
+    );
+    return;
+  }
   const video = r.kind === 'video', inHost = !!host;
   $('shareTitle').textContent = t(video ? 'shareReadyVideo' : 'shareReadyImage');
   $('shareImg').hidden = video; $('shareVid').hidden = !video;
@@ -1053,6 +1205,7 @@ $('shareModal').addEventListener('click', e => { if (e.target === $('shareModal'
 let helpReturnFocus = null;
 function openHelp() {
   helpReturnFocus = document.activeElement;
+  if ($('helpExportDiag')) $('helpExportDiag').hidden = !host;
   $('helpModal').hidden = false;
   $('helpCloseX').focus();
 }
@@ -1085,6 +1238,51 @@ $('importHelpModal').addEventListener('click', e => { if (e.target === $('import
 addEventListener('keydown', e => { if (e.key === 'Escape') { closeShare(); closeHelp(); closeImportHelp(); } });
 $('shareOpen').addEventListener('click', () => send({ t: 'openShare' }));
 $('shareReveal').addEventListener('click', () => send({ t: 'revealShare' }));
+if ($('exportDiag')) {
+  $('exportDiag').hidden = !host;
+  $('exportDiag').addEventListener('click', () => send({ t: 'exportDiagnostics' }));
+}
+if ($('syncLockscreen')) {
+  $('syncLockscreen').hidden = !host || !!window.DiyarNative;
+  $('syncLockscreen').addEventListener('click', () => send({ t: 'syncLockscreen' }));
+}
+if ($('helpExportDiag')) {
+  $('helpExportDiag').hidden = !host;
+  $('helpExportDiag').addEventListener('click', () => { closeHelp(); send({ t: 'exportDiagnostics' }); });
+}
+if ($('revealDiag')) {
+  $('revealDiag').addEventListener('click', () => send({ t: 'revealDiagnostics' }));
+}
+if ($('displayMode')) {
+  const isAndroidHost = !!window.DiyarNative;
+  if (isAndroidHost && $('displayMode').parentElement) $('displayMode').parentElement.hidden = true;
+  $('displayMode').addEventListener('change', e => send({ t: 'displayMode', v: e.target.value }));
+}
+if ($('lanPairOpen')) {
+  const isAndroidHost = !!window.DiyarNative;
+  $('lanPairOpen').hidden = !host;
+  $('lanDesktopPane').hidden = isAndroidHost;
+  $('lanAndroidPane').hidden = !isAndroidHost;
+  const closeLan = () => {
+    $('lanModal').hidden = true;
+    if (!isAndroidHost) send({ t: 'stopLanPair' });
+  };
+  $('lanPairOpen').addEventListener('click', () => {
+    $('lanStatusMsg').textContent = '';
+    $('lanModal').hidden = false;
+  });
+  $('lanCloseX').addEventListener('click', closeLan);
+  $('lanDone').addEventListener('click', closeLan);
+  $('lanModal').addEventListener('click', e => { if (e.target === $('lanModal')) closeLan(); });
+  $('lanStartBtn').addEventListener('click', () => send({ t: 'startLanPair' }));
+  $('lanStopBtn').addEventListener('click', () => send({ t: 'stopLanPair' }));
+  $('lanSyncBtn').addEventListener('click', () => {
+    const raw = ($('lanAddrInput').value || '').trim();
+    const pin = ($('lanPinInput').value || '').trim();
+    $('lanStatusMsg').textContent = t('lanSyncing');
+    send({ t: 'lanSyncConnect', uri: raw, pin });
+  });
+}
 
 /* ---------- 和宿主通信 ---------- */
 function onHost(m) {
@@ -1112,6 +1310,17 @@ function onHost(m) {
       if ($('disableAutoPause')) $('disableAutoPause').checked = state.disableAutoPause;
       $('autostart').checked = !!m.autostart;
       if ($('virtualBarMode')) $('virtualBarMode').value = m.virtualBarMode || 'auto';
+      if ($('displayMode') && m.displayMode) $('displayMode').value = m.displayMode;
+      if ($('solarSync')) $('solarSync').checked = !!m.solarSync;
+      if ($('windowAware')) $('windowAware').checked = !!m.windowAware;
+      if ($('systemBridge')) $('systemBridge').checked = !!m.systemBridge;
+      if ($('preferMpv')) $('preferMpv').checked = !!m.preferMpv;
+      if ($('qualityProfile') && m.qualityProfile) $('qualityProfile').value = m.qualityProfile;
+      if ($('playlistMode')) {
+        const iv = m.playlistEnabled ? String(m.playlistIntervalMin || 30) : '0';
+        const pm = $('playlistMode');
+        pm.value = Array.from(pm.options).some(o => o.value === iv) ? iv : (m.playlistEnabled ? '30' : '0');
+      }
       state.autostartWarn = !!m.autostartWarn;
       state.autostartSw = m.autostartSw || '';
       state.canSaveSnapshot = !!m.canSaveSnapshot;
@@ -1149,6 +1358,47 @@ function onHost(m) {
   } else if (m.t === 'disableAutoPause') {
     state.disableAutoPause = !!m.v;
     if ($('disableAutoPause')) $('disableAutoPause').checked = state.disableAutoPause;
+  } else if (m.t === 'displayMode') {
+    if ($('displayMode') && typeof m.v === 'string') $('displayMode').value = m.v;
+  } else if (m.t === 'solarSync') {
+    if ($('solarSync')) $('solarSync').checked = !!m.v;
+  } else if (m.t === 'windowAware') {
+    if ($('windowAware')) $('windowAware').checked = !!m.v;
+  } else if (m.t === 'playlistState') {
+    if ($('playlistMode')) {
+      const iv = m.enabled ? String(m.intervalMin || 30) : '0';
+      const pm = $('playlistMode');
+      pm.value = Array.from(pm.options).some(o => o.value === iv) ? iv : (m.enabled ? '30' : '0');
+    }
+  } else if (m.t === 'systemBridge') {
+    if ($('systemBridge')) $('systemBridge').checked = !!m.v;
+  } else if (m.t === 'preferMpv') {
+    if ($('preferMpv')) $('preferMpv').checked = !!m.v;
+  } else if (m.t === 'qualityProfile') {
+    if ($('qualityProfile') && typeof m.v === 'string') $('qualityProfile').value = m.v;
+  } else if (m.t === 'lockscreenSynced') {
+    showInlineWarn(t('syncLockscreen'), m.ok ? t('savedTo', { path: m.path || '' }) : (m.msg || t('unknownReason')));
+  } else if (m.t === 'lanPairState') {
+    if (m.active) {
+      if ($('lanQrBox') && typeof window.desklandQrSvg === 'function' && m.uri) {
+        try {
+          $('lanQrBox').innerHTML = window.desklandQrSvg(m.uri, 168);
+          $('lanQrBox').hidden = false;
+        } catch (_) { $('lanQrBox').hidden = true; }
+      }
+      $('lanPairInfo').textContent = `PIN: ${m.pin}  |  ${m.host}:${m.port}\n${m.uri}`;
+      $('lanStartBtn').hidden = true;
+      $('lanStopBtn').hidden = false;
+      $('lanStatusMsg').textContent = t('lanPairActive', { sec: Math.round((m.expiresIn || 600) / 60) });
+    } else {
+      if ($('lanQrBox')) { $('lanQrBox').innerHTML = ''; $('lanQrBox').hidden = true; }
+      $('lanPairInfo').textContent = '';
+      $('lanStartBtn').hidden = false;
+      $('lanStopBtn').hidden = true;
+      $('lanStatusMsg').textContent = m.ok === false ? (m.msg || t('unknownReason')) : '';
+    }
+  } else if (m.t === 'lanSyncResult') {
+    $('lanStatusMsg').textContent = m.ok ? t('lanSyncDone') : (m.msg || t('unknownReason'));
   } else if (m.t === 'recProgress') {
     shareProgress(m.p);
   } else if (m.t === 'shareResult') {
@@ -1173,9 +1423,14 @@ function onHost(m) {
     state.theme = (m.active && themeById(m.active)) ? m.active : (state.registry.themes.find(x => x.status === 'ready')?.id || 'papercut');
     showTheme();
   } else if (m.t === 'importError') {
-    $('importWarnTitle').textContent = t('importErrorTitle') || 'Theme import failed';
-    $('importWarnText').textContent = m.msg || t('unknownReason');
-    $('importWarn').hidden = false;
+    showInlineWarn(t('importErrorTitle') || 'Theme import failed', m.msg || t('unknownReason'));
+  } else if (m.t === 'diagExported') {
+    if (m.ok) {
+      if ($('revealDiag')) $('revealDiag').hidden = false;
+      showInlineWarn(t('exportDiagDoneTitle'), t('savedTo', { path: m.path || '' }));
+    } else {
+      showInlineWarn(t('exportDiagFailTitle'), m.msg || t('unknownReason'));
+    }
   } else if (m.t === 'audioPicked') {
     const thId = m.theme || state.theme;
     const cur = (state.params[thId] = state.params[thId] || {});

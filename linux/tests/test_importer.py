@@ -6,7 +6,7 @@ from pathlib import Path
 
 from deskland_linux.config import Log, ThemeRegistry
 from deskland_linux.importer import import_theme_file, load_custom_themes, remove_custom_theme
-from deskland_linux.server import LocalServer
+from deskland_linux.server import LocalServer, SECURITY_CSP, is_allowed_local_uri
 
 
 def test_import_html_and_remove(tmp_path: Path) -> None:
@@ -238,4 +238,66 @@ def test_import_zip_with_settings_object_svg_preview_and_description(tmp_path: P
     assert defs["centerBodyType"] == "BlackHole"
     assert defs["planetCount"] == 3.0
     assert defs["shootingStars"] is True
+
+
+def test_import_zip_rejects_disallowed_extensions_and_allows_safe_assets(tmp_path: Path) -> None:
+    custom_dir = tmp_path / "custom"
+
+    for bad_name in ("payload.exe", "run.sh", "install.bat", "evil_binary"):
+        pkg = tmp_path / f"bad_{bad_name.replace('.', '_')}.zip"
+        with zipfile.ZipFile(pkg, "w") as zf:
+            zf.writestr("index.html", "<!doctype html><html><body>ok</body></html>")
+            zf.writestr(bad_name, b"MZfake")
+        try:
+            import_theme_file(pkg, custom_dir=custom_dir)
+        except ValueError as exc:
+            assert "Unsupported file type in theme archive" in str(exc)
+        else:
+            raise AssertionError(f"Expected rejection for archive member {bad_name}")
+
+    good = tmp_path / "shader-pack.deskland"
+    with zipfile.ZipFile(good, "w") as zf:
+        zf.writestr("index.html", "<!doctype html><html><body>shader</body></html>")
+        zf.writestr("shaders/wave.glsl", "void main(){}")
+        zf.writestr("LICENSE", "GPL-3.0")
+    theme = import_theme_file(good, custom_dir=custom_dir)
+    assert (custom_dir / theme["id"] / "shaders" / "wave.glsl").is_file()
+    assert (custom_dir / theme["id"] / "LICENSE").is_file()
+
+
+def test_local_server_security_headers_and_no_directory_listing(tmp_path: Path) -> None:
+    proto = tmp_path / "proto"
+    proto.mkdir()
+    (proto / "index.html").write_text("<html><body>hi</body></html>", encoding="utf-8")
+    (proto / "sub").mkdir()
+    (proto / "sub" / "secret.txt").write_text("x", encoding="utf-8")
+
+    srv = LocalServer(proto, tmp_path / "share")
+    port = srv.start()
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/index.html") as resp:
+            assert resp.headers.get("Content-Security-Policy") == SECURITY_CSP
+            assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+            assert resp.headers.get("Referrer-Policy") == "no-referrer"
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/sub/")
+        except urllib.error.HTTPError as err:
+            assert err.code == 403
+        else:
+            raise AssertionError("Expected 403 Forbidden for directory listing")
+    finally:
+        srv.stop()
+
+
+def test_is_allowed_local_uri() -> None:
+    assert is_allowed_local_uri("http://127.0.0.1:5178/flat.html", allowed_port=5178) is True
+    assert is_allowed_local_uri("http://localhost:5178/settings.html", allowed_port=5178) is True
+    assert is_allowed_local_uri("about:blank", allowed_port=5178) is True
+    assert is_allowed_local_uri("data:image/png;base64,AA==", allowed_port=5178) is True
+    assert is_allowed_local_uri("blob:http://127.0.0.1:5178/abc", allowed_port=5178) is True
+    assert is_allowed_local_uri("http://127.0.0.1:9999/other", allowed_port=5178) is False
+    assert is_allowed_local_uri("https://example.com/tracker.js", allowed_port=5178) is False
+    assert is_allowed_local_uri("file:///etc/passwd", allowed_port=5178) is False
+    assert is_allowed_local_uri("javascript:alert(1)", allowed_port=5178) is False
+
 

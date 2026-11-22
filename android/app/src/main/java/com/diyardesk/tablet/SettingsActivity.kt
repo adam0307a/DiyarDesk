@@ -157,21 +157,28 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                     runOnUiThread { handleUiMessage(raw) }
                 }
             }, "DiyarNative")
+            webChromeClient = PrototypeAssets.createSilentWebChromeClient()
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(
                     view: WebView,
                     request: WebResourceRequest
                 ): WebResourceResponse? {
+                    if (!PrototypeAssets.isAllowedInWebView(request.url)) {
+                        return PrototypeAssets.blockedResponse()
+                    }
                     return assetLoader.shouldInterceptRequest(request.url)
                 }
 
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val uri = request.url
-                    if (!PrototypeAssets.isLocalAppUrl(uri)) {
-                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    if (PrototypeAssets.isSafeExternalHttpUrl(uri)) {
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        } catch (_: Exception) {
+                        }
                         return true
                     }
-                    return false
+                    return !PrototypeAssets.isAllowedInWebView(uri)
                 }
 
                 override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
@@ -229,6 +236,9 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             "disableAutoPause" -> {
                 store.setDisableAutoPauseEnabled(msg.optBoolean("v", false))
             }
+            "qualityProfile" -> {
+                store.setQualityProfileValue(msg.optString("v", "balanced"))
+            }
             "importTheme" -> {
                 importPicker.launch(arrayOf("*/*"))
             }
@@ -248,6 +258,11 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 }
             }
             "share" -> savePngSnapshot(msg.optString("dataUrl"))
+            "lanSyncConnect" -> {
+                val input = msg.optString("uri").ifBlank { msg.optString("address") }
+                val pin = msg.optString("pin")
+                syncFromLanDesktop(input, pin)
+            }
             "openShare" -> {
                 lastSavedShareUri?.let { uri ->
                     startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/png").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
@@ -263,6 +278,68 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 Toast.makeText(this, R.string.toast_audio_not_supported, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun syncFromLanDesktop(rawInput: String, fallbackPin: String) {
+        val target = LanSyncClient.parsePairingInput(rawInput, fallbackPin)
+        if (target == null) {
+            PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                put("t", "lanSyncResult")
+                put("ok", false)
+                put("msg", "Invalid private LAN address or 4-digit PIN.")
+            })
+            return
+        }
+        Thread {
+            try {
+                val info = LanSyncClient.fetchPairInfo(target)
+                var activeTheme = info.optString("activeTheme", ThemeStore.DEFAULT_THEME)
+                var importedObj: JSONObject? = null
+                if (activeTheme.startsWith("custom-")) {
+                    importedObj = LanSyncClient.downloadCustomTheme(target, activeTheme, importer)
+                    activeTheme = importedObj.optString("id", activeTheme)
+                }
+                val params = info.optJSONObject("params")
+                if (params != null) {
+                    val keys = params.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        store.setParam(activeTheme, k, params.opt(k))
+                    }
+                }
+                store.setActiveTheme(activeTheme)
+                if (importedObj != null) {
+                    store.notifyThemesRegistryChanged()
+                }
+                runOnUiThread {
+                    if (importedObj != null) {
+                        PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                            put("t", "themeImported")
+                            put("theme", importedObj)
+                            put("select", true)
+                        })
+                    } else {
+                        PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                            put("t", "themeChanged")
+                            put("id", activeTheme)
+                        })
+                    }
+                    PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                        put("t", "lanSyncResult")
+                        put("ok", true)
+                        put("theme", activeTheme)
+                    })
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                        put("t", "lanSyncResult")
+                        put("ok", false)
+                        put("msg", e.message ?: "LAN sync failed")
+                    })
+                }
+            }
+        }.start()
     }
 
     private fun handlePickedThemeUri(uri: Uri) {
