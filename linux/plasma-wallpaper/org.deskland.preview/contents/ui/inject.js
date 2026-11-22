@@ -167,6 +167,7 @@
     'thinking-orbs': 'thinking-orbs.html',
     papercut: 'papercut.html',
     quietsnow: 'quietsnow.html',
+    'studio-glass': 'studio-glass.html',
   };
 
   var CUSTOM_DIR = HOME + '/.config/deskland/themes';

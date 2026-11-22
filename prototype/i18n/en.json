@@ -162,6 +162,71 @@
     "errStart": "Couldn't start: {msg}"
   },
   "themes": {
+    "studio-glass": {
+      "name": "Studio Glass",
+      "creditPrefix": "Inspired by",
+      "desc": "Interactive 3D Three.js designer workspace inspired by Studio Glass: Morning, Thunderstorm (rain on glass), Afternoon, Sunset, and Night presets. Pull wooden blinds, swivel the monitor, drag the keyboard, mouse, chair, notebook, and swaying windowsill plants, and move refractive glass controls across the room.",
+      "groups": [
+        "Lighting & Weather",
+        "Studio & Furniture",
+        "Glass & Icons",
+        "Performance"
+      ],
+      "params": {
+        "preset": {
+          "label": "Lighting preset",
+          "hint": "Blend smoothly between Auto time-of-day and five 3D studio lighting moods",
+          "options": ["Auto", "Morning", "Thunderstorm", "Afternoon", "Sunset", "Night"]
+        },
+        "blinds": {
+          "label": "Wooden blinds",
+          "hint": "Pull the left wooden venetian blinds open or closed (or drag directly on the window)"
+        },
+        "shafts": {
+          "label": "Window light shafts",
+          "hint": "Intensity of 3D volumetric light beams streaming through the blinds"
+        },
+        "weather": {
+          "label": "Rain & dust motes",
+          "hint": "Density of sliding rain droplets & storm flashes in Thunderstorm mode, or sunlit dust"
+        },
+        "monitorAngle": {
+          "label": "Monitor swivel",
+          "hint": "Turn the 3D display left or right (keyboard, mouse, chair, and plants are also directly draggable)"
+        },
+        "deskLamp": {
+          "label": "Mushroom lamp",
+          "hint": "Warm glow of the frosted glass mushroom lamp on the right console (click lamp to toggle)"
+        },
+        "parallax": {
+          "label": "Camera parallax",
+          "hint": "Subtle 3D camera perspective shift following your pointer"
+        },
+        "showHud": {
+          "label": "Glass lighting panel",
+          "hint": "Show the movable refractive-glass Studio Lighting cards and brightness slider",
+          "options": ["Hide", "Show"]
+        },
+        "refraction": {
+          "label": "Refraction & dispersion",
+          "hint": "Optical light bending and prismatic RGB edge dispersion across glass cards and icon plaques"
+        },
+        "frost": {
+          "label": "Frosted glass blur",
+          "hint": "Separable Gaussian frosted diffusion inside the glass surfaces"
+        },
+        "iconGlass": {
+          "label": "Icon glass shape",
+          "hint": "Geometry of the refractive glass plaque placed beneath each desktop icon",
+          "options": ["Glass Card", "Prism", "Off"]
+        },
+        "quality": {
+          "label": "Quality",
+          "hint": "Three.js 3D scene and refractive glass resolution budget",
+          "options": ["Low", "Balanced", "High"]
+        }
+      }
+    },
     "quietsnow": {
       "name": "Quiet Snow",
       "creditPrefix": "Inspired by",

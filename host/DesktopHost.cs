@@ -1363,10 +1363,14 @@ class WallpaperForm : Form
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
+        screen = Screen.PrimaryScreen.Bounds;
+        Bounds = screen;
+        ClientSize = screen.Size;
         BackColor = Color.FromArgb(26, 163, 196);
         Text = "DesklandWindow";
 
         web = new WebView2();
+        web.Bounds = new Rectangle(0, 0, screen.Width, screen.Height);
         web.Dock = DockStyle.Fill;
         web.DefaultBackgroundColor = BackColor;
         web.CreationProperties = WebViewConfig.CreateProperties();
@@ -1740,6 +1744,8 @@ class WallpaperForm : Form
                 reader.ResetOrbitalPositions();
             };
             core.Navigate(PageUrl);
+            EnsureWallpaperBounds();
+            StartWindowTrackHooks();
             iconTimer.Start();
             fgTimer.Start();
             winTimer.Start();
@@ -2010,6 +2016,7 @@ class WallpaperForm : Form
         Native.ScreenToClient(parentHwnd, ref pt);
         Native.SetWindowPos(Handle, insertAfter, pt.X, pt.Y, screen.Width, screen.Height,
             Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
+        EnsureWallpaperBounds();
         EnsureZOrder();
         StartMouseHook();
 
@@ -2025,9 +2032,34 @@ class WallpaperForm : Form
             winEventHook = Native.SetWinEventHook(0x8000 /* OBJECT_CREATE */, 0x8004 /* OBJECT_REORDER */, IntPtr.Zero,
                 winEventProc, pid, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
         }
-        StartWindowTrackHooks();
         Log.Write(string.Format("已挂载（{0}），屏幕 {1}", mode, screen));
         return true;
+    }
+
+    void EnsureWallpaperBounds()
+    {
+        if (shuttingDown || IsDisposed || !IsHandleCreated || parentHwnd == IntPtr.Zero) return;
+        Rectangle cur = Screen.PrimaryScreen.Bounds;
+        bool screenChanged = cur != screen;
+        if (screenChanged) screen = cur;
+
+        Native.RECT r;
+        bool sizeBad = !Native.GetWindowRect(Handle, out r)
+            || (r.Right - r.Left) != screen.Width
+            || (r.Bottom - r.Top) != screen.Height;
+        if (screenChanged || sizeBad)
+        {
+            var pt = new Native.POINT { X = screen.X, Y = screen.Y };
+            Native.ScreenToClient(parentHwnd, ref pt);
+            Native.SetWindowPos(Handle, insertAfter, pt.X, pt.Y, screen.Width, screen.Height,
+                Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
+        }
+        if (web != null && (web.Width != screen.Width || web.Height != screen.Height || web.Left != 0 || web.Top != 0))
+        {
+            web.Dock = DockStyle.None;
+            web.Bounds = new Rectangle(0, 0, screen.Width, screen.Height);
+            web.Dock = DockStyle.Fill;
+        }
     }
 
     void StartWindowTrackHooks()
@@ -2036,7 +2068,7 @@ class WallpaperForm : Form
         winTrackProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
         {
             if (shuttingDown || IsDisposed || lastPause == 1) return;
-            if (idObject != 0 || idChild != 0 || hwnd == IntPtr.Zero || hwnd == Handle) return;
+            if (idObject != 0 || idChild != 0 || hwnd == IntPtr.Zero || hwnd == Handle || hwnd == parentHwnd || hwnd == zAnchor) return;
             int now = Environment.TickCount;
             int minGap = lowMode ? 48 : 12; // ~80 Hz while dragging for near-zero snow lag
             if (ev == 0x800B /* EVENT_OBJECT_LOCATIONCHANGE */ && unchecked(now - lastWinPollTick) < minGap)
@@ -2085,6 +2117,7 @@ class WallpaperForm : Form
     // ---------------------------------------------------------------- 读取桌面图标
     void PollIcons()
     {
+        EnsureWallpaperBounds();
         EnsureZOrder();
         if (web.CoreWebView2 == null) return;
         bool visible;

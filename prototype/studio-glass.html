@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stüdyo Camı — DiyarDesk</title>
+  <script src="low-mode.js"></script>
+  <script src="wall-icons.js"></script>
+  <script src="lib/three.min.js"></script>
+  <script src="studio-glass-engine.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0c1412;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+      color: #f4f6f8;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    #cv {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: auto;
+    }
+
+    /* Studio Lighting movable refractive-glass HUD (backs are rendered in WebGL2 shader!) */
+    #hud {
+      position: fixed;
+      top: 4.5%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 12;
+      width: min(760px, 84vw);
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #hud.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 0 4px;
+      pointer-events: auto;
+    }
+    .hud-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: clamp(14px, 1.4vw, 20px);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: rgba(255, 255, 255, 0.94);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+      cursor: grab;
+    }
+    .hud-title:active { cursor: grabbing; }
+    .hud-grip {
+      display: inline-grid;
+      grid-template-columns: repeat(2, 3px);
+      gap: 2.5px;
+      opacity: 0.55;
+    }
+    .hud-grip span {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .hud-toggle-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(18, 22, 26, 0.42);
+      color: rgba(255, 255, 255, 0.88);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+    .hud-toggle-btn:hover {
+      background: rgba(34, 40, 48, 0.65);
+      border-color: rgba(255, 255, 255, 0.48);
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1.5fr 0.78fr 0.78fr;
+      grid-template-rows: 1fr 1fr;
+      gap: clamp(7px, 0.75vw, 11px);
+      height: clamp(174px, 21.5vh, 228px);
+      pointer-events: none;
+    }
+    #hud.collapsed .hud-grid {
+      display: none;
+    }
+
+    /* Transparent overlay cards: real refraction/frost/rim is drawn directly underneath in WebGL2! */
+    .g-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+      border-radius: 20px;
+      padding: clamp(7px, 0.72vw, 11px) clamp(10px, 1.0vw, 14px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: auto;
+      cursor: pointer;
+      color: #fff;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      outline: none;
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .g-card.hero {
+      padding: clamp(11px, 1.1vw, 16px);
+    }
+    .g-card:hover { transform: translateY(-1px); }
+    .g-card:active { transform: scale(0.975); }
+    .g-card.is-bursting { animation: cardPressPop 0.48s cubic-bezier(0.22, 1, 0.36, 1); }
+
+    .g-card.hero { grid-column: 1; grid-row: 1 / span 2; }
+    .g-card.storm { grid-column: 2; grid-row: 1; }
+    .g-card.sunset { grid-column: 2; grid-row: 2; }
+    .g-card.afternoon { grid-column: 3; grid-row: 1; }
+    .g-card.night { grid-column: 3; grid-row: 2; }
+
+    /* Prismatic click FX layer inside each glass card (synced with WebGL2 pulse shader) */
+    .g-fx {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .g-card-top, .g-card-bot {
+      position: relative;
+      z-index: 2;
+    }
+    .g-ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .g-card.is-bursting .g-ring-svg {
+      animation: ringFade 1.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .g-ring-stroke {
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 420;
+      stroke-dashoffset: 420;
+    }
+    .g-card.is-bursting .g-ring-stroke {
+      animation: ringDraw 1.15s cubic-bezier(0.25, 0.85, 0.3, 1) forwards;
+    }
+    .g-ring-glow {
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 420;
+      stroke-dashoffset: 420;
+      filter: blur(5px);
+      opacity: 0.85;
+    }
+    .g-card.is-bursting .g-ring-glow {
+      animation: ringDraw 1.15s cubic-bezier(0.25, 0.85, 0.3, 1) forwards;
+    }
+
+    /* Delicate floating sparkle dots around the elliptical halo */
+    .g-sp {
+      position: absolute;
+      width: var(--sz, 4px);
+      height: var(--sz, 4px);
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, var(--col, #ffd4a8) 55%, transparent 100%);
+      box-shadow: 0 0 8px 1px var(--col, #ffd4a8);
+      opacity: 0;
+      transform: scale(0.2);
+    }
+    .g-card.is-bursting .g-sp {
+      animation: sparklePop 1.35s ease-out var(--d, 0.08s) forwards;
+    }
+
+    .g-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .g-card.hero .g-card-top {
+      position: relative;
+      min-height: clamp(66px, 8.2vh, 92px);
+    }
+    .g-ico {
+      width: clamp(22px, 2.0vw, 28px);
+      height: clamp(22px, 2.0vw, 28px);
+      flex: none;
+      display: grid;
+      place-items: center;
+      color: rgba(248, 250, 255, 0.94);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+      transform-origin: center center;
+      will-change: transform, filter;
+    }
+    .g-ico svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .g-card.hero .g-ico {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-56%, -42%);
+      width: clamp(56px, 5.4vw, 76px);
+      height: clamp(56px, 5.4vw, 76px);
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6));
+    }
+    .g-card.hero .g-pct {
+      margin-left: auto;
+      font-size: clamp(17px, 1.75vw, 24px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .g-pct {
+      font-size: clamp(11px, 1.0vw, 14px);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.90);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+      transition: transform 0.16s ease, color 0.16s ease;
+    }
+    .g-pct.pct-bump {
+      transform: scale(1.09);
+      color: #ffffff;
+    }
+    .g-card-bot {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+    }
+    .g-card-bot > div {
+      min-width: 0;
+    }
+    .g-name {
+      font-size: clamp(11.5px, 0.98vw, 14.5px);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.015em;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+    }
+    .g-card.hero .g-name {
+      font-size: clamp(19px, 2.0vw, 27px);
+      line-height: 1.15;
+    }
+    .g-sub {
+      margin-top: 1px;
+      font-size: clamp(9.5px, 0.74vw, 11px);
+      line-height: 1.18;
+      color: rgba(255, 255, 255, 0.78);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .g-card.hero .g-sub {
+      margin-top: 3px;
+      font-size: clamp(10px, 0.8vw, 12px);
+    }
+    .g-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.94);
+      color: #15181c;
+      display: grid;
+      place-items: center;
+      flex: none;
+      opacity: 0;
+      transform: scale(0.75);
+      transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .g-card.active .g-check {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Signature per-object click animations! */
+    /* 1. Morning Fountain Pen: swoops & draws luminous elliptical halo with fiery nib tip */
+    .pen-flare {
+      opacity: 0;
+      transform-origin: 18px 54px;
+    }
+    .g-card.hero.is-bursting .g-ico {
+      animation: penSweep 1.35s cubic-bezier(0.28, 0.85, 0.34, 1) forwards;
+    }
+    .g-card.hero.is-bursting .pen-flare {
+      animation: flareIgnite 1.35s ease-out forwards;
+    }
+
+    /* 2. Thunderstorm Terminal: electric jolt + cyan command flash + micro lightning */
+    .term-bolt { opacity: 0; }
+    .g-card.storm.is-bursting .g-ico {
+      animation: termZap 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .g-card.storm.is-bursting .term-bolt {
+      animation: boltFlash 0.82s ease-out forwards;
+    }
+    .g-card.storm.is-bursting .term-cursor {
+      animation: cursorFlash 0.85s steps(2) 2;
+    }
+
+    /* 3. Sunset Hourglass: graceful 180deg flip + amber sand sparkle */
+    .g-card.sunset.is-bursting .g-ico {
+      animation: hourglassFlip 1.15s cubic-bezier(0.34, 1.25, 0.42, 1) forwards;
+    }
+
+    /* 4. Afternoon Studio Mic: elastic bounce + concentric acoustic waves */
+    .mic-wave {
+      opacity: 0;
+      transform-origin: 24px 16px;
+    }
+    .g-card.afternoon.is-bursting .g-ico {
+      animation: micBounce 1.05s cubic-bezier(0.28, 1.32, 0.42, 1) forwards;
+    }
+    .g-card.afternoon.is-bursting .mic-wave {
+      animation: micPulse 1.05s ease-out forwards;
+    }
+
+    /* 5. Night Studio Headphones: gentle stereo rock + moonlight resonance */
+    .g-card.night.is-bursting .g-ico {
+      animation: headphonesSway 1.15s cubic-bezier(0.28, 0.9, 0.35, 1) forwards;
+    }
+
+    @keyframes cardPressPop {
+      0%   { transform: scale(1); }
+      22%  { transform: scale(0.972); }
+      62%  { transform: scale(1.012); }
+      100% { transform: scale(1); }
+    }
+    @keyframes ringFade {
+      0%   { opacity: 0; }
+      14%  { opacity: 1; }
+      68%  { opacity: 0.92; }
+      100% { opacity: 0; }
+    }
+    @keyframes ringDraw {
+      0%   { stroke-dashoffset: 420; }
+      55%  { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -120; }
+    }
+    @keyframes sparklePop {
+      0%   { opacity: 0; transform: translate(0, 4px) scale(0.2); }
+      25%  { opacity: 1; transform: translate(var(--dx, 0px), var(--dy, -4px)) scale(1.25); }
+      65%  { opacity: 0.85; transform: translate(calc(var(--dx, 0px) * 1.4), calc(var(--dy, -4px) * 1.6)) scale(0.9); }
+      100% { opacity: 0; transform: translate(calc(var(--dx, 0px) * 1.8), calc(var(--dy, -4px) * 2.1)) scale(0.15); }
+    }
+    @keyframes penSweep {
+      0%   { transform: translate(-56%, -42%) rotate(0deg) scale(1); }
+      18%  { transform: translate(-74%, -32%) rotate(-13deg) scale(1.08); }
+      45%  { transform: translate(-38%, -26%) rotate(10deg) scale(1.10); }
+      72%  { transform: translate(-52%, -48%) rotate(-6deg) scale(1.04); }
+      100% { transform: translate(-56%, -42%) rotate(0deg) scale(1); }
+    }
+    @keyframes flareIgnite {
+      0%   { opacity: 0; transform: scale(0.25); }
+      18%  { opacity: 1; transform: scale(1.25); }
+      52%  { opacity: 0.95; transform: scale(1.05); }
+      82%  { opacity: 0.45; transform: scale(0.8); }
+      100% { opacity: 0; transform: scale(0.2); }
+    }
+    @keyframes termZap {
+      0%   { transform: translate(0, 0) rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+      18%  { transform: translate(-2px, -2px) rotate(-7deg) scale(1.16); filter: drop-shadow(0 0 14px rgba(105, 224, 255, 0.92)); }
+      38%  { transform: translate(2px, 0) rotate(5deg) scale(1.10); filter: drop-shadow(0 0 18px rgba(170, 145, 255, 0.88)); }
+      68%  { transform: translate(0, -1px) rotate(-2deg) scale(1.04); filter: drop-shadow(0 0 10px rgba(105, 224, 255, 0.55)); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+    }
+    @keyframes boltFlash {
+      0%   { opacity: 0; }
+      16%  { opacity: 1; }
+      35%  { opacity: 0.35; }
+      52%  { opacity: 0.95; }
+      100% { opacity: 0; }
+    }
+    @keyframes cursorFlash {
+      0%, 100% { fill: #e8fcff; }
+      50%      { fill: #4de2ff; }
+    }
+    @keyframes hourglassFlip {
+      0%   { transform: translateY(0) rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+      22%  { transform: translateY(-4px) rotate(36deg) scale(1.14); filter: drop-shadow(0 0 15px rgba(255, 184, 92, 0.88)); }
+      72%  { transform: translateY(-2px) rotate(188deg) scale(1.08); filter: drop-shadow(0 0 12px rgba(255, 142, 118, 0.72)); }
+      100% { transform: translateY(0) rotate(180deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+    }
+    @keyframes micBounce {
+      0%   { transform: translateY(0) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+      24%  { transform: translateY(-4px) rotate(-6deg) scale(1.16); filter: drop-shadow(0 0 15px rgba(175, 240, 255, 0.85)); }
+      56%  { transform: translateY(1px) rotate(4deg) scale(1.04); filter: drop-shadow(0 0 10px rgba(255, 244, 198, 0.65)); }
+      100% { transform: translateY(0) rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+    }
+    @keyframes micPulse {
+      0%   { opacity: 0; transform: scale(0.65); }
+      25%  { opacity: 0.95; transform: scale(1.0); }
+      100% { opacity: 0; transform: scale(1.55); }
+    }
+    @keyframes headphonesSway {
+      0%   { transform: rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+      25%  { transform: rotate(-11deg) scale(1.15); filter: drop-shadow(0 0 15px rgba(154, 140, 255, 0.88)); }
+      58%  { transform: rotate(9deg) scale(1.08); filter: drop-shadow(0 0 13px rgba(112, 212, 255, 0.72)); }
+      82%  { transform: rotate(-3deg) scale(1.02); }
+      100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.55)); }
+    }
+
+    /* Vertical Brightness glass pill slider */
+    .g-slider {
+      grid-column: 4;
+      grid-row: 1 / span 2;
+      position: relative;
+      border-radius: 26px;
+      pointer-events: auto;
+      cursor: ns-resize;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 14px 8px;
+      gap: 5px;
+      color: #16181c;
+    }
+    .g-slider-lbl {
+      font-size: clamp(10px, 0.82vw, 12px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      pointer-events: none;
+    }
+    .g-slider svg {
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
+    }
+    .g-slider.dark-lbl {
+      color: rgba(245, 247, 250, 0.92);
+    }
+
+    #ghosts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+    }
+    .ghost {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 6px;
+      opacity: 0.28;
+    }
+    .ghost i {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+    .ghost b {
+      width: 46px;
+      height: 6px;
+      margin-top: 8px;
+      border-radius: 3px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+
+  <!-- Movable Refractive Glass Lighting Panel -->
+  <div id="hud" aria-label="Studio lighting controls">
+    <div class="hud-header">
+      <div class="hud-title" id="hudDrag">
+        <span>Studio lighting</span>
+        <span class="hud-grip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+      </div>
+      <button type="button" class="hud-toggle-btn" id="hudCollapse" title="Toggle glass panel" aria-label="Toggle glass panel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 8h16M4 16h16"/><circle cx="9" cy="8" r="2.2" fill="currentColor"/><circle cx="15" cy="16" r="2.2" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="hud-grid" id="hudGrid">
+      <button type="button" class="g-card hero active" data-preset="0" data-radius="22">
+        <div class="g-fx" aria-hidden="true">
+          <svg class="g-ring-svg" viewBox="0 0 240 190" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sgRingMorning" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff8ec4"/>
+                <stop offset="32%" stop-color="#ffe5a3"/>
+                <stop offset="68%" stop-color="#7ceeff"/>
+                <stop offset="100%" stop-color="#c38bff"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="g-ring-glow" cx="122" cy="112" rx="86" ry="44" stroke="url(#sgRingMorning)" stroke-width="11"/>
+            <ellipse class="g-ring-stroke" cx="122" cy="112" rx="86" ry="44" stroke="url(#sgRingMorning)" stroke-width="2.4"/>
+          </svg>
+          <span class="g-sp" style="--x:24%;--y:48%;--sz:4px;--col:#ff9ed6;--dx:-6px;--dy:-8px;--d:0.06s"></span>
+          <span class="g-sp" style="--x:42%;--y:40%;--sz:3.5px;--col:#ffe7a8;--dx:4px;--dy:-10px;--d:0.14s"></span>
+          <span class="g-sp" style="--x:66%;--y:44%;--sz:4.5px;--col:#ffffff;--dx:8px;--dy:-7px;--d:0.10s"></span>
+          <span class="g-sp" style="--x:80%;--y:60%;--sz:3.5px;--col:#9beeff;--dx:7px;--dy:4px;--d:0.18s"></span>
+          <span class="g-sp" style="--x:58%;--y:74%;--sz:4px;--col:#ffb6e6;--dx:-4px;--dy:6px;--d:0.22s"></span>
+          <span class="g-sp" style="--x:30%;--y:72%;--sz:3.5px;--col:#7eeeff;--dx:-8px;--dy:5px;--d:0.16s"></span>
+          <span class="g-sp" style="--x:18%;--y:62%;--sz:3px;--col:#fff2c9;--dx:-9px;--dy:-3px;--d:0.12s"></span>
+        </div>
+        <div class="g-card-top">
+          <span class="g-ico">
+            <svg viewBox="0 0 64 64" fill="none">
+              <defs>
+                <linearGradient id="penBody" x1="16" y1="8" x2="48" y2="54" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#87c3cd"/>
+                  <stop offset="35%" stop-color="#4e8995"/>
+                  <stop offset="72%" stop-color="#29525e"/>
+                  <stop offset="100%" stop-color="#19333b"/>
+                </linearGradient>
+                <linearGradient id="penMetal" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#f7fafc"/>
+                  <stop offset="48%" stop-color="#a5b2bc"/>
+                  <stop offset="100%" stop-color="#4b555f"/>
+                </linearGradient>
+                <linearGradient id="penGold" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#ffe7a6"/>
+                  <stop offset="55%" stop-color="#cfa056"/>
+                  <stop offset="100%" stop-color="#7c5722"/>
+                </linearGradient>
+                <radialGradient id="penFlareG" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+                  <stop offset="28%" stop-color="#ffe082" stop-opacity="0.96"/>
+                  <stop offset="58%" stop-color="#ff6e9c" stop-opacity="0.72"/>
+                  <stop offset="100%" stop-color="#ff5eb8" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <!-- Glowing tip flare ignited on click -->
+              <g class="pen-flare">
+                <circle cx="17" cy="54" r="14" fill="url(#penFlareG)"/>
+                <path d="M17 42 L19.4 51.6 L28 54 L19.4 56.4 L17 62 L14.6 56.4 L6 54 L14.6 51.6 Z" fill="#fff8e0" opacity="0.92"/>
+              </g>
+              <!-- 3D Fountain Pen tilted like reference -->
+              <g transform="rotate(30 33 31)">
+                <!-- Cap finial & gold band -->
+                <rect x="28.5" y="4.5" width="9" height="4.2" rx="2.1" fill="url(#penGold)"/>
+                <!-- Teal anodized barrel -->
+                <path d="M27.8 8.5 H38.2 L37.6 38.5 H28.4 Z" fill="url(#penBody)"/>
+                <!-- Specular cylindrical highlight on barrel -->
+                <path d="M30.2 9 H32.4 L32.1 38 H30.4 Z" fill="rgba(235,252,255,0.48)"/>
+                <!-- Gold pocket clip -->
+                <path d="M37.4 10.5 H39.6 C40.5 10.5 40.9 11.2 40.9 12.2 V25.8 C40.9 26.8 39.8 27.4 38.8 27.0 L37.6 26.3 V10.5 Z" fill="url(#penGold)"/>
+                <!-- Metallic grip rings -->
+                <rect x="28.0" y="37.2" width="10.0" height="3.2" rx="1.2" fill="url(#penMetal)"/>
+                <path d="M28.6 40.4 H37.4 L36.1 47.4 H29.9 Z" fill="url(#penMetal)"/>
+                <line x1="29.4" y1="42.4" x2="36.6" y2="42.4" stroke="rgba(35,44,52,0.45)" stroke-width="0.9"/>
+                <line x1="29.7" y1="44.7" x2="36.3" y2="44.7" stroke="rgba(35,44,52,0.45)" stroke-width="0.9"/>
+                <!-- Fountain nib & golden tip -->
+                <path d="M30.4 47.4 H35.6 L33.0 58.2 Z" fill="url(#penGold)"/>
+                <line x1="33.0" y1="49.5" x2="33.0" y2="57.4" stroke="#3b260b" stroke-width="0.8"/>
+                <circle cx="33.0" cy="51.2" r="0.9" fill="#3b260b"/>
+              </g>
+            </svg>
+          </span>
+          <span class="g-pct">58%</span>
+        </div>
+        <div class="g-card-bot">
+          <div>
+            <div class="g-name">Morning</div>
+            <div class="g-sub">Soft sun through the window</div>
+          </div>
+          <span class="g-check">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+          </span>
+        </div>
+      </button>
+
+      <button type="button" class="g-card storm" data-preset="1" data-radius="18">
+        <div class="g-fx" aria-hidden="true">
+          <svg class="g-ring-svg" viewBox="0 0 240 96" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sgRingStorm" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4de2ff"/>
+                <stop offset="50%" stop-color="#9e87ff"/>
+                <stop offset="100%" stop-color="#e4f9ff"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="g-ring-glow" cx="118" cy="50" rx="88" ry="30" stroke="url(#sgRingStorm)" stroke-width="8"/>
+            <ellipse class="g-ring-stroke" cx="118" cy="50" rx="88" ry="30" stroke="url(#sgRingStorm)" stroke-width="2"/>
+          </svg>
+          <span class="g-sp" style="--x:26%;--y:36%;--sz:3.5px;--col:#7deeff;--dx:-5px;--dy:-5px;--d:0.05s"></span>
+          <span class="g-sp" style="--x:64%;--y:34%;--sz:4px;--col:#b9a4ff;--dx:6px;--dy:-6px;--d:0.12s"></span>
+          <span class="g-sp" style="--x:80%;--y:64%;--sz:3.5px;--col:#e6fbff;--dx:5px;--dy:5px;--d:0.16s"></span>
+          <span class="g-sp" style="--x:38%;--y:70%;--sz:3px;--col:#63d9ff;--dx:-4px;--dy:5px;--d:0.10s"></span>
+        </div>
+        <div class="g-card-top">
+          <span class="g-ico">
+            <svg viewBox="0 0 48 48" fill="none">
+              <defs>
+                <linearGradient id="termBg" x1="6" y1="8" x2="42" y2="38" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#3c4954"/>
+                  <stop offset="45%" stop-color="#1c242b"/>
+                  <stop offset="100%" stop-color="#0d1216"/>
+                </linearGradient>
+                <linearGradient id="termEdge" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#9fb4c4"/>
+                  <stop offset="100%" stop-color="#323d46"/>
+                </linearGradient>
+              </defs>
+              <g transform="rotate(9 24 24) skewX(-5)">
+                <rect x="6" y="10" width="36" height="27" rx="5" fill="url(#termBg)" stroke="url(#termEdge)" stroke-width="1.6"/>
+                <path d="M7 15.5 H41" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+                <circle cx="11.2" cy="13" r="1.3" fill="#ff7369"/>
+                <circle cx="15.2" cy="13" r="1.3" fill="#ffd25e"/>
+                <circle cx="19.2" cy="13" r="1.3" fill="#5ce68a"/>
+                <path d="M12.5 22 L17.8 25.5 L12.5 29" stroke="#d8f4ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect class="term-cursor" x="20.2" y="27.2" width="7.2" height="2.3" rx="1" fill="#89e5ff"/>
+                <path class="term-bolt" d="M31.5 17 L27.5 24.5 H31.2 L28.4 33 L36.2 22.8 H32.2 Z" fill="#b8f4ff"/>
+              </g>
+            </svg>
+          </span>
+          <span class="g-pct">36%</span>
+        </div>
+        <div class="g-card-bot">
+          <div>
+            <div class="g-name">Thunderstorm</div>
+            <div class="g-sub">Rain on glass</div>
+          </div>
+          <span class="g-check">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+          </span>
+        </div>
+      </button>
+
+      <button type="button" class="g-card sunset" data-preset="3" data-radius="18">
+        <div class="g-fx" aria-hidden="true">
+          <svg class="g-ring-svg" viewBox="0 0 240 96" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sgRingSunset" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff994a"/>
+                <stop offset="50%" stop-color="#ff6e9c"/>
+                <stop offset="100%" stop-color="#ffe175"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="g-ring-glow" cx="118" cy="50" rx="88" ry="30" stroke="url(#sgRingSunset)" stroke-width="8"/>
+            <ellipse class="g-ring-stroke" cx="118" cy="50" rx="88" ry="30" stroke="url(#sgRingSunset)" stroke-width="2"/>
+          </svg>
+          <span class="g-sp" style="--x:28%;--y:36%;--sz:3.5px;--col:#ffb669;--dx:-5px;--dy:-5px;--d:0.06s"></span>
+          <span class="g-sp" style="--x:62%;--y:34%;--sz:4px;--col:#ff8ab6;--dx:6px;--dy:-6px;--d:0.13s"></span>
+          <span class="g-sp" style="--x:78%;--y:66%;--sz:3.5px;--col:#ffe58a;--dx:5px;--dy:4px;--d:0.18s"></span>
+          <span class="g-sp" style="--x:36%;--y:70%;--sz:3px;--col:#ffc67d;--dx:-5px;--dy:5px;--d:0.11s"></span>
+        </div>
+        <div class="g-card-top">
+          <span class="g-ico">
+            <svg viewBox="0 0 48 48" fill="none">
+              <defs>
+                <linearGradient id="hgBrass" x1="12" y1="6" x2="36" y2="42" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#f7d89c"/>
+                  <stop offset="48%" stop-color="#b98643"/>
+                  <stop offset="100%" stop-color="#6b461c"/>
+                </linearGradient>
+                <linearGradient id="hgGlass" x1="16" y1="10" x2="32" y2="38" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="rgba(255,255,255,0.42)"/>
+                  <stop offset="50%" stop-color="rgba(180,210,225,0.16)"/>
+                  <stop offset="100%" stop-color="rgba(255,220,170,0.34)"/>
+                </linearGradient>
+                <linearGradient id="hgSand" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffe29a"/>
+                  <stop offset="100%" stop-color="#e38d39"/>
+                </linearGradient>
+              </defs>
+              <!-- Top & bottom brass plates -->
+              <rect x="13" y="6" width="22" height="3.6" rx="1.6" fill="url(#hgBrass)"/>
+              <rect x="13" y="38.4" width="22" height="3.6" rx="1.6" fill="url(#hgBrass)"/>
+              <!-- Twin brass rods -->
+              <rect x="15.2" y="9.4" width="2" height="29.2" rx="1" fill="url(#hgBrass)"/>
+              <rect x="30.8" y="9.4" width="2" height="29.2" rx="1" fill="url(#hgBrass)"/>
+              <!-- Glass bulbs -->
+              <path d="M18 9.8 H30 C30 16.2 26.2 21.8 24 24 C21.8 21.8 18 16.2 18 9.8 Z" fill="url(#hgGlass)" stroke="rgba(255,244,225,0.55)" stroke-width="1"/>
+              <path d="M18 38.2 H30 C30 31.8 26.2 26.2 24 24 C21.8 26.2 18 31.8 18 38.2 Z" fill="url(#hgGlass)" stroke="rgba(255,244,225,0.55)" stroke-width="1"/>
+              <!-- Glowing amber sand -->
+              <path d="M19.8 15.6 H28.2 C27.2 19.2 25.4 21.6 24 23 C22.6 21.6 20.8 19.2 19.8 15.6 Z" fill="url(#hgSand)"/>
+              <path d="M19.2 37.6 H28.8 L24 31.6 Z" fill="url(#hgSand)"/>
+              <line x1="24" y1="23.5" x2="24" y2="32.5" stroke="#ffdf94" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="g-pct">64%</span>
+        </div>
+        <div class="g-card-bot">
+          <div>
+            <div class="g-name">Sunset</div>
+            <div class="g-sub">Low amber light</div>
+          </div>
+          <span class="g-check">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+          </span>
+        </div>
+      </button>
+
+      <button type="button" class="g-card afternoon" data-preset="2" data-radius="18">
+        <div class="g-fx" aria-hidden="true">
+          <svg class="g-ring-svg" viewBox="0 0 120 96" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sgRingAft" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fff4c4"/>
+                <stop offset="50%" stop-color="#7cdfff"/>
+                <stop offset="100%" stop-color="#7ef2d4"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="g-ring-glow" cx="60" cy="48" rx="44" ry="30" stroke="url(#sgRingAft)" stroke-width="7"/>
+            <ellipse class="g-ring-stroke" cx="60" cy="48" rx="44" ry="30" stroke="url(#sgRingAft)" stroke-width="2"/>
+          </svg>
+          <span class="g-sp" style="--x:28%;--y:34%;--sz:3.5px;--col:#fff3c4;--dx:-4px;--dy:-5px;--d:0.06s"></span>
+          <span class="g-sp" style="--x:74%;--y:38%;--sz:3.5px;--col:#8be8ff;--dx:5px;--dy:-4px;--d:0.12s"></span>
+          <span class="g-sp" style="--x:56%;--y:70%;--sz:3px;--col:#98f8dc;--dx:2px;--dy:5px;--d:0.16s"></span>
+        </div>
+        <div class="g-card-top">
+          <span class="g-ico">
+            <svg viewBox="0 0 48 48" fill="none">
+              <defs>
+                <linearGradient id="micChrome" x1="14" y1="6" x2="34" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="40%" stop-color="#bcc6d0"/>
+                  <stop offset="78%" stop-color="#697582"/>
+                  <stop offset="100%" stop-color="#39424b"/>
+                </linearGradient>
+              </defs>
+              <circle class="mic-wave" cx="24" cy="17" r="14" stroke="#9befff" stroke-width="1.5"/>
+              <!-- Condenser capsule -->
+              <rect x="16.5" y="7" width="15" height="21" rx="7.5" fill="url(#micChrome)" stroke="rgba(255,255,255,0.45)" stroke-width="0.9"/>
+              <!-- Grille slats -->
+              <path d="M18.5 12 H29.5 M17.5 15.2 H30.5 M17.5 18.4 H30.5 M18.5 21.6 H29.5" stroke="#36404a" stroke-width="1.35" stroke-linecap="round"/>
+              <!-- Specular highlight -->
+              <rect x="19.5" y="9" width="2.4" height="16" rx="1.2" fill="rgba(255,255,255,0.42)"/>
+              <!-- Yoke & base -->
+              <path d="M13.5 21 C13.5 27.6 18.2 32 24 32 C29.8 32 34.5 27.6 34.5 21" stroke="url(#micChrome)" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="24" y1="32" x2="24" y2="39" stroke="url(#micChrome)" stroke-width="2.8" stroke-linecap="round"/>
+              <ellipse cx="24" cy="40" rx="8.5" ry="2.6" fill="url(#micChrome)"/>
+            </svg>
+          </span>
+          <span class="g-pct">100%</span>
+        </div>
+        <div class="g-card-bot">
+          <div class="g-name">Afternoon</div>
+          <span class="g-check">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+          </span>
+        </div>
+      </button>
+
+      <button type="button" class="g-card night" data-preset="4" data-radius="18">
+        <div class="g-fx" aria-hidden="true">
+          <svg class="g-ring-svg" viewBox="0 0 120 96" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sgRingNight" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8b96ff"/>
+                <stop offset="50%" stop-color="#cc8cff"/>
+                <stop offset="100%" stop-color="#6ee4ff"/>
+              </linearGradient>
+            </defs>
+            <ellipse class="g-ring-glow" cx="60" cy="48" rx="44" ry="30" stroke="url(#sgRingNight)" stroke-width="7"/>
+            <ellipse class="g-ring-stroke" cx="60" cy="48" rx="44" ry="30" stroke="url(#sgRingNight)" stroke-width="2"/>
+          </svg>
+          <span class="g-sp" style="--x:26%;--y:36%;--sz:3.5px;--col:#a2adff;--dx:-4px;--dy:-5px;--d:0.06s"></span>
+          <span class="g-sp" style="--x:72%;--y:34%;--sz:3.5px;--col:#d89cff;--dx:5px;--dy:-5px;--d:0.12s"></span>
+          <span class="g-sp" style="--x:58%;--y:70%;--sz:3px;--col:#7ee9ff;--dx:3px;--dy:5px;--d:0.18s"></span>
+        </div>
+        <div class="g-card-top">
+          <span class="g-ico">
+            <svg viewBox="0 0 48 48" fill="none">
+              <defs>
+                <linearGradient id="hpBand" x1="10" y1="8" x2="38" y2="34" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#e4ebf2"/>
+                  <stop offset="45%" stop-color="#7c8a98"/>
+                  <stop offset="100%" stop-color="#2b333d"/>
+                </linearGradient>
+                <linearGradient id="hpCup" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#b8c4d0"/>
+                  <stop offset="52%" stop-color="#4e5966"/>
+                  <stop offset="100%" stop-color="#1b2128"/>
+                </linearGradient>
+              </defs>
+              <!-- Headband arch -->
+              <path d="M11 26 V23 C11 14.8 16.8 9.2 24 9.2 C31.2 9.2 37 14.8 37 23 V26" stroke="url(#hpBand)" stroke-width="3.6" stroke-linecap="round"/>
+              <path d="M15 15.2 C17.6 12.2 20.6 10.8 24 10.8 C27.4 10.8 30.4 12.2 33 15.2" stroke="rgba(255,255,255,0.42)" stroke-width="1.2" stroke-linecap="round"/>
+              <!-- Left & right studio earcups -->
+              <rect x="8" y="23.5" width="7.2" height="14.2" rx="3.6" fill="url(#hpCup)" stroke="rgba(255,255,255,0.34)" stroke-width="0.9"/>
+              <rect x="13.2" y="25" width="3.4" height="11.2" rx="1.7" fill="#1b2026"/>
+              <rect x="32.8" y="23.5" width="7.2" height="14.2" rx="3.6" fill="url(#hpCup)" stroke="rgba(255,255,255,0.34)" stroke-width="0.9"/>
+              <rect x="31.4" y="25" width="3.4" height="11.2" rx="1.7" fill="#1b2026"/>
+            </svg>
+          </span>
+          <span class="g-pct">22%</span>
+        </div>
+        <div class="g-card-bot">
+          <div class="g-name">Night</div>
+          <span class="g-check">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+          </span>
+        </div>
+      </button>
+
+      <div class="g-slider" id="brightSlider" data-radius="26" role="slider" aria-label="Brightness" aria-valuemin="8" aria-valuemax="100" aria-valuenow="58">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        </svg>
+        <span class="g-slider-lbl">Brightness</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  'use strict';
+  /*
+   * DiyarDesk · Studio Glass 3D (Three.js + WebGL2 Refractive Glass)
+   * Inspired by Studio Glass (https://threeui.com/studio-glass)
+   * share.js globals: cv, draw(), icons, W, H, WALL, cacheOK, paused, commit()
+   */
+  const QS = new URLSearchParams(location.search || '');
+  const WALL = QS.has('wallpaper');
+  const PREVIEW = QS.has('preview');
+  let LOW = QS.get('low') === '1' || !!window.__desklandInitialLowMode || !!window.__desklandLowMode;
+
+  const DEF = {
+    adaptive: 1,
+    preset: 1,
+    blinds: 0.70,
+    shafts: 0.80,
+    weather: 0.78,
+    monitorAngle: -10,
+    deskLamp: 0.70,
+    parallax: 0.55,
+    refraction: 0.85,
+    frost: 0.50,
+    iconGlass: 0,
+    showHud: 1,
+    quality: 1
+  };
+  const P = Object.assign({}, DEF);
+
+  const cv = document.getElementById('cv');
+  const hud = document.getElementById('hud');
+  const hudGrid = document.getElementById('hudGrid');
+  const hudDrag = document.getElementById('hudDrag');
+  const hudCollapse = document.getElementById('hudCollapse');
+  const brightSlider = document.getElementById('brightSlider');
+  const cardEls = Array.from(document.querySelectorAll('.g-card'));
+
+  let W = innerWidth || 1280;
+  let H = innerHeight || 720;
+  let icons = [];
+  let _paused = false;
+  let cacheOK = false;
+  let frameN = 0;
+  let rafId = 0;
+  let lastT = 0;
+
+  Object.defineProperty(window, 'paused', {
+    configurable: true,
+    enumerable: true,
+    get: function () { return _paused; },
+    set: function (v) { setPaused(v); }
+  });
+
+  const engine = new window.StudioGlassEngine(cv, DEF, hud);
+  engine.setLowMode(LOW);
+
+  // Trigger per-card signature icon + iridescent halo burst animation
+  function triggerCardBurst(el) {
+    if (!el) return;
+    if (el._burstTimer) clearTimeout(el._burstTimer);
+    el.classList.remove('is-bursting');
+    void el.offsetWidth; // restart CSS keyframes cleanly on repeat clicks
+    el.classList.add('is-bursting');
+    el._burstTimer = setTimeout(() => {
+      el.classList.remove('is-bursting');
+      el._burstTimer = 0;
+    }, 1650);
+  }
+
+  // Sync HUD DOM card rects & live brightness readouts into WebGL2 refractive glass shader!
+  function syncHudRects() {
+    const visible = P.showHud !== 0 && !hud.classList.contains('collapsed');
+    hud.classList.toggle('hidden', P.showHud === 0);
+    if (!visible) {
+      engine.setHudCards([]);
+      return;
+    }
+    const activeIdx = engine.getActivePresetIndex();
+    const rects = [];
+    for (const el of cardEls) {
+      const idx = Number(el.dataset.preset);
+      const isAct = idx === activeIdx;
+      el.classList.toggle('active', isAct);
+      const pctEl = el.querySelector('.g-pct');
+      if (pctEl && engine.presetBrightness && engine.presetBrightness[idx] !== undefined) {
+        const nextTxt = Math.round(engine.presetBrightness[idx] * 100) + '%';
+        if (pctEl.textContent !== nextTxt) {
+          pctEl.textContent = nextTxt;
+          pctEl.classList.add('pct-bump');
+          if (pctEl._bumpTimer) clearTimeout(pctEl._bumpTimer);
+          pctEl._bumpTimer = setTimeout(() => pctEl.classList.remove('pct-bump'), 180);
+        }
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) {
+        rects.push({
+          x: r.left, y: r.top, w: r.width, h: r.height,
+          r: Number(el.dataset.radius) || 18,
+          style: 0,
+          active: isAct,
+          fill: 0
+        });
+      }
+    }
+    const sr = brightSlider.getBoundingClientRect();
+    if (sr.width > 4 && sr.height > 4) {
+      const fill = engine.interactiveBrightness;
+      brightSlider.classList.toggle('dark-lbl', fill < 0.28);
+      brightSlider.setAttribute('aria-valuenow', String(Math.round(fill * 100)));
+      rects.push({
+        x: sr.left, y: sr.top, w: sr.width, h: sr.height,
+        r: Math.min(28, sr.width * 0.45),
+        style: 2, // brightness pill slider
+        active: false,
+        fill
+      });
+    }
+    engine.setHudCards(rects);
+  }
+
+  // Interactive HUD preset clicks (slotIdx matches WebGL2 uRects[i] for prismatic shader pulse!)
+  cardEls.forEach((el, slotIdx) => {
+    el.addEventListener('pointerdown', ev => ev.stopPropagation());
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const presetIdx = Number(el.dataset.preset);
+      engine.selectPresetFromHud(presetIdx, slotIdx);
+      triggerCardBurst(el);
+      syncHudRects();
+    });
+  });
+
+  // Interactive Brightness vertical glass slider
+  let slidingBright = false;
+  function updateBrightFromY(clientY) {
+    const r = brightSlider.getBoundingClientRect();
+    const frac = 1 - (clientY - r.top) / Math.max(1, r.height);
+    engine.setBrightnessFromHud(frac);
+    syncHudRects();
+  }
+  brightSlider.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    slidingBright = true;
+    try { brightSlider.setPointerCapture(ev.pointerId); } catch (_) {}
+    updateBrightFromY(ev.clientY);
+  });
+  brightSlider.addEventListener('pointermove', ev => {
+    if (!slidingBright) return;
+    ev.stopPropagation();
+    updateBrightFromY(ev.clientY);
+  });
+  brightSlider.addEventListener('pointerup', () => { slidingBright = false; });
+  brightSlider.addEventListener('pointercancel', () => { slidingBright = false; });
+
+  // Movable refractive glass panel (drag by "Studio lighting" handle!)
+  let draggingHud = false;
+  let hudStartX = 0, hudStartY = 0, hudBaseLeft = 0, hudBaseTop = 0;
+  hudDrag.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    const r = hud.getBoundingClientRect();
+    hud.style.transform = 'none';
+    hud.style.left = r.left + 'px';
+    hud.style.top = r.top + 'px';
+    hudBaseLeft = r.left;
+    hudBaseTop = r.top;
+    hudStartX = ev.clientX;
+    hudStartY = ev.clientY;
+    draggingHud = true;
+    try { hudDrag.setPointerCapture(ev.pointerId); } catch (_) {}
+  });
+  hudDrag.addEventListener('pointermove', ev => {
+    if (!draggingHud) return;
+    ev.stopPropagation();
+    const r = hud.getBoundingClientRect();
+    const nx = Math.max(8, Math.min(W - r.width - 8, hudBaseLeft + (ev.clientX - hudStartX)));
+    const ny = Math.max(8, Math.min(H - r.height - 8, hudBaseTop + (ev.clientY - hudStartY)));
+    hud.style.left = nx + 'px';
+    hud.style.top = ny + 'px';
+    syncHudRects();
+  });
+  hudDrag.addEventListener('pointerup', () => { draggingHud = false; });
+  hudDrag.addEventListener('pointercancel', () => { draggingHud = false; });
+
+  hudCollapse.addEventListener('pointerdown', ev => ev.stopPropagation());
+  hudCollapse.addEventListener('click', ev => {
+    ev.stopPropagation();
+    hud.classList.toggle('collapsed');
+    syncHudRects();
+  });
+
+  function commit() {
+    engine.setIcons(icons);
+  }
+
+  function computeScale() {
+    const qMax = LOW ? 0.75 : ([0.95, 1.25, 1.5][P.quality] || 1.25);
+    if (typeof window.__desklandScale === 'function') {
+      return window.__desklandScale(qMax);
+    }
+    return Math.min(window.devicePixelRatio || 1, qMax);
+  }
+
+  function resize() {
+    const box = cv.getBoundingClientRect();
+    W = Math.max(240, box.width || innerWidth || 1280);
+    H = Math.max(160, box.height || innerHeight || 720);
+    const d = computeScale();
+    cv.width = Math.max(1, Math.round(W * d));
+    cv.height = Math.max(1, Math.round(H * d));
+    cv._scale = d;
+    engine.resize(W, H, d);
+    syncHudRects();
+    cacheOK = false;
+  }
+
+  function draw(now) {
+    const curScale = cv._scale || engine.scale || 1;
+    if (!cacheOK || Math.abs(curScale - engine.scale) > 0.001) {
+      engine.resize(W, H, curScale);
+      syncHudRects();
+      cacheOK = true;
+    }
+    engine.draw(now);
+  }
+
+  function sched() {
+    if (!_paused && !rafId) {
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+
+  function setPaused(v) {
+    _paused = !!v;
+    if (_paused) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    } else {
+      lastT = 0;
+      sched();
+    }
+  }
+
+  function frame(now) {
+    rafId = 0;
+    if (_paused) return;
+    sched();
+    const minInterval = LOW ? 62 : 28; // ~30-35 FPS normal, ~15 FPS Eco Mode
+    if (lastT && now - lastT < minInterval) return;
+    const dt = lastT ? Math.min(0.08, (now - lastT) / 1000) : 0.033;
+    lastT = now;
+    frameN++;
+    engine.step(dt);
+    draw(now);
+  }
+
+  function drawGhosts() {
+    const box = document.getElementById('ghosts');
+    if (!box) return;
+    box.innerHTML = icons
+      .map(ic => '<div class="ghost" style="left:' + ic.x + 'px;top:' + ic.y + 'px;width:' + ic.w + 'px;height:' + ic.h + 'px"><i></i><b></b></div>')
+      .join('');
+  }
+
+  function applySettings(v) {
+    if (!v || typeof v !== 'object') return;
+    const prevPreset = P.preset;
+    let needResize = false;
+    for (const k in v) {
+      if (!(k in P)) continue;
+      if (typeof v[k] === 'number' && Number.isFinite(v[k])) {
+        if (k === 'quality' && P[k] !== v[k]) needResize = true;
+        P[k] = v[k];
+      }
+    }
+    engine.applySettings(P);
+    if (needResize) resize();
+    if (P.preset !== prevPreset) {
+      const activeIdx = engine.getActivePresetIndex();
+      const slotIdx = cardEls.findIndex(el => Number(el.dataset.preset) === activeIdx);
+      if (slotIdx >= 0) {
+        engine.triggerCardPulse(slotIdx, activeIdx);
+        triggerCardBurst(cardEls[slotIdx]);
+      }
+    }
+    syncHudRects();
+    cacheOK = false;
+  }
+
+  function handleMessage(raw) {
+    let m = raw;
+    if (typeof m === 'string') {
+      if (!m || m.charAt(0) !== '{') return;
+      try { m = JSON.parse(m); } catch (_) { return; }
+    }
+    if (!m || typeof m !== 'object') return;
+
+    if (m.t === 'pause') {
+      setPaused(PREVIEW ? false : !!m.v);
+    } else if (m.t === 'lowMode') {
+      LOW = !!m.v;
+      engine.setLowMode(LOW);
+      resize();
+    } else if (m.t === 'settings') {
+      applySettings(m.v || m.params || {});
+    } else if (m.t === 'reset') {
+      applySettings(Object.assign({}, DEF, m.v || {}));
+    } else if (m.t === 'icons') {
+      const k = window.devicePixelRatio || 1;
+      icons = m.vis
+        ? (m.r || []).map(([l, t, r, b]) => ({
+            x: l / k,
+            y: t / k,
+            w: (r - l) / k,
+            h: (b - t) / k
+          }))
+        : [];
+      engine.setIcons(icons);
+      if (PREVIEW || !WALL) drawGhosts();
+    }
+  }
+
+  function toLocal(ev) {
+    const rect = cv.getBoundingClientRect();
+    return {
+      x: ev.clientX - rect.left,
+      y: ev.clientY - rect.top
+    };
+  }
+  window.addEventListener('pointermove', ev => {
+    if (draggingHud || slidingBright) return;
+    const pt = toLocal(ev);
+    engine.onPointerMove(pt.x, pt.y, (ev.buttons & 1) === 1);
+  }, { passive: true });
+  window.addEventListener('pointerdown', ev => {
+    if (ev.target && ev.target.closest && ev.target.closest('#hud')) return;
+    const pt = toLocal(ev);
+    engine.onPointerDown(pt.x, pt.y);
+  }, { passive: true });
+  window.addEventListener('pointerup', () => engine.onPointerUp(), { passive: true });
+  window.addEventListener('pointercancel', () => engine.onPointerLeave(), { passive: true });
+  window.addEventListener('pointerleave', () => engine.onPointerLeave(), { passive: true });
+
+  window.addEventListener('deskland:lowmode', ev => {
+    LOW = !!(ev && ev.detail && ev.detail.lowMode);
+    engine.setLowMode(LOW);
+    resize();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  if (!WALL) {
+    const gd = document.createElement('div');
+    gd.id = 'ghosts';
+    document.body.appendChild(gd);
+  }
+
+  if (PREVIEW) {
+    window.addEventListener('message', ev => {
+      if (ev.source === parent) handleMessage(ev.data);
+    });
+    parent.postMessage(JSON.stringify({ t: 'ready' }), '*');
+  } else if (WALL) {
+    const host = window.chrome && window.chrome.webview;
+    if (host) {
+      host.addEventListener('message', ev => handleMessage(ev.data));
+      host.postMessage('ready');
+    }
+  } else {
+    icons = [
+      [0.03, 0.08], [0.03, 0.24], [0.03, 0.40],
+      [0.90, 0.12], [0.90, 0.28]
+    ].map(([a, b]) => ({ x: W * a, y: H * b, w: 76, h: 90 }));
+    engine.setIcons(icons);
+    drawGhosts();
+  }
+
+  syncHudRects();
+  sched();
+  </script>
+  <script src="share.js"></script>
+</body>
+</html>

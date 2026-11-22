@@ -2,6 +2,151 @@
   "version": 1,
   "themes": [
     {
+      "id": "studio-glass",
+      "adaptive": true,
+      "name": "工作室光影玻璃",
+      "desc": "灵感源自 Studio Glass 的 Three.js 3D 设计师工作室：内置清晨、雷雨、午后、日落与夜晚五种光影预设，可直接拖动百叶窗、显示器、机械键盘、鼠标、座椅、窗台绿植与蘑菇台灯，并搭配实时折射磨砂玻璃控制卡片与图标镜片",
+      "page": "studio-glass.html",
+      "status": "ready",
+      "product": "free",
+      "credit": {
+        "prefix": "灵感源自",
+        "label": "Studio Glass · ThreeUI (threeui.com/studio-glass)",
+        "url": "https://threeui.com/studio-glass"
+      },
+      "thumb": "radial-gradient(ellipse 40% 62% at 15% 42%, rgba(168,205,188,0.62) 0%, rgba(74,118,104,0.28) 46%, transparent 74%), linear-gradient(124deg, transparent 16%, rgba(255,222,168,0.24) 30%, transparent 45%, rgba(255,212,152,0.18) 56%, transparent 70%), radial-gradient(circle at 84% 66%, rgba(255,196,120,0.52) 0%, transparent 32%), linear-gradient(180deg, #1b302a 0%, #142420 68%, #5b3720 69%, #2c1a0f 100%)",
+      "groups": [
+        {
+          "name": "光影与天气",
+          "params": [
+            {
+              "key": "preset",
+              "label": "光影预设",
+              "hint": "在自动时段、清晨、雷雨、午后、日落与夜晚之间平滑切换",
+              "options": ["自动", "清晨", "雷雨", "午后", "日落", "夜晚"],
+              "default": 1
+            },
+            {
+              "key": "blinds",
+              "label": "百叶窗开合",
+              "hint": "调节左侧木百叶的拉起高度与透光幅度（也可在桌面直接拖动百叶窗）",
+              "min": 0,
+              "max": 1,
+              "step": 0.02,
+              "default": 0.70,
+              "format": "percent"
+            },
+            {
+              "key": "shafts",
+              "label": "窗光光束",
+              "hint": "穿过百叶窗投射进工作室的 3D 体积光束强度",
+              "min": 0,
+              "max": 1,
+              "step": 0.02,
+              "default": 0.80,
+              "format": "percent"
+            },
+            {
+              "key": "weather",
+              "label": "雨滴与浮尘",
+              "hint": "雷雨模式下的玻璃雨滴闪电，以及阳光下的光束浮尘密度",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.78,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "工作室与家具",
+          "params": [
+            {
+              "key": "monitorAngle",
+              "label": "显示器角度",
+              "hint": "左右旋转 3D 显示器（键盘、鼠标、座椅与窗台绿植均可在桌面直接拖动）",
+              "min": -35,
+              "max": 35,
+              "step": 1,
+              "default": -10,
+              "unit": "°"
+            },
+            {
+              "key": "deskLamp",
+              "label": "蘑菇台灯",
+              "hint": "右侧暖光磨砂玻璃蘑菇台灯的亮度（点击台灯也可直接开关）",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.70,
+              "format": "percent"
+            },
+            {
+              "key": "parallax",
+              "label": "镜头视差",
+              "hint": "3D 相机随光标轻微移动产生的空间景深感",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.55,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "折射玻璃与图标",
+          "params": [
+            {
+              "key": "showHud",
+              "label": "玻璃光控面板",
+              "hint": "在画面上方显示可拖动的实时折射玻璃光影切换面板与亮度条",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "refraction",
+              "label": "折射与色散",
+              "hint": "折射玻璃卡片与图标镜片弯曲光线的强度与 RGB 色散边缘",
+              "min": 0,
+              "max": 1.4,
+              "step": 0.05,
+              "default": 0.85,
+              "format": "percent"
+            },
+            {
+              "key": "frost",
+              "label": "磨砂质感",
+              "hint": "玻璃内部的高斯磨砂柔焦程度",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.50,
+              "format": "percent"
+            },
+            {
+              "key": "iconGlass",
+              "label": "图标玻璃造型",
+              "hint": "桌面图标下方的光学折射玻璃卡片样式",
+              "options": ["玻璃卡片", "切角棱镜", "关闭"],
+              "default": 0
+            }
+          ]
+        },
+        {
+          "name": "性能",
+          "params": [
+            {
+              "key": "quality",
+              "label": "画质",
+              "hint": "Three.js 3D 渲染与折射模糊分辨率预算",
+              "options": ["低", "平衡", "高"],
+              "default": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "quietsnow",
       "adaptive": true,
       "name": "静雪",

@@ -162,6 +162,71 @@
     "errStart": "Başlatılamadı: {msg}"
   },
   "themes": {
+    "studio-glass": {
+      "name": "Stüdyo Camı",
+      "creditPrefix": "İlham kaynağı:",
+      "desc": "Three.js ile inşa edilmiş 3B tasarımcı stüdyosu: Sabah, Fırtına (camda yağmur), Öğleden Sonra, Gün Batımı ve Gece ışık önayarları. Panjuru çekin, monitörü çevirin; klavye, fare, sandalye, kalemlik, defter ve pencere önü bitkilerini doğrudan sürükleyip hareket ettirin.",
+      "groups": [
+        "Işık ve Hava",
+        "Stüdyo ve Eşyalar",
+        "Cam ve Simgeler",
+        "Performans"
+      ],
+      "params": {
+        "preset": {
+          "label": "Işık önayarı",
+          "hint": "Otomatik saat veya beş 3B stüdyo ışığı arasında yumuşak geçiş yapın",
+          "options": ["Otomatik", "Sabah", "Fırtına", "Öğleden Sonra", "Gün Batımı", "Gece"]
+        },
+        "blinds": {
+          "label": "Panjur açıklığı",
+          "hint": "Sol penceredeki ahşap jaluziyi açıp kapatın (masaüstünde panjuru doğrudan sürükleyebilirsiniz)"
+        },
+        "shafts": {
+          "label": "Pencere ışık hüzmeleri",
+          "hint": "Panjur aralıklarından odaya düşen 3B hacimsel ışık hüzmelerinin parlaklığı"
+        },
+        "weather": {
+          "label": "Yağmur ve ışık tozları",
+          "hint": "Fırtına modunda camda akan yağmur damlaları ile güneşli modlarda havada süzülen tozların yoğunluğu"
+        },
+        "monitorAngle": {
+          "label": "Monitör açısı",
+          "hint": "3B monitörü sağa/sola çevirin (klavye, fare, sandalye ve bitkiler de doğrudan sürüklenebilir)"
+        },
+        "deskLamp": {
+          "label": "Mantar masa lambası",
+          "hint": "Sağdaki sıcak buzlu cam mantar lambanın parlaklığı (lambaya tıklayıp açıp kapatabilirsiniz)"
+        },
+        "parallax": {
+          "label": "Kamera paralaksı",
+          "hint": "3B kameranın fare hareketine verdiği yumuşak derinlik tepkisi"
+        },
+        "showHud": {
+          "label": "Cam ışık kontrol paneli",
+          "hint": "Üstte sürüklenebilir, gerçek kırılmalı Studio Lighting cam kartlarını ve parlaklık kaydırıcısını göster",
+          "options": ["Gizle", "Göster"]
+        },
+        "refraction": {
+          "label": "Kırılma ve kromatik dağılım",
+          "hint": "Cam panellerin ve simge plakalarının arkasındaki 3B sahneyi bükme ve kenar ışığı gücü"
+        },
+        "frost": {
+          "label": "Buzlu cam yumuşatması",
+          "hint": "Cam kartların ve simge plakalarının Gaussian buzlu cam bulanıklığı"
+        },
+        "iconGlass": {
+          "label": "Simge cam biçimi",
+          "hint": "Masaüstü simgelerinin altında oluşan 3B kırılmalı cam plakanın stili",
+          "options": ["Cam Kart", "Prizma", "Kapalı"]
+        },
+        "quality": {
+          "label": "Kalite",
+          "hint": "Three.js 3B sahne ve kırılma geçişi çözünürlük bütçesi",
+          "options": ["Düşük", "Dengeli", "Yüksek"]
+        }
+      }
+    },
     "quietsnow": {
       "name": "Sessiz Kar",
       "creditPrefix": "İlham kaynağı:",

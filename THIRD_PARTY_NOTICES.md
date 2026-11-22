@@ -43,3 +43,11 @@ The 9 3D dotted orb designs in `prototype/thinking-orbs-engine.js` and `prototyp
 - LCH renk dönüşüm yardımcıları: `GLSL-Color-Functions` (`Rachmanin0xFF/GLSL-Color-Functions`)
 
 The WebGL2 physical Snell refraction, chromatic RGB dispersion, 2-pass separable Gaussian blur, superellipse SDF with polynomial `smin` liquid merging, and LCH Fresnel/glare shader math in `prototype/liquidglass.html` are adapted from `iyinchao/liquid-glass-studio` under the MIT License.
+
+## Studio Glass (ThreeUI Inspiration) & Three.js
+
+`prototype/studio-glass.html` ve `prototype/studio-glass-engine.js` dosyaları DiyarDesk için sıfırdan özgün (GPL-3.0) olarak yazılmıştır; ancak beş ışık önayarı, hareketli ahşap jaluzi/panjur, dönebilen 3B tasarımcı monitörü, sürüklenebilir stüdyo eşyaları (klavye, fare, sandalye, bitkiler, mantar lamba) ve kırıcı cam kontrol panelleri konsepti için ThreeUI'ın Studio Glass çalışmasından ilham alınmıştır:
+
+- Referans bağlantı / Reference link: https://threeui.com/studio-glass
+- 3B motor / 3D engine: `prototype/lib/three.min.js` — **Three.js** (`three@0.170.0`, Copyright © 2010–2024 three.js authors, MIT License — https://github.com/mrdoob/three.js)
+- Not: `prototype/studio-glass.html` and `prototype/studio-glass-engine.js` are original GPL-3.0 implementations written from scratch for DiyarDesk using bundled MIT-licensed Three.js, inspired by the Studio Glass interactive workspace concept at https://threeui.com/studio-glass.
