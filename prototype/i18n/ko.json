@@ -1,0 +1,1479 @@
+{
+  "name": "한국어",
+  "ui": {
+    "adaptive": "적응형",
+    "themes": "테마",
+    "collectionTitle": "당신의 풍경을 찾아보세요.",
+    "collectionSubtitle": "아이콘을 풍경의 일부로 만들어 보세요.",
+    "language": "언어",
+    "langAuto": "시스템 기본값",
+    "langAutoWith": "시스템 기본값 ({name})",
+    "autostart": "Windows 시작 시 실행",
+    "autostartTitle": "로그인하면 DiyarDesk를 자동으로 실행합니다",
+    "autostartBlocked": "시작 시 실행이 차단되었을 수 있습니다",
+    "autostartWarnSw": "이번에는 DiyarDesk가 자동으로 시작되지 않았습니다 — {sw}에서 차단했을 수 있습니다. {sw}를 열어 시작 관리자에서 DiyarDesk를 '허용'으로 설정하세요.",
+    "autostartWarnGeneric": "이번에는 DiyarDesk가 자동으로 시작되지 않았습니다 — 보안 소프트웨어나 Windows의 시작 앱 설정에서 차단했을 수 있습니다. 보안 소프트웨어의 시작 관리자 또는 Windows 설정 → 앱 → 시작에서 DiyarDesk를 켜세요.",
+    "gotIt": "확인",
+    "updateAvailable": "업데이트 사용 가능",
+    "updateVersion": "DiyarDesk {version} 버전이 준비되었습니다. 현재 테마와 설정은 유지됩니다.",
+    "updateProgram": "지금 업데이트",
+    "updateRetry": "업데이트 재시도",
+    "updateWorking": "업데이트 중…",
+    "updateDownloading": "다운로드 및 설치 중… {progress}",
+    "updateInstalling": "업데이트 설치 중… {progress}",
+    "updateCompletedTitle": "업데이트 완료",
+    "updateCompleted": "업데이트가 다운로드되어 설치되었습니다. DiyarDesk가 자동으로 다시 시작되지 않으면 직접 실행하세요.",
+    "updateDone": "완료",
+    "updateCanceled": "업데이트가 취소되었습니다. 나중에 다시 시도할 수 있습니다.",
+    "updateLowBattery": "배터리 상태에서는 업데이트를 완료할 수 없습니다. 기기를 전원에 연결한 뒤 다시 시도하세요.",
+    "updateWifiRecommended": "이 네트워크에서는 요금이 부과될 수 있습니다. 네트워크를 바꾸거나 나중에 다시 시도하세요.",
+    "updateWifiRequired": "이 업데이트를 다운로드하려면 Wi-Fi에 연결하세요.",
+    "updateStoreRequired": "이 업데이트 방법은 Microsoft Store 버전에서만 사용할 수 있습니다.",
+    "updateFailed": "업데이트에 실패했습니다. 연결 상태나 Microsoft Store를 확인한 뒤 다시 시도하세요.",
+    "updateCheckingTitle": "업데이트 확인 중",
+    "updateChecking": "업데이트 서버에 연결하여 새 버전을 확인하는 중…",
+    "updateFailedTitle": "업데이트가 완료되지 않음",
+    "updateCheckFailedTitle": "업데이트를 확인할 수 없음",
+    "networkTimeout": "연결 또는 다운로드 시간이 초과되었습니다. 네트워크, 프록시 또는 방화벽을 확인한 뒤 다시 시도하세요. 다른 웹사이트는 열리는데도 안 된다면 서버 응답이 느릴 수 있습니다.",
+    "networkDns": "서버 주소를 확인할 수 없습니다. 네트워크, DNS 또는 프록시 설정을 확인한 뒤 다시 시도하세요.",
+    "networkTls": "보안 연결을 설정할 수 없습니다. 시스템 시각과 네트워크·프록시의 보안 검사 여부를 확인한 뒤 다시 시도하세요.",
+    "networkLocal": "네트워크 연결에 실패했거나 끊겼습니다. 네트워크, 프록시 또는 방화벽을 확인한 뒤 다시 시도하세요.",
+    "serverUnavailable": "서버에는 연결되었지만 서비스를 일시적으로 사용할 수 없습니다 (HTTP 5xx). 잠시 후 다시 시도하세요.",
+    "serverRejected": "서버가 요청을 거부했습니다 (HTTP 4xx). 잠시 후 다시 시도하거나 계속되면 지원팀에 문의하세요.",
+    "serverInvalid": "서버가 알 수 없는 응답을 반환했습니다. 잠시 후 다시 시도하거나 계속되면 지원팀에 문의하세요.",
+    "downloadInvalid": "다운로드가 불완전하거나 보안 검증을 통과하지 못해 설치를 중단했습니다. 다시 시도하거나 계속되면 지원팀에 문의하세요.",
+    "livePreview": "실시간 미리보기",
+    "previewIcons": "실시간 미리보기 · 바탕 화면의 아이콘 {n}개 사용 중",
+    "previewNoIcons": "실시간 미리보기 · 바탕 화면 아이콘 숨김",
+    "refresh": "새로 고침",
+    "refreshTitle": "이 테마의 새 장면 생성",
+    "shareImage": "이미지 공유",
+    "shareImageTitle": "개인 정보를 보호하면서 바탕 화면 이미지 공유",
+    "shareVideo": "동영상 공유",
+    "shareVideoTitle": "개인 정보를 보호하면서 바탕 화면 애니메이션 공유",
+    "generating": "생성 중…",
+    "preparingRec": "준비 중…",
+    "recording": "녹화 {p}%",
+    "savingVideo": "저장 중…",
+    "shareFailImage": "이미지를 만들 수 없습니다: {msg}",
+    "shareFailVideo": "동영상을 녹화할 수 없습니다: {msg}",
+    "unknownReason": "알 수 없는 오류",
+    "shareReadyImage": "바탕 화면 이미지가 준비되었습니다",
+    "shareReadyVideo": "바탕 화면 클립이 준비되었습니다",
+    "sharePrivacy": "아이콘은 예시 아이콘으로, 파일 이름은 색상 블록으로 대체되므로 어떤 파일도 노출되지 않습니다.",
+    "shareCopiedImage": "이미지가 클립보드에 복사되었습니다 — 채팅이나 게시물에 바로 붙여 넣으세요.",
+    "shareCopiedVideo": "동영상 파일이 클립보드에 복사되었습니다 — 채팅 창에 붙여 넣어 보내세요.",
+    "shareBrowserHint": " (브라우저 미리보기: “{btn}”을 클릭하여 다운로드하세요.)",
+    "savedTo": "{path}에 저장됨",
+    "openFolder": "폴더에서 보기",
+    "openImage": "이미지 열기",
+    "openVideo": "동영상 열기",
+    "saveImage": "이미지 저장",
+    "saveVideo": "동영상 저장",
+    "ok": "확인",
+    "sharePreviewAlt": "공유된 이미지 미리보기",
+    "autosave": "변경 사항은 자동으로 저장되어 바탕 화면에 즉시 적용됩니다",
+    "saved": "저장됨 ✓",
+    "resetAll": "모두 초기화",
+    "resetAllTitle": "이 테마의 모든 설정을 기본값으로 되돌립니다",
+    "helpButtonTitle": "자주 묻는 질문 및 문제 해결",
+    "helpTitle": "도움말",
+    "helpSubtitle": "자주 묻는 질문 및 문제 해결",
+    "helpWallpaperQ": "DiyarDesk가 계속 깜빡이거나 다시 시작됩니다. 어떻게 해결하나요?",
+    "helpWallpaperA": "일반 바탕 화면 배경이 자동으로 바뀌면 바뀔 때마다 DiyarDesk가 깜빡이거나 다시 시작될 수 있습니다. 순환하지 않는 고정 배경을 사용하세요.",
+    "helpWallpaperStep1": "Windows 설정 → 개인 설정 → 배경을 엽니다.",
+    "helpWallpaperStep2": "‘배경 개인 설정’을 ‘사진’ 또는 ‘단색’으로 설정하세요. ‘슬라이드 쇼’나 ‘Windows 추천’은 사용하지 마세요.",
+    "helpWallpaperStep3": "이 설정을 변경한 후 DiyarDesk를 다시 시작하세요.",
+    "badgeOn": "사용 중",
+    "badgeReady": "사용 가능",
+    "badgeSoon": "곧 출시",
+    "ongoingTitle": "더 많은 테마 준비 중",
+    "ongoingDesc": "새로운 장면과 요소가 계속 추가됩니다.",
+    "noParams": "이 테마에는 아직 설정이 없습니다",
+    "resetOne": "기본값으로 초기화: {v}",
+    "resetOneAria": "{label}을(를) 기본값으로 초기화",
+    "dblclickReset": "두 번 클릭하여 초기화 ({v})",
+    "comingSoon": "곧 출시:",
+    "audioNone": "선택된 파일 없음",
+    "audioPick": "오디오 선택…",
+    "audioPlay": "▶ 재생",
+    "audioPause": "⏸ 일시정지",
+    "importTheme": "테마 가져오기…",
+    "importThemeTitle": "테마 패키지(.zip, .deskland), HTML 페이지, 이미지 또는 동영상 가져오기",
+    "importHelpBtnTitle": "지원되는 가져오기 형식 및 안내",
+    "importHelpTitle": "테마 가져오기 안내",
+    "importHelpSubtitle": "+ 테마 가져오기…를 클릭하여 로컬 파일을 선택하세요. 다음 형식이 모두 지원되며 자동으로 검증됩니다:",
+    "importHelpHowTitle": "지원 형식 및 동작",
+    "importHelpZipTitle": "테마 패키지 (.zip, .deskland)",
+    "importHelpZipDesc": "다중 파일 HTML/JS/CSS/에셋 테마입니다. manifest.json 또는 theme.json이 있으면 메타데이터, 진입 HTML, 썸네일, 매개변수를 자동으로 읽고, 없으면 index.html 또는 첫 번째 .html 파일로 대체하며, thumb/preview 이미지(.svg 포함)를 자동 감지하고 zip-slip 경로 이탈이나 심볼릭 링크를 차단합니다.",
+    "importHelpHtmlTitle": "단일 웹 페이지 (.html, .htm)",
+    "importHelpHtmlDesc": "단일 파일 인터랙티브 셰이더 또는 HTML 테마입니다(<title> 태그를 테마 이름으로 사용).",
+    "importHelpImageTitle": "이미지 배경 화면 (.png, .jpg, .jpeg, .webp, .gif, .svg, .avif, .bmp)",
+    "importHelpImageDesc": "부드러운 주변 줌/패닝, 밝기, 움직임, 아이콘 배경 후광(dimIcons) 제어, 적응형 레이아웃, 스냅샷 공유(desklandSnapshot)를 갖춘 인터랙티브 배경 화면 페이지로 자동 변환됩니다.",
+    "importHelpVideoTitle": "동영상 배경 화면 (.mp4, .webm, .mkv, .mov)",
+    "importHelpVideoDesc": "밝기, 재생 속도, 아이콘 배경 후광(dimIcons) 제어와 함께 동영상을 깔끔하게 반복 재생합니다.",
+    "importHelpNote": "압축 파일은 압축을 풀기 전에 무결성을 검사합니다(패키지당 최대 150 MB / 2,000개 파일). 가져온 테마는 사용자 폴더에 저장되며 미리보기 상단의 제거로 언제든지 삭제할 수 있습니다.",
+    "importHelpManifestTitle": "매니페스트 및 설정 스키마 (manifest.json / theme.json)",
+    "importHelpManifestMetaTitle": "메타데이터 및 썸네일",
+    "importHelpManifestMetaDesc": "name/title, desc/description, entry/page/main/file(기본값 index.html), adaptive(true/false), thumb/thumbnail/preview(.svg를 포함한 상대 이미지 경로 또는 CSS 색상/그라디언트)를 지원합니다.",
+    "importHelpManifestParamsTitle": "매개변수 (groups 또는 settings)",
+    "importHelpManifestParamsDesc": "DiyarDesk 고유의 groups 배열([{ name, params }])과 group/category를 사용하는 그룹화된 settings 객체를 모두 허용하며, 슬라이더(range: min/max/step/default), 선택기(select: 문자열 목록 또는 { label, value } 옵션), 토글(checkbox: true/false)을 지원합니다.",
+    "importHelpProtoTitle": "인터랙티브 HTML 테마 프로토콜",
+    "importHelpProtoReadyTitle": "준비 핸드셰이크",
+    "importHelpProtoReadyDesc": "배경 화면 모드에서는 window.chrome.webview.postMessage('ready')를, 미리보기 모드(?preview=1)에서는 parent.postMessage(JSON.stringify({ t: 'ready' }), '*')를 호출하여 초기 설정과 아이콘 사각형을 받습니다.",
+    "importHelpProtoMsgTitle": "호스트 메시지 및 공유",
+    "importHelpProtoMsgDesc": "페이지는 { t: 'icons', vis, r: [[l, t, r, b], ...] }(물리 픽셀이며, CSS 픽셀로 바꾸려면 devicePixelRatio로 나눔), { t: 'settings', v: {...} }, { t: 'reset', v: {...} }, { t: 'pause', v: true|false } 메시지를 받습니다. 공유를 위해 선택적으로 window.desklandSnapshot() / window.desklandRecord()를 노출할 수 있습니다.",
+    "removeTheme": "제거",
+    "removeThemeTitle": "가져온 이 테마 제거",
+    "importErrorTitle": "테마 가져오기 실패",
+    "importError": "테마를 가져올 수 없습니다: {msg}",
+    "virtualBarTitle": "바탕 화면 가상 아이콘 바",
+    "virtualBarAuto": "아이콘: 자동",
+    "virtualBarAlways": "아이콘: 항상 표시",
+    "virtualBarOff": "아이콘: 숨김",
+    "lowMode": "저전력 모드",
+    "lowModeTitle": "엄격한 에코 최적화: 15 FPS 제한, 0.75x 배율, 무거운 블러/그림자 비활성화, 창 뒤에서 더 빠르게 일시정지",
+    "disableAutoPause": "자동 일시정지 사용 안 함",
+    "disableAutoPauseTitle": "활성화하면 최대화 또는 전체 화면 창이 열려 있어도 애니메이션이 계속 재생됩니다"
+  },
+  "host": {
+    "traySettings": "설정…",
+    "trayPause": "애니메이션 일시정지",
+    "trayLowMode": "저전력 모드 (에코)",
+    "trayReload": "새로 고침",
+    "trayAutostart": "Windows 시작 시 실행",
+    "trayExit": "종료 (배경 화면 복원)",
+    "welcomeTitle": "DiyarDesk가 실행 중입니다",
+    "welcomeBody": "메뉴를 열려면 시스템 트레이의 DiyarDesk 아이콘을 클릭하세요{hotkey}.\n보이지 않나요? 작업 표시줄 오른쪽의 ^를 클릭하세요.",
+    "welcomeHotkey": " 또는 Ctrl+Alt+H를 누르세요",
+    "errNotReady": "배경 화면이 아직 준비되지 않았습니다",
+    "errNoImage": "이미지가 반환되지 않았습니다",
+    "errNoVideo": "동영상이 반환되지 않았습니다",
+    "errBusyImage": "이전 이미지를 아직 생성 중입니다",
+    "errBusyVideo": "이전 클립을 아직 녹화 중입니다",
+    "errImageTimeout": "생성 시간이 너무 오래 걸렸습니다",
+    "errVideoTimeout": "녹화 시간이 너무 오래 걸렸습니다",
+    "errBadData": "페이지가 불완전한 데이터를 반환했습니다",
+    "errRebuilt": "Windows가 배경 화면 레이어를 계속 다시 만들어 DiyarDesk가 중지되었습니다.",
+    "errSeeLog": "자세한 내용은 로그를 참조하세요: {path}",
+    "errSettings": "설정 창을 열 수 없습니다: {msg}",
+    "errNoPage": "페이지를 찾을 수 없습니다: {path}",
+    "errNoDesktop": "바탕 화면 창을 찾을 수 없어 배경 화면을 연결할 수 없습니다.",
+    "errStart": "시작할 수 없습니다: {msg}"
+  },
+  "themes": {
+    "quietsnow": {
+      "name": "고요한 눈",
+      "creditPrefix": "영감 출처:",
+      "desc": "Snowhush에서 영감을 받은 사실적인 생동감 넘치는 물리와 상호작용: 눈, 유리구슬처럼 맺힌 빗방울, 흩날리는 가을잎, 벚꽃 모드. 바닥과 바탕 화면 아이콘, 열린 창 위에 쌓이고, 창을 움직이거나 닫으면 흘러내리며, 커서 아래에서 쓸려 나갑니다.",
+      "groups": [
+        "계절과 날씨",
+        "쌓임과 상호작용",
+        "분위기와 색감",
+        "성능"
+      ],
+      "params": {
+        "mode": {
+          "label": "계절 모드",
+          "hint": "사실적인 눈, 유리구슬 빗방울, 가을잎, 벚꽃 사이를 실시간으로 전환합니다",
+          "options": ["눈", "비", "가을잎", "벚꽃"]
+        },
+        "intensity": {
+          "label": "강도",
+          "hint": "내리는 눈, 비, 잎, 꽃잎의 전체 밀도"
+        },
+        "wind": {
+          "label": "바람 방향과 세기",
+          "hint": "음수는 왼쪽, 양수는 오른쪽으로 붑니다"
+        },
+        "gusts": {
+          "label": "자연 돌풍",
+          "hint": "간헐적인 돌풍과 눈 능선에서 날려 올라오는 눈보라"
+        },
+        "accumulate": {
+          "label": "쌓이는 위치",
+          "hint": "눈, 잎, 빗방울이 바닥에만 쌓일지 바탕 화면 아이콘에도 쌓일지 선택합니다",
+          "options": ["끔", "바닥만", "바닥 및 아이콘"]
+        },
+        "windows": {
+          "label": "창 위에 쌓기",
+          "hint": "열린 창의 상단 가장자리에 눈, 잎, 꽃잎, 빗방울이 쌓이고 창을 움직이거나 닫으면 흘러내립니다",
+          "options": ["끔", "켬"]
+        },
+        "melt": {
+          "label": "자연스러운 융해 / 소멸",
+          "hint": "눈더미를 서서히 녹이거나 떨어진 잎과 꽃잎을 시들게 하여 바탕 화면의 균형을 유지합니다"
+        },
+        "cursor": {
+          "label": "커서 상호작용",
+          "hint": "포인터로 눈더미를 쓸어내리고, 잎과 꽃잎을 흩뿌리거나 빗방울을 문지릅니다",
+          "options": ["끔", "약하게", "강하게"]
+        },
+        "depth": {
+          "label": "눈더미 깊이",
+          "hint": "바닥과 아이콘 위에 쌓일 수 있는 눈더미의 최대 두께"
+        },
+        "atmosphere": {
+          "label": "분위기",
+          "hint": "차분한 계절 배경과 주변 조명을 선택합니다",
+          "options": ["고요한 밤", "푸른 시간", "안개 낀 아침", "가로등의 온기"]
+        },
+        "sparkle": {
+          "label": "반짝임과 광택",
+          "hint": "눈 결정 표면의 반짝임, 빗방울 하이라이트, 반투명 꽃잎의 미광"
+        },
+        "backdrop": {
+          "label": "먼 안개와 능선",
+          "hint": "희미한 지평선 능선, 먼 소나무, 지면 안개의 가시성"
+        },
+        "quality": {
+          "label": "품질",
+          "hint": "렌더링 해상도 및 물리 파티클 예산",
+          "options": ["낮음", "균형", "높음"]
+        }
+      }
+    },
+    "beach": {
+      "name": "해변",
+      "desc": "파도가 모래사장으로 밀려오고 해안선이 파일 주위를 감싸 흐릅니다",
+      "groups": [
+        "해안선",
+        "물",
+        "디테일"
+      ],
+      "params": {
+        "palms": {
+          "label": "코코넛 야자수",
+          "hint": "해안 야자수 개수입니다. 0이면 숨깁니다. 모래가 부족하면 더 적게 표시됩니다.",
+          "unit": ""
+        },
+        "sigma": {
+          "label": "아이콘과의 거리",
+          "hint": "해안선이 아이콘에서 얼마나 떨어져 자리할지"
+        },
+        "warp": {
+          "label": "굽이치는 해안",
+          "hint": "해안선이 얼마나 구불구불하게 휘어지는지"
+        },
+        "shoal": {
+          "label": "맑은 얕은 물",
+          "hint": "모래 위를 덮는 투명한 물의 폭"
+        },
+        "shallow": {
+          "label": "얕은 바다",
+          "hint": "물이 청록색에서 짙은 파란색으로 옅어지는 거리"
+        },
+        "kayaks": {
+          "label": "카약",
+          "unit": ""
+        },
+        "birds": {
+          "label": "바닷새",
+          "hint": "머리 위를 활공하며 맴도는 갈매기",
+          "unit": ""
+        }
+      }
+    },
+    "meadow": {
+      "name": "초원",
+      "desc": "아이콘이 짙은 초록 그림자를 드리우는 흰 구름 속에 숨는 펜 앤 워시 초원",
+      "groups": [
+        "아이콘 주변",
+        "구름",
+        "캐릭터"
+      ],
+      "params": {
+        "sigma": {
+          "label": "구름 크기",
+          "hint": "아이콘 주변 구름이 퍼지는 범위"
+        },
+        "cover": {
+          "label": "초원 위 구름",
+          "hint": "탁 트인 초원 위를 떠다니는 구름의 양"
+        },
+        "flow": {
+          "label": "떠다니는 속도",
+          "hint": "구름이 떠다니고 뭉게구름이 변하는 속도"
+        },
+        "showBoy": {
+          "label": "소년 표시",
+          "hint": "연을 든 소년을 표시하거나 숨깁니다",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "showCat": {
+          "label": "아기 고양이 표시",
+          "hint": "풀밭에 쉬고 있는 작은 검은 아기 고양이",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        }
+      }
+    },
+    "aurora": {
+      "name": "오로라 호수",
+      "desc": "자정의 얼어붙은 호수가 오로라의 띠를 비추고, 아이콘은 소나무와 따뜻한 등불이 있는 황혼의 설원 섬에 쉬어 갑니다",
+      "groups": [
+        "눈 덮인 기슭",
+        "오로라와 얼음",
+        "디테일"
+      ],
+      "params": {
+        "sigma": {
+          "label": "설원 범위",
+          "hint": "눈 덮인 섬이 아이콘 주변으로 얼마나 뻗어나가는지"
+        },
+        "warp": {
+          "label": "굽이치는 기슭",
+          "hint": "눈 덮인 해안선이 얼마나 구불구불한지"
+        },
+        "shoal": {
+          "label": "얼음 가장자리",
+          "hint": "기슭 주변으로 옅은 얼음 테두리가 빛나는 폭"
+        },
+        "aurora": {
+          "label": "오로라 빛",
+          "hint": "북극광이 얼어붙은 호수 위에서 얼마나 밝게 일렁이는지"
+        },
+        "flow": {
+          "label": "흐름 속도",
+          "hint": "오로라 띠와 강설이 흐르는 속도"
+        },
+        "pines": {
+          "label": "눈 덮인 소나무",
+          "hint": "섬 위에 자리한 눈 덮인 소나무. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "lanterns": {
+          "label": "따뜻한 등불",
+          "hint": "눈 덮인 기슭을 따라 놓인 따뜻하게 빛나는 등불",
+          "unit": ""
+        },
+        "snow": {
+          "label": "강설",
+          "hint": "장면 전체에 흩날리는 잔눈의 밀도"
+        }
+      }
+    },
+    "glade": {
+      "name": "숲속 빈터",
+      "desc": "구아슈로 그린 나무들이 부드럽게 흔들리며 아이콘 주변으로 햇살 가득한 초원 빈터를 열어 주고, 수관에는 작은 새들이 앉아 있습니다",
+      "groups": [
+        "빈터",
+        "숲",
+        "야생 동물"
+      ],
+      "params": {
+        "sigma": {
+          "label": "빈터 크기",
+          "hint": "아이콘 주변으로 햇살 가득한 초원이 트이는 폭"
+        },
+        "warp": {
+          "label": "가장자리 곡선",
+          "hint": "숲 가장자리가 얼마나 구불구불하게 휘어지는지"
+        },
+        "density": {
+          "label": "나무 밀도",
+          "hint": "그림 같은 나무가 숲을 얼마나 빽빽하게 덮는지"
+        },
+        "wind": {
+          "label": "바람 흔들림",
+          "hint": "나무 꼭대기와 앉아 있는 새들이 바람에 얼마나 흔들리는지"
+        },
+        "birds": {
+          "label": "숲속 새",
+          "hint": "나무 꼭대기에 앉아 숲을 오가는 작은 새. 0이면 숨깁니다",
+          "unit": ""
+        }
+      }
+    },
+    "rift": {
+      "name": "룬의 균열",
+      "desc": "그림 같은 정글과 빛나는 뱀 모양 강 사이에서 금빛과 청록빛 Hextech 룬이 맥동하는 조각된 돌 성역이 아이콘 주변으로 열립니다",
+      "groups": [
+        "성역",
+        "룬과 강",
+        "유물과 위습"
+      ],
+      "params": {
+        "sigma": {
+          "label": "투기장 크기",
+          "hint": "조각된 돌 성역이 아이콘 주변으로 열리는 폭"
+        },
+        "warp": {
+          "label": "절벽 윤곽",
+          "hint": "정글 절벽 가장자리가 얼마나 들쭉날쭉하거나 자연스럽게 굽이치는지"
+        },
+        "glow": {
+          "label": "Hextech 빛",
+          "hint": "청록색 룬, 수호 결정, 강이 얼마나 밝게 빛나는지"
+        },
+        "wind": {
+          "label": "흐름과 산들바람",
+          "hint": "수관이 흔들리고 강물이 일렁이며 위습이 떠도는 속도"
+        },
+        "heroes": {
+          "label": "균열 챔피언",
+          "hint": "돌 성역과 강기슭 사이를 거니는 치비 챔피언과 포로. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "turrets": {
+          "label": "마법 포탑",
+          "hint": "성역 가장자리를 지키는 푸른 질서와 진홍 혼돈의 돌 방어 포탑. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "wards": {
+          "label": "와드 등불",
+          "hint": "아이콘 가장자리를 따라 서 있는 놋쇠와 수정 룬 등불. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "wisps": {
+          "label": "마법 위습",
+          "hint": "강과 수관을 떠도는 빛나는 마나 위습. 0이면 숨깁니다",
+          "unit": ""
+        }
+      }
+    },
+    "strike": {
+      "name": "폭탄 지점 먼지",
+      "desc": "햇살 가득한 사막 폭탄 지점: 아이콘은 탄흔이 난 콘크리트 충격 지대 안에 놓이고, 놋쇠 탄피와 상자, 배회하는 닭, 아이콘이 위로 오면 튕겨 나가는 축구공이 있습니다",
+      "groups": [
+        "충격 지대",
+        "분위기",
+        "소품과 이스터 에그"
+      ],
+      "params": {
+        "sigma": {
+          "label": "충격 반경",
+          "hint": "탄흔이 난 콘크리트 지대가 아이콘 주변으로 트이는 폭"
+        },
+        "warp": {
+          "label": "잔해 가장자리",
+          "hint": "콘크리트 경계가 마당 모래로 얼마나 들쭉날쭉하게 부서지는지"
+        },
+        "holes": {
+          "label": "탄환 밀도",
+          "hint": "아이콘 지대에 탄흔, 방사형 균열, 빈 탄피가 얼마나 빽빽하게 덮이는지"
+        },
+        "smoke": {
+          "label": "먼지와 연기",
+          "hint": "전술 연기 기둥과 햇살 속 사막 아지랑이가 마당에 얼마나 뚜렷하게 흐르는지"
+        },
+        "wind": {
+          "label": "산들바람과 속도",
+          "hint": "전술 연기가 흐르고 모래가 날리며 닭이 배회하는 속도"
+        },
+        "ball": {
+          "label": "축구공",
+          "hint": "아이콘이 위로 오면 빈 공간으로 굴러가 튕기는 클래식 CS 축구공. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "chickens": {
+          "label": "배회하는 닭",
+          "hint": "아이콘과 공을 피해 부리로 쪼며 날아다니는 사막 마당 닭. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "crates": {
+          "label": "엄폐 상자",
+          "hint": "열린 통로에 나무 보급 상자, 기름통, 모래주머니가 얼마나 빽빽하게 배치되는지"
+        }
+      }
+    },
+    "pocket": {
+      "name": "전선 포위",
+      "desc": "아이콘 무리가 폴더 언어에 자동으로 맞춰진 터키·독일·영국 NATO 사단 표식에 둘러싸인 전투 포켓으로 변하는 대전략 전쟁 지도",
+      "groups": [
+        "전선과 포위",
+        "사단과 국가",
+        "전장 디테일"
+      ],
+      "params": {
+        "sigma": {
+          "label": "포위 반경",
+          "hint": "포위된 전투 포켓이 아이콘 주변으로 뻗어나가는 폭"
+        },
+        "warp": {
+          "label": "전선 곡선",
+          "hint": "포위 경계가 지형 능선을 얼마나 자연스럽게 따르는지"
+        },
+        "arrows": {
+          "label": "공격 화살표",
+          "hint": "안쪽을 향한 작전 화살표와 전선 강조가 얼마나 밝게 맥동하는지"
+        },
+        "divisions": {
+          "label": "사단 표식",
+          "hint": "포켓을 둘러싸는 Age of History / HOI4 스타일 사단 표식 수. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "faction": {
+          "label": "포위 세력",
+          "hint": "0 = 폴더 언어 자동 감지(터키어/독일어/영어); 1 = 터키; 2 = 독일; 3 = 영국"
+        },
+        "pace": {
+          "label": "작전 속도",
+          "hint": "전선 돌파 애니메이션과 사단이 새 포켓을 닫기 위해 행군하는 속도"
+        },
+        "skirmish": {
+          "label": "포병 사격",
+          "hint": "전선 사단이 안쪽으로 포병 섬광과 전투 연기를 내뿜는 빈도"
+        },
+        "supply": {
+          "label": "지도와 요새",
+          "hint": "등고선, 좌표 격자, 외곽 별모양 요새 보급소의 가시성"
+        }
+      }
+    },
+    "roach": {
+      "name": "바퀴벌레 마을",
+      "desc": "바이럴한 인간형 바퀴벌레 캐릭터들 — 가죽 조끼를 입은 주스 애호가, 넥타이 차림 학생, 공장 안전모 팀, 분홍 깃털의 디바, 빨간 원피스 커플 — 이 조약돌 거리에서 따뜻한 아이콘 인도 테라스를 거닐고 있습니다",
+      "groups": [
+        "거리와 인도",
+        "바퀴벌레 출연진"
+      ],
+      "params": {
+        "sigma": {
+          "label": "인도 폭",
+          "hint": "따뜻한 타일 인도 섬이 바탕 화면 아이콘 주변으로 뻗어나가는 범위"
+        },
+        "warp": {
+          "label": "연석 자연스러움",
+          "hint": "인도 연석이 아이콘 무리 주변을 얼마나 자연스럽게 감싸는지"
+        },
+        "glow": {
+          "label": "가로등 빛",
+          "hint": "거리 물웅덩이에 비치는 따뜻한 호박색 등불 반사의 강도"
+        },
+        "vibe": {
+          "label": "햇살 마당",
+          "hint": "해질녘 베이올루의 조약돌 대로에서 햇살 가득한 마당으로 크로스페이드"
+        },
+        "crowd": {
+          "label": "바퀴벌레 출연진",
+          "hint": "거닐고 춤추고 주스를 마시는 바퀴벌레 캐릭터 수. 0이면 숨깁니다",
+          "unit": ""
+        },
+        "speed": {
+          "label": "거닐기 속도",
+          "hint": "바퀴벌레 출연진이 걷고 춤추며 모퉁이를 도는 속도"
+        },
+        "props": {
+          "label": "가로등과 소품",
+          "hint": "철제 가로등, 주스 상자, 튤립 모양 차잔의 밀도"
+        },
+        "audio": {
+          "label": "배경 오디오",
+          "hint": "바퀴벌레 마을에 사용할 로컬 오디오 파일을 선택하고 언제든지 재생하거나 일시정지합니다",
+          "defaultName": "Roach Town (기본)"
+        }
+      }
+    },
+    "rosebrook": {
+      "name": "장미 개울",
+      "desc": "수정처럼 반짝이는 개울이 가로지르는 푸른 초원. 아이콘을 놓거나 옮기면 그 주변으로 겹겹의 장미와 들꽃이 피어나고 꽃잎이 바람에 흩날립니다.",
+      "groups": [
+        "개울과 초원",
+        "장미와 꽃잎"
+      ],
+      "params": {
+        "sigma": {
+          "label": "초원 반경",
+          "hint": "햇살 가득한 잔디와 꽃 고리가 각 아이콘 주변으로 퍼지는 범위",
+          "unit": "px"
+        },
+        "stream": {
+          "label": "개울 폭",
+          "hint": "초원을 가로지르는 구불구불한 숲속 개울의 폭"
+        },
+        "flow": {
+          "label": "유속",
+          "hint": "물결과 햇빛 굴절이 하류로 흐르는 속도"
+        },
+        "sunlight": {
+          "label": "수면 반짝임",
+          "hint": "개울 위의 따뜻한 햇살과 반짝이는 하이라이트"
+        },
+        "roses": {
+          "label": "장미 밀도",
+          "hint": "놓인 아이콘 주변에 피어나는 장미와 들꽃의 풍성함"
+        },
+        "petals": {
+          "label": "흩날리는 꽃잎",
+          "hint": "공중에 떠다니는 장미 꽃잎과 정원 나비의 수"
+        },
+        "breeze": {
+          "label": "초원 산들바람",
+          "hint": "꽃이 흔들리고 장미 꽃잎이 흩날리는 속도"
+        }
+      }
+    },
+    "polarnight": {
+      "name": "극야 오로라",
+      "desc": "얼어붙은 호숫가의 극야: 오로라가 하늘을 가로질러 일렁이고 얼음에 비치며, 아이콘은 눈 덮인 소나무 숲의 빈터에 쉬어 갑니다",
+      "groups": [
+        "아이콘 주변",
+        "오로라",
+        "겨울밤"
+      ],
+      "params": {
+        "sigma": {
+          "label": "빈터 크기",
+          "hint": "나무가 시작되기 전 아이콘 주변의 트인 설원이 뻗어나가는 범위"
+        },
+        "density": {
+          "label": "숲 밀도",
+          "hint": "빈터 너머로 소나무 숲이 얼마나 빽빽하게 자라는지. 0이면 나무를 숨깁니다"
+        },
+        "glow": {
+          "label": "오로라 밝기",
+          "hint": "하늘의 세 띠가 얼마나 밝게 타오르는지"
+        },
+        "flow": {
+          "label": "흐름 속도",
+          "hint": "오로라가 일렁이고 얼음이 반짝이며 눈이 내리는 속도"
+        },
+        "palette": {
+          "label": "오로라 색상",
+          "hint": "띠의 색상",
+          "options": [
+            "초록과 분홍",
+            "보라와 청록",
+            "금색과 초록"
+          ]
+        },
+        "snow": {
+          "label": "강설",
+          "hint": "떨어지는 눈송이의 양. 0이면 눈이 그칩니다",
+          "unit": ""
+        },
+        "meteor": {
+          "label": "별똥별",
+          "hint": "밤하늘을 이따금 가로지르는 유성",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "cabin": {
+          "label": "오두막",
+          "hint": "아이콘을 피해 자리한 따뜻한 창과 굴뚝 연기가 있는 작은 호숫가 오두막",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        }
+      }
+    },
+    "desert": {
+      "name": "사하라 오아시스",
+      "desc": "황금빛 사막 모래언덕을 위에서 본 모습: 놓인 아이콘은 햇살 받은 모래 언덕을 솟게 하고, 낙타 대상과 아랍 여행자들이 야자수 오아시스 사이를 누빕니다",
+      "groups": [
+        "아이콘 모래언덕",
+        "오아시스와 햇살",
+        "대상과 여행자"
+      ],
+      "params": {
+        "sigma": {
+          "label": "모래언덕 크기",
+          "hint": "솟아오른 모래언덕이 각 아이콘 주변으로 퍼지는 범위"
+        },
+        "warp": {
+          "label": "바람 물결",
+          "hint": "모래언덕의 자연스러운 굴곡과 바람이 다듬은 윤곽"
+        },
+        "oases": {
+          "label": "오아시스 수",
+          "hint": "낮은 분지에 자리한 청록빛 사막 오아시스의 수",
+          "unit": ""
+        },
+        "warmth": {
+          "label": "햇살 온기",
+          "hint": "황금빛 사하라 햇살과 아지랑이의 강도"
+        },
+        "wind": {
+          "label": "바람과 대상 속도",
+          "hint": "모래 먼지가 날리고 야자수가 흔들리며 대상이 걷는 속도"
+        },
+        "camels": {
+          "label": "낙타",
+          "hint": "모래언덕을 가로지르는 낙타의 수. 0이면 대상을 숨깁니다",
+          "unit": ""
+        },
+        "travelers": {
+          "label": "아랍 여행자",
+          "hint": "케피예를 두른 로브 차림의 아랍 대상 안내인과 베두인 오아시스 천막",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "palms": {
+          "label": "대추야자",
+          "hint": "오아시스를 둘러싼 무성한 대추야자 나무의 수",
+          "unit": ""
+        }
+      }
+    },
+    "zen-archipelago": {
+      "name": "젠 군도",
+      "desc": "아이콘 주변에 맞춰지는 생물발광 코이 석호, 나무 다리, 벚꽃 섬과 떠 있는 등불",
+      "groups": [
+        "분위기와 파도",
+        "섬과 다리",
+        "석호와 등불"
+      ],
+      "params": {
+        "timeOfDay": {
+          "label": "시간대",
+          "hint": "생물발광 밤, 황금빛 노을, 에메랄드 낮 사이를 전환합니다",
+          "options": [
+            "생물발광 밤",
+            "황금빛 노을",
+            "에메랄드 낮"
+          ]
+        },
+        "waveIntensity": {
+          "label": "파도 강도",
+          "hint": "각 섬 주변으로 밀려오는 물결의 세기와 빛"
+        },
+        "islandMargin": {
+          "label": "섬 크기",
+          "hint": "각 아이콘 섬이 모래, 풀, 산호초로 얼마나 넓어지는지"
+        },
+        "bridgeDistance": {
+          "label": "다리 길이",
+          "hint": "가까운 아이콘 섬 사이에 나무 다리를 놓을 수 있는 최대 거리"
+        },
+        "koiCount": {
+          "label": "코이 물고기",
+          "hint": "석호를 우아하게 헤엄치는 코이의 수",
+          "unit": ""
+        },
+        "lanternCount": {
+          "label": "떠 있는 등불",
+          "hint": "석호를 떠다니는 따뜻한 나무 도로 등불",
+          "unit": ""
+        },
+        "sakuraDensity": {
+          "label": "벚꽃 개화",
+          "hint": "벚나무와 흩날리는 꽃잎의 밀도"
+        },
+        "fireflies": {
+          "label": "반딧불이",
+          "hint": "위에 떠 있는 생물발광 포자와 반딧불이의 수"
+        }
+      }
+    },
+    "istanbul": {
+      "name": "이스탄불 — 보스포루스 노을",
+      "desc": "이스탄불을 위에서 본 모습: 보스포루스, 금각만, 돔, 미나레트, 페리, 갈매기와 아이콘 주변의 튤립이 늘어선 타일 광장과 나무 부두",
+      "groups": [
+        "시간과 빛",
+        "보스포루스",
+        "아이콘 주변",
+        "도시"
+      ],
+      "params": {
+        "time": {
+          "label": "시간대",
+          "hint": "자동은 시스템 시계에 따라 아침, 정오, 노을, 밤을 따릅니다",
+          "options": [
+            "자동",
+            "아침",
+            "정오",
+            "노을",
+            "밤"
+          ]
+        },
+        "glow": {
+          "label": "빛 번짐",
+          "hint": "물빛 반짝임, 도시 창문, 광장 등불의 강도"
+        },
+        "ferries": {
+          "label": "페리",
+          "hint": "해협을 건너는 보스포루스 통근 페리의 수",
+          "unit": ""
+        },
+        "flow": {
+          "label": "물과 페리 속도",
+          "hint": "지나가는 파도와 통근 페리의 속도"
+        },
+        "gulls": {
+          "label": "갈매기",
+          "hint": "보스포루스 상공을 맴도는 갈매기 떼",
+          "options": [
+            "없음",
+            "적음",
+            "많음"
+          ]
+        },
+        "pad": {
+          "label": "광장 크기",
+          "hint": "육지의 타일 광장과 물 위 나무 부두가 아이콘 주변으로 퍼지는 폭"
+        },
+        "tulips": {
+          "label": "튤립",
+          "hint": "육지 아이콘 주변 광장을 장식하는 튤립 화단",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "cats": {
+          "label": "길고양이",
+          "hint": "평화로운 이스탄불 광장에서 일광욕하는 고양이",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "landmarks": {
+          "label": "역사적 명소",
+          "hint": "아야 소피아, 블루 모스크, 쉴레이마니예, 갈라타 탑, 처녀탑",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        }
+      }
+    },
+    "solar-system": {
+      "name": "인터랙티브 태양계와 블랙홀",
+      "desc": "바탕 화면 아이콘을 커서 중력과 궤도 아이콘 운동을 갖춘 상대론적 블랙홀 주위를 도는 살아 있는 태양계로 바꿉니다",
+      "groups": [
+        "블랙홀과 핵",
+        "태양계",
+        "우주",
+        "물리",
+        "성능"
+      ],
+      "params": {
+        "centerBodyType": {
+          "label": "중심 천체 유형",
+          "options": [
+            "블랙홀",
+            "거대 태양",
+            "심우주"
+          ]
+        },
+        "blackHoleSize": {
+          "label": "블랙홀 크기"
+        },
+        "accretionIntensity": {
+          "label": "강착원반과 중력 렌즈 빛"
+        },
+        "iconOrbitMode": {
+          "label": "아이콘 궤도 운동",
+          "options": [
+            "핵 궤도",
+            "고정 앵커"
+          ]
+        },
+        "globalOrbitSpeed": {
+          "label": "아이콘 공전 속도"
+        },
+        "planetCount": {
+          "label": "행성 수"
+        },
+        "orbitSize": {
+          "label": "궤도 크기"
+        },
+        "orbitSpeed": {
+          "label": "공전 속도"
+        },
+        "planetSize": {
+          "label": "행성 크기"
+        },
+        "starDensity": {
+          "label": "별 밀도"
+        },
+        "nebulaIntensity": {
+          "label": "성운 강도"
+        },
+        "asteroidDensity": {
+          "label": "소행성 밀도"
+        },
+        "shootingStars": {
+          "label": "별똥별",
+          "options": [
+            "끔",
+            "켬"
+          ]
+        },
+        "gravityStrength": {
+          "label": "중력 세기"
+        },
+        "systemAttraction": {
+          "label": "항성계 인력"
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "winter": {
+      "name": "겨울 오두막과 살아 있는 눈",
+      "desc": "눈 덮인 봉우리, 소나무 숲, 따뜻한 오두막 연기, 그리고 바탕 화면 아이콘을 감싸는 눈더미가 있는 고요한 겨울 황혼의 세계",
+      "groups": [
+        "눈과 바람",
+        "풍경과 오두막",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "snowIntensity": {
+          "label": "눈 강도"
+        },
+        "snowSpeed": {
+          "label": "눈 속도"
+        },
+        "windStrength": {
+          "label": "바람 세기"
+        },
+        "atmosphereDensity": {
+          "label": "대기 밀도"
+        },
+        "mountainVisibility": {
+          "label": "산 가시성"
+        },
+        "treeDensity": {
+          "label": "나무 밀도"
+        },
+        "smokeAmount": {
+          "label": "연기 양"
+        },
+        "iconSnowAmount": {
+          "label": "아이콘 눈 양"
+        },
+        "animSpeed": {
+          "label": "애니메이션 속도"
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "neumorph": {
+      "name": "뉴모픽 촉감 표면",
+      "desc": "스프링 물리 촉감 타일, 은은한 회전 다이얼, 클릭 잔물결, 바탕 화면 아이콘 주변의 돌출된 받침대가 있는 부드러운 UI 표면",
+      "groups": [
+        "표면과 조명",
+        "촉감 운동",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "palette": {
+          "label": "표면 팔레트",
+          "options": [
+            "설화석고",
+            "따뜻한 모래",
+            "자정 슬레이트",
+            "세이지 안개"
+          ]
+        },
+        "accentColor": {
+          "label": "강조 LED",
+          "options": [
+            "코발트",
+            "코럴",
+            "에메랄드",
+            "앰버"
+          ]
+        },
+        "reliefDepth": {
+          "label": "양각 깊이"
+        },
+        "lightFollowCursor": {
+          "label": "커서 조명",
+          "options": [
+            "끔",
+            "켬"
+          ]
+        },
+        "waveSpeed": {
+          "label": "호흡 파동 속도"
+        },
+        "tileDensity": {
+          "label": "타일 밀도"
+        },
+        "rippleStrength": {
+          "label": "클릭 잔물결 세기"
+        },
+        "iconStyle": {
+          "label": "아이콘 몰드 스타일",
+          "options": [
+            "돌출된 받침대",
+            "음각 홈",
+            "미니멀 링"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "claymorph": {
+      "name": "클레이모피즘 촉감 세계",
+      "desc": "젤리처럼 말랑한 물리, 쿠션 같은 커서 밀기, 바탕 화면 아이콘 아래 부풀어 오른 받침대가 있는 통통한 3D 파스텔 클레이 구체와 캡슐",
+      "groups": [
+        "클레이와 팔레트",
+        "떠 있는 조형물",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "palette": {
+          "label": "클레이 팔레트",
+          "options": [
+            "파스텔 스튜디오",
+            "베리와 크림",
+            "말차 클레이",
+            "황혼 클레이"
+          ]
+        },
+        "puffiness": {
+          "label": "통통함"
+        },
+        "squishStrength": {
+          "label": "말랑함과 탄성"
+        },
+        "blobCount": {
+          "label": "조형물 밀도"
+        },
+        "floatSpeed": {
+          "label": "떠다니는 속도"
+        },
+        "cursorRepel": {
+          "label": "커서 쿠션 밀기"
+        },
+        "iconCradle": {
+          "label": "아이콘 받침대 스타일",
+          "options": [
+            "퐁신한 파스텔",
+            "크림 쿠션",
+            "클레이 링"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "neobrutalism": {
+      "name": "네오 브루탈리즘 키네틱 포스터",
+      "desc": "선명하고 두꺼운 잉크 테두리의 고대비 색면 도형, 흐림 없는 하드 오프셋 그림자, 기계적인 클릭 스냅, 액자형 바탕 화면 아이콘 카드",
+      "groups": [
+        "팔레트와 잉크",
+        "모션과 상호작용",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "palette": {
+          "label": "포스터 팔레트",
+          "options": [
+            "바우하우스 팝",
+            "애시드 포스터",
+            "레트로 진",
+            "자정 진"
+          ]
+        },
+        "borderWeight": {
+          "label": "테두리 두께"
+        },
+        "shadowDepth": {
+          "label": "하드 그림자 오프셋"
+        },
+        "halftonePattern": {
+          "label": "하프톤 점",
+          "options": [
+            "끔",
+            "켬"
+          ]
+        },
+        "shapeCount": {
+          "label": "블록 밀도"
+        },
+        "motionSpeed": {
+          "label": "떠다니는 속도"
+        },
+        "cursorPush": {
+          "label": "커서 밀기"
+        },
+        "iconFrame": {
+          "label": "아이콘 프레임 스타일",
+          "options": [
+            "컬러 카드",
+            "기울어진 스티커",
+            "블루프린트 라인"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "voxelcraft": {
+      "name": "복셀 크래프트 세계",
+      "desc": "전환 가능한 생물군계, 각진 블록 낮밤 주기, 따뜻한 횃불, 픽셀 벌, XP 블록 파괴 효과, 바탕 화면 아이콘 아래 떠 있는 복셀 발판이 있는 픽셀 아트 복셀 생태계",
+      "groups": [
+        "세계와 하늘",
+        "생명과 분위기",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "biome": {
+          "label": "생물군계",
+          "options": [
+            "평원 오버월드",
+            "벚꽃 숲",
+            "눈 덮인 타이가",
+            "진홍 네더"
+          ]
+        },
+        "timeOfDay": {
+          "label": "시간대",
+          "options": [
+            "자동 순환",
+            "낮",
+            "노을",
+            "별밤"
+          ]
+        },
+        "blockSize": {
+          "label": "블록 크기"
+        },
+        "cloudDensity": {
+          "label": "각진 구름"
+        },
+        "weatherAmount": {
+          "label": "파티클과 반딧불이"
+        },
+        "critterAmount": {
+          "label": "픽셀 벌"
+        },
+        "torchGlow": {
+          "label": "횃불 빛"
+        },
+        "animSpeed": {
+          "label": "순환 속도"
+        },
+        "iconBlockStyle": {
+          "label": "아이콘 복셀 발판",
+          "options": [
+            "떠 있는 섬",
+            "나무 판자",
+            "픽셀 프레임"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "liquidglass": {
+      "name": "리퀴드 글래스 굴절 표면",
+      "creditPrefix": "광학 셰이더 출처:",
+      "desc": "멀티 패스 WebGL2 기반 실제 Apple Liquid Glass: 스넬 법칙 베벨 굴절, RGB 색수차 분산, 2패스 가우시안 프로스트 블러, LCH 프레넬과 이중 각도 글레어, 부드러운 액체 병합(smin), 스프링 물리 커서 렌즈",
+      "groups": [
+        "유리와 빛",
+        "액체 모션",
+        "아이콘과 성능"
+      ],
+      "params": {
+        "palette": {
+          "label": "실크 팔레트",
+          "options": [
+            "타호 애저",
+            "오로라 프리즘",
+            "노을 실크",
+            "흑요석 유리",
+            "클래식 실크"
+          ]
+        },
+        "refraction": {
+          "label": "광학 굴절"
+        },
+        "frostAmount": {
+          "label": "프로스트 확산"
+        },
+        "dispersion": {
+          "label": "색수차 가장자리"
+        },
+        "mergeRate": {
+          "label": "액체 병합",
+          "hint": "떠 있는 물방울, 커서 렌즈, 아이콘 유리 받침대가 서로 가까워질 때 얼마나 부드럽게 융합되는지"
+        },
+        "dropletCount": {
+          "label": "물방울 수"
+        },
+        "flowSpeed": {
+          "label": "흐름 속도"
+        },
+        "cursorLens": {
+          "label": "커서 유리 렌즈",
+          "options": [
+            "끔",
+            "켬"
+          ]
+        },
+        "iconGlassStyle": {
+          "label": "아이콘 유리 스타일",
+          "options": [
+            "프로스트 캡슐",
+            "투명 물방울",
+            "프리즘 테두리"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "papercut": {
+      "name": "종이 정원 — Katı' 빛",
+      "desc": "튤립, 카네이션, 히아신스, 사이프러스와 플라타너스, 그리고 먼 보스포루스 스카이라인이 있는 겹겹의 종이 공예 그림자 상자 정원. 바탕 화면 아이콘은 세 겹 고리로 둘러싸인 움푹한 아치 창이 됩니다.",
+      "groups": [
+        "빛과 시간",
+        "종이",
+        "정원",
+        "모션",
+        "아이콘 창",
+        "성능"
+      ],
+      "params": {
+        "time": {
+          "label": "시간대",
+          "hint": "자동은 시스템 시계에 따라 아침, 정오, 노을, 밤 팔레트로 전환합니다",
+          "options": ["자동", "아침", "정오", "노을", "밤"]
+        },
+        "light": {
+          "label": "빛 각도",
+          "hint": "들어오는 빛의 방향. 그림자는 반대쪽으로 드리웁니다 (225° = 좌측 상단)"
+        },
+        "shadow": {
+          "label": "그림자 깊이",
+          "hint": "종이 층 사이에 드리우는 그림자의 어두움"
+        },
+        "palette": {
+          "label": "팔레트",
+          "hint": "종이 층과 꽃의 색상 계열",
+          "options": ["장미 정원", "청록-코럴", "네이비-골드", "파스텔"]
+        },
+        "grain": {
+          "label": "종이 질감",
+          "hint": "종이 섬유와 결의 강도"
+        },
+        "gap": {
+          "label": "층 간격",
+          "hint": "종이 층 사이 거리. 값이 클수록 그림자 상자가 깊어집니다"
+        },
+        "flowers": {
+          "label": "꽃 밀도",
+          "hint": "전경의 튤립, 카네이션, 히아신스 수"
+        },
+        "trees": {
+          "label": "사이프러스와 플라타너스",
+          "hint": "잎 모양이 오려진 측면 나무 층",
+          "options": ["숨김", "표시"]
+        },
+        "critters": {
+          "label": "새와 나비",
+          "hint": "머리 위를 나는 종이 새와 꽃 위의 나비",
+          "options": ["없음", "적음", "많음"]
+        },
+        "skyline": {
+          "label": "도시 스카이라인",
+          "hint": "돔, 미나레트, 갈라타 탑 실루엣",
+          "options": ["숨김", "표시"]
+        },
+        "frame": {
+          "label": "상자 프레임",
+          "hint": "화면 가장자리를 두르는 양각 종이 테두리",
+          "options": ["숨김", "표시"]
+        },
+        "sway": {
+          "label": "산들바람",
+          "hint": "꽃이 바람에 흔들리는 정도"
+        },
+        "fw": {
+          "label": "프레임 폭",
+          "hint": "아이콘 주변 세 겹 종이 고리의 전체 폭"
+        },
+        "fstyle": {
+          "label": "프레임 모양",
+          "hint": "아치 형태는 위는 둥글고 아래는 평평합니다",
+          "options": ["아치 형태", "둥근 형태"]
+        },
+        "quality": {
+          "label": "품질",
+          "hint": "렌더링 해상도 배율과 꽃 수 예산",
+          "options": ["낮음", "균형", "높음"]
+        }
+      }
+    },
+    "software-world": {
+      "name": "소프트웨어 월드",
+      "desc": "바탕 화면 아이콘이 데이터 흐름, 패킷, git 브랜치, 은은한 터미널 분위기를 지닌 인터랙티브 노드로 변하는 살아 있는 소프트웨어 생태계.",
+      "groups": [
+        "생태계",
+        "분위기",
+        "성능"
+      ],
+      "params": {
+        "animSpeed": {
+          "label": "애니메이션 속도",
+          "hint": "패킷, 노드 맥동, git 브랜치, 주변 흐름의 전체 속도"
+        },
+        "networkActivity": {
+          "label": "네트워크 활동",
+          "hint": "연결을 따라 흐르는 데이터 패킷의 빈도와 처리량"
+        },
+        "connectionIntensity": {
+          "label": "연결 강도",
+          "hint": "노드 간 의존성 및 데이터 흐름 링크의 가시성과 범위"
+        },
+        "particleDensity": {
+          "label": "파티클 밀도",
+          "hint": "주변 네트워크 및 배경 시스템 파티클의 밀도"
+        },
+        "codeParticleDensity": {
+          "label": "코드 파티클 밀도",
+          "hint": "배경의 은은한 프로그래밍 기호 파티클 밀도"
+        },
+        "envDetail": {
+          "label": "환경 디테일",
+          "hint": "git 브랜치, 터미널 로그, 빌드 아크, 격자의 세부 수준"
+        },
+        "quality": {
+          "label": "품질",
+          "hint": "렌더링 해상도 배율과 생태계 예산",
+          "options": [
+            "낮음",
+            "균형",
+            "높음"
+          ]
+        }
+      }
+    },
+    "thinking-orbs": {
+      "name": "ThinkingOrbs 3D",
+      "desc": "바탕 화면 중앙에 자리한 거대한 볼류메트릭 3D 점 구체와 9가지 ThinkingOrbs 모드 전체, 마그네틱 커서 호버 기울기와 잔물결 물리, 적응형 바탕 화면 아이콘 링크",
+      "groups": [
+        "구체와 모드",
+        "모션과 상호작용",
+        "외형과 성능"
+      ],
+      "params": {
+        "orbDesign": {
+          "label": "구체 모드",
+          "hint": "9가지 3D 점 구체 ThinkingOrbs 디자인 사이를 실시간으로 전환합니다",
+          "options": [
+            "Working",
+            "Searching",
+            "Solving",
+            "Listening",
+            "Connecting",
+            "Weaving",
+            "Composing",
+            "Breathing",
+            "Shaping"
+          ]
+        },
+        "autoCycle": {
+          "label": "모드 자동 순환",
+          "hint": "9가지 구체 모드를 일정 간격으로 부드럽게 순환합니다",
+          "options": [
+            "끔",
+            "켬"
+          ]
+        },
+        "orbScale": {
+          "label": "구체 크기",
+          "hint": "중앙 주인공 구체의 전체 지름"
+        },
+        "dotDensity": {
+          "label": "점 밀도",
+          "hint": "구체 표면의 파티클 및 격자 밀도"
+        },
+        "animSpeed": {
+          "label": "애니메이션 속도",
+          "hint": "전체 회전, 스캔 경선, 파동 템포"
+        },
+        "hoverReaction": {
+          "label": "호버 및 터치 반응",
+          "hint": "3D 시차 기울기, 마그네틱 점 반발, 클릭/탭 충격파 강도",
+          "options": [
+            "끔",
+            "약하게",
+            "강하게"
+          ]
+        },
+        "dotGlow": {
+          "label": "핵 빛",
+          "hint": "주변 핵 후광과 활성 점의 발광"
+        },
+        "palette": {
+          "label": "팔레트",
+          "options": [
+            "흑요석 모노",
+            "종이 모노",
+            "코발트 AI",
+            "앰버 펄스",
+            "에메랄드 그리드"
+          ]
+        },
+        "iconLinks": {
+          "label": "아이콘 텔레메트리 링크",
+          "hint": "적응형이 켜져 있을 때 바탕 화면 아이콘과 중앙 구체 사이에 은은한 점선 필라멘트를 그립니다",
+          "options": [
+            "숨김",
+            "표시"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "options": [
+            "낮음",
+            "보통",
+            "높음"
+          ]
+        }
+      }
+    }
+  }
+}

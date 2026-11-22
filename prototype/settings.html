@@ -485,7 +485,7 @@ const frame = $('preview');
 
 /* ---------- 界面语言：文字表在 i18n/<语言>.json（ui：界面文字；themes：主题名和参数——简体中文的就是 themes.json 本身） ---------- */
 // 增加语言时同步宿主 I18n.Supported 与体验版导出的语言列表。
-const LANGS = { 'en': 'English', 'tr': 'Türkçe', 'zh-CN': '简体中文' };
+const LANGS = { 'en': 'English', 'tr': 'Türkçe', 'zh-CN': '简体中文', 'zh-TW': '繁體中文', 'de': 'Deutsch', 'fr': 'Français', 'ja': '日本語', 'ko': '한국어' };
 const I18N = {};
 let lang = 'zh-CN';
 const loadLang = code => I18N[code] ? Promise.resolve() :
@@ -508,7 +508,7 @@ function connectionErrorText(code) {
 function browserLang() {
   for (const l of navigator.languages || [navigator.language]) {
     const x = (l || '').toLowerCase();
-    if (x.startsWith('zh')) return 'zh-CN';
+    if (x.startsWith('zh')) return /hant|-tw|-hk|-mo/.test(x) ? 'zh-TW' : 'zh-CN';
     if (LANGS[x.slice(0, 2)]) return x.slice(0, 2);
   }
   return 'en';

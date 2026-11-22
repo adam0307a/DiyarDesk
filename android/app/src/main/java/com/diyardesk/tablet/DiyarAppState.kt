@@ -41,11 +41,12 @@ object DiyarAppState {
     }
 
     fun systemLangCode(): String {
-        val lang = Locale.getDefault().language
-        return when {
-            lang.equals("zh", ignoreCase = true) -> "zh-CN"
-            lang.equals("tr", ignoreCase = true) -> "tr"
-            else -> "en"
+        val loc = Locale.getDefault()
+        val lang = loc.language.lowercase()
+        if (lang == "zh") {
+            val hant = loc.script == "Hant" || loc.country in setOf("TW", "HK", "MO")
+            return if (hant) "zh-TW" else "zh-CN"
         }
+        return if (lang in setOf("en", "tr", "de", "fr", "ja", "ko")) lang else "en"
     }
 }

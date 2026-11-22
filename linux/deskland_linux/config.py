@@ -16,7 +16,7 @@ VERSION = "0.1.4-linux.1"
 
 THEME_DEFAULT = "papercut"
 LANG_DEFAULT = "auto"
-SUPPORTED_LANGS = ("zh-CN", "en", "tr")
+SUPPORTED_LANGS = ("zh-CN", "zh-TW", "en", "tr", "de", "fr", "ja", "ko")
 
 
 def repo_root() -> Path:
@@ -369,10 +369,14 @@ class I18n:
             if not value:
                 continue
             first = value.split(":", 1)[0].split(".", 1)[0].split("@", 1)[0]
-            if first.lower().startswith("zh"):
+            tag = first.lower().replace("_", "-")
+            if tag.startswith("zh"):
+                if "hant" in tag or tag.endswith(("-tw", "-hk", "-mo")):
+                    return "zh-TW"
                 return "zh-CN"
-            if first.lower().startswith("tr"):
-                return "tr"
+            two = tag.split("-", 1)[0]
+            if two in SUPPORTED_LANGS:
+                return two
             if first:
                 return "en"
         return "en"

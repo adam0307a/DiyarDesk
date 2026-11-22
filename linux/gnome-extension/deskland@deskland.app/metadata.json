@@ -2,6 +2,7 @@
   "uuid": "deskland@deskland.app",
   "name": "DiyarDesk Live Wallpaper Bridge",
   "description": "Pins the DiyarDesk live HTML5/WebGL wallpaper behind desktop windows on GNOME Shell Wayland and reports window coverage for auto-pause.",
+  "gettext-domain": "deskland",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "version": 1,
   "url": "https://github.com/adam0307a/DiyarDesk"

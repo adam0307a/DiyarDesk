@@ -87,6 +87,8 @@ class ThemeStoreTest {
         assertEquals("tr", ThemeStore.resolveEffectiveLang("auto", "tr"))
         assertEquals("tr", ThemeStore.resolveEffectiveLang("auto", "tr-TR"))
         assertEquals("tr", ThemeStore.resolveEffectiveLang("tr", "en"))
-        assertEquals("en", ThemeStore.resolveEffectiveLang("auto", "de-DE"))
+        assertEquals("de", ThemeStore.resolveEffectiveLang("auto", "de-DE"))
+        assertEquals("ja", ThemeStore.resolveEffectiveLang("auto", "ja-JP"))
+        assertEquals("zh-TW", ThemeStore.resolveEffectiveLang("auto", "zh-TW"))
     }
 }

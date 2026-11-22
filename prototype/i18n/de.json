@@ -1,0 +1,1479 @@
+{
+  "name": "Deutsch",
+  "ui": {
+    "adaptive": "Adaptiv",
+    "themes": "Designs",
+    "collectionTitle": "Finde deine Landschaft.",
+    "collectionSubtitle": "Mach deine Symbole zum Teil der Landschaft.",
+    "language": "Sprache",
+    "langAuto": "Systemstandard",
+    "langAutoWith": "Systemstandard ({name})",
+    "autostart": "Mit Windows starten",
+    "autostartTitle": "DiyarDesk beim Anmelden automatisch starten",
+    "autostartBlocked": "Autostart wurde möglicherweise blockiert",
+    "autostartWarnSw": "DiyarDesk wurde diesmal nicht automatisch gestartet — möglicherweise hat {sw} es blockiert. Öffne {sw}, suche DiyarDesk im Autostart-Manager und setze es auf Zulassen.",
+    "autostartWarnGeneric": "DiyarDesk wurde diesmal nicht automatisch gestartet — möglicherweise hat deine Sicherheitssoftware oder die Windows-Einstellung „Start-Apps“ es blockiert. Aktiviere DiyarDesk im Autostart-Manager deiner Sicherheitssoftware oder unter Windows-Einstellungen → Apps → Start.",
+    "gotIt": "Verstanden",
+    "updateAvailable": "Update verfügbar",
+    "updateVersion": "DiyarDesk {version} ist bereit. Dein aktuelles Design und deine Einstellungen bleiben erhalten.",
+    "updateProgram": "Jetzt aktualisieren",
+    "updateRetry": "Update wiederholen",
+    "updateWorking": "Wird aktualisiert…",
+    "updateDownloading": "Wird heruntergeladen und installiert… {progress}",
+    "updateInstalling": "Update wird installiert… {progress}",
+    "updateCompletedTitle": "Update abgeschlossen",
+    "updateCompleted": "Das Update wurde heruntergeladen und installiert. Falls DiyarDesk nicht automatisch neu startet, öffne es erneut.",
+    "updateDone": "Fertig",
+    "updateCanceled": "Das Update wurde abgebrochen. Du kannst es später erneut versuchen.",
+    "updateLowBattery": "Das Update konnte im Akkubetrieb nicht abgeschlossen werden. Schließe dein Gerät an den Strom an und versuche es erneut.",
+    "updateWifiRecommended": "Dieses Netzwerk kann Kosten verursachen. Wechsle das Netzwerk oder versuche es später erneut.",
+    "updateWifiRequired": "Verbinde dich mit WLAN, um dieses Update herunterzuladen.",
+    "updateStoreRequired": "Diese Update-Methode ist nur in der Microsoft Store-Version verfügbar.",
+    "updateFailed": "Das Update ist fehlgeschlagen. Prüfe deine Verbindung oder den Microsoft Store und versuche es erneut.",
+    "updateCheckingTitle": "Suche nach Updates",
+    "updateChecking": "Verbindung zum Update-Server wird hergestellt und nach einer neuen Version gesucht…",
+    "updateFailedTitle": "Update nicht abgeschlossen",
+    "updateCheckFailedTitle": "Updates konnten nicht geprüft werden",
+    "networkTimeout": "Verbindung oder Download ist abgelaufen. Prüfe dein Netzwerk, deinen Proxyserver oder deine Firewall und versuche es erneut. Wenn andere Websites funktionieren, antwortet der Server möglicherweise auch langsam.",
+    "networkDns": "Die Serveradresse konnte nicht aufgelöst werden. Prüfe deine Netzwerk-, DNS- oder Proxy-Einstellungen und versuche es erneut.",
+    "networkTls": "Eine sichere Verbindung konnte nicht hergestellt werden. Prüfe die Systemzeit und mögliche Sicherheitseingriffe durch dein Netzwerk oder deinen Proxy und versuche es erneut.",
+    "networkLocal": "Die Netzwerkverbindung ist fehlgeschlagen oder wurde unterbrochen. Prüfe dein Netzwerk, deinen Proxyserver oder deine Firewall und versuche es erneut.",
+    "serverUnavailable": "Der Server wurde erreicht, aber der Dienst ist vorübergehend nicht verfügbar (HTTP 5xx). Bitte versuche es später erneut.",
+    "serverRejected": "Der Server hat die Anfrage abgelehnt (HTTP 4xx). Versuche es später erneut oder wende dich an den Support, falls das Problem weiterhin besteht.",
+    "serverInvalid": "Der Server hat eine unbekannte Antwort zurückgegeben. Versuche es später erneut oder wende dich an den Support, falls das Problem weiterhin besteht.",
+    "downloadInvalid": "Der Download war unvollständig oder hat die Sicherheitsprüfung nicht bestanden, daher wurde die Installation abgebrochen. Versuche es erneut oder wende dich an den Support, falls das weiterhin passiert.",
+    "livePreview": "Live-Vorschau",
+    "previewIcons": "Live-Vorschau · mit den {n} Symbolen auf deinem Desktop",
+    "previewNoIcons": "Live-Vorschau · Desktop-Symbole sind ausgeblendet",
+    "refresh": "Aktualisieren",
+    "refreshTitle": "Eine neue Szene für dieses Design erzeugen",
+    "shareImage": "Bild teilen",
+    "shareImageTitle": "Teile dein Desktop-Bild, ohne deine Privatsphäre zu gefährden",
+    "shareVideo": "Video teilen",
+    "shareVideoTitle": "Teile deine Desktop-Animation, ohne deine Privatsphäre zu gefährden",
+    "generating": "Wird erzeugt…",
+    "preparingRec": "Wird vorbereitet…",
+    "recording": "Aufnahme {p}%",
+    "savingVideo": "Wird gespeichert…",
+    "shareFailImage": "Bild konnte nicht erstellt werden: {msg}",
+    "shareFailVideo": "Video konnte nicht aufgenommen werden: {msg}",
+    "unknownReason": "unbekannter Fehler",
+    "shareReadyImage": "Dein Desktop-Bild ist bereit",
+    "shareReadyVideo": "Dein Desktop-Clip ist bereit",
+    "sharePrivacy": "Symbole werden durch Beispielsymbole und Dateinamen durch Farbblöcke ersetzt, sodass keine deiner Dateien angezeigt wird.",
+    "shareCopiedImage": "Das Bild liegt in deiner Zwischenablage — füge es direkt in einen Chat oder Beitrag ein.",
+    "shareCopiedVideo": "Die Videodatei liegt in deiner Zwischenablage — füge sie in ein Chatfenster ein, um sie zu senden.",
+    "shareBrowserHint": " (Browser-Vorschau: Klicke auf „{btn}“, um herunterzuladen.)",
+    "savedTo": "Gespeichert unter {path}",
+    "openFolder": "Im Ordner anzeigen",
+    "openImage": "Bild öffnen",
+    "openVideo": "Video öffnen",
+    "saveImage": "Bild speichern",
+    "saveVideo": "Video speichern",
+    "ok": "OK",
+    "sharePreviewAlt": "Vorschau des geteilten Bildes",
+    "autosave": "Änderungen werden automatisch gespeichert und sofort auf deinem Desktop übernommen",
+    "saved": "Gespeichert ✓",
+    "resetAll": "Alles zurücksetzen",
+    "resetAllTitle": "Alle Einstellungen dieses Designs auf die Standardwerte zurücksetzen",
+    "helpButtonTitle": "Häufige Fragen und Fehlerbehebung",
+    "helpTitle": "Hilfe",
+    "helpSubtitle": "Häufige Fragen und Fehlerbehebung",
+    "helpWallpaperQ": "DiyarDesk flackert oder startet ständig neu. Wie behebe ich das?",
+    "helpWallpaperA": "Wenn sich dein normales Desktop-Hintergrundbild automatisch ändert, kann jede Änderung DiyarDesk flackern oder neu starten lassen. Verwende einen festen Hintergrund, der nicht wechselt.",
+    "helpWallpaperStep1": "Öffne die Windows-Einstellungen → Personalisierung → Hintergrund.",
+    "helpWallpaperStep2": "Setze „Hintergrund personalisieren“ auf „Bild“ oder „Einfarbig“. Verwende nicht „Diashow“ oder „Windows-Spotlight“.",
+    "helpWallpaperStep3": "Starte DiyarDesk nach dem Ändern dieser Einstellung neu.",
+    "badgeOn": "In Verwendung",
+    "badgeReady": "Verfügbar",
+    "badgeSoon": "Demnächst",
+    "ongoingTitle": "Mehr ist unterwegs",
+    "ongoingDesc": "Mit der Zeit kommen neue Szenen und Elemente hinzu.",
+    "noParams": "Dieses Design hat noch keine Einstellungen",
+    "resetOne": "Auf Standard zurücksetzen: {v}",
+    "resetOneAria": "{label} auf Standard zurücksetzen",
+    "dblclickReset": "Zum Zurücksetzen doppelklicken ({v})",
+    "comingSoon": "Demnächst:",
+    "audioNone": "Keine Datei ausgewählt",
+    "audioPick": "Audio auswählen…",
+    "audioPlay": "▶ Abspielen",
+    "audioPause": "⏸ Pause",
+    "importTheme": "Design importieren…",
+    "importThemeTitle": "Design-Paket (.zip, .deskland), HTML-Seite, Bild oder Video importieren",
+    "importHelpBtnTitle": "Unterstützte Importformate & Anleitung",
+    "importHelpTitle": "Anleitung zum Design-Import",
+    "importHelpSubtitle": "Klicke auf + Design importieren…, um eine lokale Datei auszuwählen. Alle folgenden Formate werden unterstützt und automatisch geprüft:",
+    "importHelpHowTitle": "Unterstützte Formate & Verhalten",
+    "importHelpZipTitle": "Design-Pakete (.zip, .deskland)",
+    "importHelpZipDesc": "Mehrdateiliche HTML/JS/CSS/Asset-Designs. Wenn manifest.json oder theme.json vorhanden ist, werden Metadaten, Einstiegs-HTML, Vorschaubild und Parameter automatisch gelesen; andernfalls wird auf index.html oder die erste .html-Datei zurückgegriffen, thumb/preview-Bilder (auch .svg) werden automatisch erkannt und Zip-Slip-Pfade sowie symbolische Links blockiert.",
+    "importHelpHtmlTitle": "Einzelne Webseite (.html, .htm)",
+    "importHelpHtmlDesc": "Einzeldatei-Designs mit interaktivem Shader oder HTML (verwendet das <title>-Tag als Designnamen).",
+    "importHelpImageTitle": "Bild-Hintergründe (.png, .jpg, .jpeg, .webp, .gif, .svg, .avif, .bmp)",
+    "importHelpImageDesc": "Wird automatisch in eine interaktive Hintergrundseite mit sanftem Umgebungs-Zoom/-Schwenk, Helligkeit, Bewegung und Symbol-Hintergrundschein (dimIcons), adaptivem Layout und Snapshot-Freigabe (desklandSnapshot) eingebettet.",
+    "importHelpVideoTitle": "Video-Hintergründe (.mp4, .webm, .mkv, .mov)",
+    "importHelpVideoDesc": "Spielt Videos sauber in Schleife mit Steuerung für Helligkeit, Wiedergabegeschwindigkeit und Symbol-Hintergrundschein (dimIcons).",
+    "importHelpNote": "Archive werden vor dem Entpacken auf Integrität geprüft (max. 150 MB / 2.000 Dateien pro Paket). Importierte Designs werden in deinem Benutzerordner gespeichert und können jederzeit über „Entfernen“ in der Vorschauleiste gelöscht werden.",
+    "importHelpManifestTitle": "Manifest- und Einstellungsschema (manifest.json / theme.json)",
+    "importHelpManifestMetaTitle": "Metadaten & Vorschaubild",
+    "importHelpManifestMetaDesc": "Unterstützt name/title, desc/description, entry/page/main/file (Standard: index.html), adaptive (true/false) sowie thumb/thumbnail/preview (relativer Bildpfad inkl. .svg oder CSS-Farbe/-Verlauf).",
+    "importHelpManifestParamsTitle": "Parameter (groups oder settings)",
+    "importHelpManifestParamsDesc": "Akzeptiert sowohl die nativen groups-Arrays von DiyarDesk ([{ name, params }]) als auch gruppierte settings-Objekte (mit group/category); unterstützt Schieberegler (range: min/max/step/default), Auswahlfelder (select: Textlisten oder { label, value }-Optionen) und Schalter (checkbox: true/false).",
+    "importHelpProtoTitle": "Protokoll für interaktive HTML-Designs",
+    "importHelpProtoReadyTitle": "Ready-Handshake",
+    "importHelpProtoReadyDesc": "Rufe im Hintergrundmodus window.chrome.webview.postMessage('ready') oder im Vorschaumodus (?preview=1) parent.postMessage(JSON.stringify({ t: 'ready' }), '*') auf, um die Anfangseinstellungen und Symbolrechtecke zu erhalten.",
+    "importHelpProtoMsgTitle": "Host-Nachrichten & Freigabe",
+    "importHelpProtoMsgDesc": "Deine Seite empfängt { t: 'icons', vis, r: [[l, t, r, b], ...] } (physische Pixel; für CSS-Pixel durch devicePixelRatio teilen), { t: 'settings', v: {...} }, { t: 'reset', v: {...} } und { t: 'pause', v: true|false }. Optional kannst du window.desklandSnapshot() / window.desklandRecord() für die Freigabe bereitstellen.",
+    "removeTheme": "Entfernen",
+    "removeThemeTitle": "Dieses importierte Design entfernen",
+    "importErrorTitle": "Design-Import fehlgeschlagen",
+    "importError": "Design konnte nicht importiert werden: {msg}",
+    "virtualBarTitle": "Virtuelle Symbolleiste auf dem Desktop",
+    "virtualBarAuto": "Symbole: Auto",
+    "virtualBarAlways": "Symbole: Immer anzeigen",
+    "virtualBarOff": "Symbole: Ausgeblendet",
+    "lowMode": "Sparmodus",
+    "lowModeTitle": "Strikte Eco-Optimierung: 15-FPS-Limit, 0,75x-Skalierung, deaktiviert schwere Unschärfen/Schatten und pausiert schneller hinter Fenstern",
+    "disableAutoPause": "Auto-Pause deaktivieren",
+    "disableAutoPauseTitle": "Wenn aktiviert, laufen Animationen auch bei einem maximierten oder Vollbildfenster weiter"
+  },
+  "host": {
+    "traySettings": "Einstellungen…",
+    "trayPause": "Animation pausieren",
+    "trayLowMode": "Sparmodus (Eco)",
+    "trayReload": "Neu laden",
+    "trayAutostart": "Mit Windows starten",
+    "trayExit": "Beenden (Hintergrundbild wiederherstellen)",
+    "welcomeTitle": "DiyarDesk läuft",
+    "welcomeBody": "Klicke auf das DiyarDesk-Symbol im Infobereich{hotkey}, um das Menü zu öffnen.\nDu siehst es nicht? Klicke auf ^ rechts in der Taskleiste.",
+    "welcomeHotkey": " oder drücke Strg+Alt+H",
+    "errNotReady": "Das Hintergrundbild ist noch nicht bereit",
+    "errNoImage": "Kein Bild zurückgegeben",
+    "errNoVideo": "Kein Video zurückgegeben",
+    "errBusyImage": "Das vorherige Bild wird noch erzeugt",
+    "errBusyVideo": "Der vorherige Clip wird noch aufgenommen",
+    "errImageTimeout": "Die Erzeugung hat zu lange gedauert",
+    "errVideoTimeout": "Die Aufnahme hat zu lange gedauert",
+    "errBadData": "Die Seite hat unvollständige Daten zurückgegeben",
+    "errRebuilt": "Windows hat die Hintergrundebene immer wieder neu aufgebaut, daher wurde DiyarDesk beendet.",
+    "errSeeLog": "Details findest du im Protokoll: {path}",
+    "errSettings": "Das Einstellungsfenster konnte nicht geöffnet werden: {msg}",
+    "errNoPage": "Seite nicht gefunden: {path}",
+    "errNoDesktop": "Das Desktop-Fenster wurde nicht gefunden, daher kann das Hintergrundbild nicht angehängt werden.",
+    "errStart": "Start fehlgeschlagen: {msg}"
+  },
+  "themes": {
+    "quietsnow": {
+      "name": "Stiller Schnee",
+      "creditPrefix": "Inspiriert von",
+      "desc": "Realistische lebendige Physik und Interaktion, inspiriert von Snowhush: Schnee, glasperlender Regen, wirbelnde Herbstblätter und Kirschblüten-Modi. Setzt sich auf dem Boden, auf Desktop-Symbolen und offenen Fenstern ab, rutscht herunter, wenn sie bewegt oder geschlossen werden, und wird unter dem Cursor weggefegt.",
+      "groups": [
+        "Jahreszeit & Wetter",
+        "Ansammlung & Interaktion",
+        "Atmosphäre & Optik",
+        "Leistung"
+      ],
+      "params": {
+        "mode": {
+          "label": "Jahreszeit-Modus",
+          "hint": "Wechsle live zwischen realistischem Schnee, Regen mit Glasperlen, Herbstblättern und Kirschblüten",
+          "options": ["Schnee", "Regen", "Herbstblätter", "Kirschblüte"]
+        },
+        "intensity": {
+          "label": "Intensität",
+          "hint": "Gesamtdichte von fallendem Schnee, Regen, Blättern oder Blütenblättern"
+        },
+        "wind": {
+          "label": "Windrichtung & -geschwindigkeit",
+          "hint": "Negative Werte wehen nach links, positive nach rechts"
+        },
+        "gusts": {
+          "label": "Natürliche Böen",
+          "hint": "Zeitweise Windböen und vom Schnee aufgewirbelter Schneestaub"
+        },
+        "accumulate": {
+          "label": "Ansammeln auf",
+          "hint": "Wähle, ob sich Schnee, Blätter oder Regentropfen nur auf dem Boden oder auch auf Desktop-Symbolen absetzen",
+          "options": ["Aus", "Nur Boden", "Boden & Symbole"]
+        },
+        "windows": {
+          "label": "Auf Fenstern ansammeln",
+          "hint": "Schnee, Blätter, Blüten und Regenspritzer auf den Oberkanten offener Fenster absetzen; rutschen beim Bewegen oder Schließen herunter",
+          "options": ["Aus", "An"]
+        },
+        "melt": {
+          "label": "Natürliches Schmelzen / Verblassen",
+          "hint": "Lässt Schneeverwehungen langsam schmelzen oder Blätter und Blüten verwelken, damit der Desktop ausgewogen bleibt"
+        },
+        "cursor": {
+          "label": "Cursor-Interaktion",
+          "hint": "Fegt Schneeverwehungen auseinander, wirbelt Blätter und Blüten auf oder verwischt Regentropfen mit dem Zeiger",
+          "options": ["Aus", "Sanft", "Stark"]
+        },
+        "depth": {
+          "label": "Verwehungstiefe",
+          "hint": "Maximale Dicke von Schneeverwehungen auf Boden und Symbolen"
+        },
+        "atmosphere": {
+          "label": "Atmosphäre",
+          "hint": "Wähle eine ruhige saisonale Kulisse und Umgebungsbeleuchtung",
+          "options": ["Stille Nacht", "Blaue Stunde", "Nebliger Morgen", "Laternenwärme"]
+        },
+        "sparkle": {
+          "label": "Glitzern & Schimmer",
+          "hint": "Glanz auf Schneekristallen, Glanzpunkte auf Regentropfen und durchscheinendes Blütenschimmern"
+        },
+        "backdrop": {
+          "label": "Ferner Nebel & Bergkämme",
+          "hint": "Sichtbarkeit sanfter Horizontkämme, ferner Kiefern und Bodendunst"
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Renderauflösung und Partikelbudget der Physik",
+          "options": ["Niedrig", "Ausgewogen", "Hoch"]
+        }
+      }
+    },
+    "beach": {
+      "name": "Strand",
+      "desc": "Die Küstenlinie schlängelt sich um deine Dateien, während Wellen an den Sand rollen",
+      "groups": [
+        "Küste",
+        "Wasser",
+        "Details"
+      ],
+      "params": {
+        "palms": {
+          "label": "Kokospalmen",
+          "hint": "Anzahl der Küstenpalmen; 0 zum Ausblenden. Es erscheinen weniger, wenn nicht genug Sand vorhanden ist.",
+          "unit": ""
+        },
+        "sigma": {
+          "label": "Abstand zu Symbolen",
+          "hint": "Wie weit die Küstenlinie von deinen Symbolen entfernt liegt"
+        },
+        "warp": {
+          "label": "Geschwungene Küste",
+          "hint": "Wie stark sich die Küstenlinie windet und biegt"
+        },
+        "shoal": {
+          "label": "Klare Untiefen",
+          "hint": "Wie breit das durchsichtige Wasser über dem Sand ist"
+        },
+        "shallow": {
+          "label": "Flaches Meer",
+          "hint": "Wie weit das Wasser von Türkis zu tiefem Blau übergeht"
+        },
+        "kayaks": {
+          "label": "Kajaks",
+          "unit": ""
+        },
+        "birds": {
+          "label": "Seewögel",
+          "hint": "Möwen, die über dir schweben und kreisen",
+          "unit": ""
+        }
+      }
+    },
+    "meadow": {
+      "name": "Wiese",
+      "desc": "Eine Wiese im Tusche- und Aquarellstil, in der sich deine Symbole in weißen Wolken verstecken, die dunkelgrüne Schatten werfen",
+      "groups": [
+        "Um die Symbole",
+        "Wolken",
+        "Figuren"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Wolkengröße",
+          "hint": "Wie weit sich die Wolken um deine Symbole ausbreiten"
+        },
+        "cover": {
+          "label": "Wolken über der Wiese",
+          "hint": "Wie viele Wolken über die offene Wiese ziehen"
+        },
+        "flow": {
+          "label": "Treibgeschwindigkeit",
+          "hint": "Wie schnell die Wolken treiben und sich ihre Ballen verändern"
+        },
+        "showBoy": {
+          "label": "Jungen anzeigen",
+          "hint": "Zeigt oder versteckt den Jungen mit seinem Drachen",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "showCat": {
+          "label": "Kätzchen anzeigen",
+          "hint": "Das kleine schwarze Kätzchen, das im Gras ruht",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        }
+      }
+    },
+    "aurora": {
+      "name": "Aurora-See",
+      "desc": "Ein zugefrorener See um Mitternacht spiegelt Aurorabänder wider, während deine Symbole auf verschneiten Dämmerungsinseln mit Kiefern und warmen Laternen ruhen",
+      "groups": [
+        "Verschneite Küste",
+        "Aurora & Eis",
+        "Details"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Schneelichtung",
+          "hint": "Wie weit sich die verschneiten Inseln um deine Symbole erstrecken"
+        },
+        "warp": {
+          "label": "Geschwungene Küste",
+          "hint": "Wie stark sich die verschneite Küstenlinie windet und biegt"
+        },
+        "shoal": {
+          "label": "Eisrand",
+          "hint": "Wie breit der blasse Eisrand um die Küste leuchtet"
+        },
+        "aurora": {
+          "label": "Aurora-Leuchten",
+          "hint": "Wie hell die Nordlichter über dem zugefrorenen See schimmern"
+        },
+        "flow": {
+          "label": "Treibgeschwindigkeit",
+          "hint": "Wie schnell die Aurorabänder und der Schneefall treiben"
+        },
+        "pines": {
+          "label": "Verschneite Kiefern",
+          "hint": "Schneebedeckte Kiefern auf den Inseln; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "lanterns": {
+          "label": "Warme Laternen",
+          "hint": "Warm leuchtende Laternen entlang der verschneiten Küste",
+          "unit": ""
+        },
+        "snow": {
+          "label": "Schneefall",
+          "hint": "Wie dicht sanfte Schneeflocken durch die Szene treiben"
+        }
+      }
+    },
+    "glade": {
+      "name": "Waldlichtung",
+      "desc": "Gouache-Bäume wiegen sich sanft und öffnen sich zu sonnendurchfluteten Wiesenlichtungen um deine Symbole, während kleine Vögel im Blätterdach sitzen",
+      "groups": [
+        "Lichtung",
+        "Wald",
+        "Tierwelt"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Lichtungsgröße",
+          "hint": "Wie breit sich die sonnige Wiesenlichtung um deine Symbole öffnet"
+        },
+        "warp": {
+          "label": "Kantenwölbung",
+          "hint": "Wie stark sich der Waldrand windet und schlängelt"
+        },
+        "density": {
+          "label": "Baumdichte",
+          "hint": "Wie dicht die gemalten Bäume den Wald bedecken"
+        },
+        "wind": {
+          "label": "Windschwanken",
+          "hint": "Wie stark Baumkronen und sitzende Vögel im Wind schwanken"
+        },
+        "birds": {
+          "label": "Waldvögel",
+          "hint": "Kleine Vögel, die auf Baumkronen sitzen und durch den Wald flattern; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        }
+      }
+    },
+    "rift": {
+      "name": "Runenkluft",
+      "desc": "Steinheiligtümer mit pulsierenden gold- und türkisfarbenen Hextech-Runen öffnen sich um deine Symbole in einem malerischen Dschungel und einem leuchtenden, schlangenförmigen Fluss",
+      "groups": [
+        "Heiligtum",
+        "Runen & Fluss",
+        "Relikte & Irrlichter"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Arenagröße",
+          "hint": "Wie breit sich das gemeißelte Steinheiligtum um deine Symbole öffnet"
+        },
+        "warp": {
+          "label": "Klippenkontur",
+          "hint": "Wie gezackt oder organisch der Dschungel-Klippenrand verläuft"
+        },
+        "glow": {
+          "label": "Hextech-Leuchten",
+          "hint": "Wie hell die türkisfarbenen Runen, Schutzsteine und der Fluss schimmern"
+        },
+        "wind": {
+          "label": "Treiben & Brise",
+          "hint": "Wie schnell Baumkronen schwanken, Flusswellen fließen und Irrlichter umherwandern"
+        },
+        "heroes": {
+          "label": "Kluft-Champions",
+          "hint": "Chibi-Kluft-Champions und Poro, die zwischen Steinheiligtümern und Flussufern wandern; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "turrets": {
+          "label": "Arkane Türme",
+          "hint": "Steinverteidigungstürme des Blauen Ordens und des Karmesinroten Chaos an den Rändern der Heiligtümer; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "wards": {
+          "label": "Schutzlaternen",
+          "hint": "Runenlaternen aus Messing und Kristall entlang der Symbolränder; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "wisps": {
+          "label": "Arkane Irrlichter",
+          "hint": "Leuchtende Mana-Irrlichter, die über Fluss und Blätterdach treiben; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        }
+      }
+    },
+    "strike": {
+      "name": "Bombsite-Staub",
+      "desc": "Eine sonnendurchflutete Wüsten-Bombsite: Symbole liegen in von Kugeln durchlöcherten Beton-Einschlagzonen mit Messinghülsen, Kisten, streunenden Hühnern und einem Fußball, der wegkickt, sobald ein Symbol sich darauf bewegt",
+      "groups": [
+        "Einschlagzone",
+        "Atmosphäre",
+        "Requisiten & Easter Eggs"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Einschlagradius",
+          "hint": "Wie breit sich die von Kugeln durchlöcherte Betonzone um deine Symbole öffnet"
+        },
+        "warp": {
+          "label": "Schuttkante",
+          "hint": "Wie gezackt der Betonrand in den Hofsand übergeht"
+        },
+        "holes": {
+          "label": "Einschlagdichte",
+          "hint": "Wie dicht Einschlagkrater, radiale Risse und leere Messinghülsen die Symbolzonen bedecken"
+        },
+        "smoke": {
+          "label": "Staub & Rauch",
+          "hint": "Wie deutlich taktische Rauchfahnen und sonniger Wüstendunst über den Hof ziehen"
+        },
+        "wind": {
+          "label": "Brise & Tempo",
+          "hint": "Wie schnell taktischer Rauch zieht, Sand weht und Hühner umherstreifen"
+        },
+        "ball": {
+          "label": "Fußball",
+          "hint": "Klassischer CS-Fußball, der wegrollt und springt, sobald ein Symbol sich darauf bewegt; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "chickens": {
+          "label": "Streunende Hühner",
+          "hint": "Wüstenhof-Hühner, die picken und vor Symbolen oder dem Ball flüchten; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "crates": {
+          "label": "Deckungskisten",
+          "hint": "Wie dicht Holzkisten, Ölfässer und Sandsäcke die offenen Gänge füllen"
+        }
+      }
+    },
+    "pocket": {
+      "name": "Frontlinien-Kessel",
+      "desc": "Eine großstrategische Kriegskarte, in der sich Symbolgruppen in eingekesselte Kampfgebiete verwandeln, umringt von türkischen, deutschen oder britischen NATO-Divisionsmarkern, die automatisch der Ordnersprache zugeordnet werden",
+      "groups": [
+        "Frontlinie & Kessel",
+        "Divisionen & Nationen",
+        "Kriegsschauplatz-Details"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Kesselradius",
+          "hint": "Wie weit sich der eingekesselte Kampfbereich um deine Symbole erstreckt"
+        },
+        "warp": {
+          "label": "Frontlinienkurve",
+          "hint": "Wie organisch die Einkesselungsgrenze den Geländerücken folgt"
+        },
+        "arrows": {
+          "label": "Angriffspfeile",
+          "hint": "Wie hell nach innen weisende Gefechtsplan-Pfeile und Frontlinien-Hervorhebungen pulsieren"
+        },
+        "divisions": {
+          "label": "Divisionsmarker",
+          "hint": "Anzahl der Divisionsmarker im Stil von Age of History / HOI4 um die Kessel; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "faction": {
+          "label": "Einkesselnde Streitmacht",
+          "hint": "0 = Ordnersprache automatisch erkennen (Türkisch/Deutsch/Englisch); 1 = Türkisch; 2 = Deutsch; 3 = Britisch"
+        },
+        "pace": {
+          "label": "Kampagnentempo",
+          "hint": "Wie schnell Frontvorstöße animiert werden und Divisionen marschieren, um neue Kessel zu schließen"
+        },
+        "skirmish": {
+          "label": "Artilleriefeuer",
+          "hint": "Wie oft Frontdivisionen Artillerieblitze und Gefechtsrauch nach innen abgeben"
+        },
+        "supply": {
+          "label": "Karte & Forts",
+          "hint": "Sichtbarkeit topografischer Höhenlinien, Koordinatengitter und äußerer Sternfort-Depots"
+        }
+      }
+    },
+    "roach": {
+      "name": "Kakerlakenstadt",
+      "desc": "Viral bekannte humanoide Kakerlakenfiguren — Lederwesten-Safttrinker, Krawattenstudent, Fabrikcrew mit Schutzhelm, Diva mit rosa Federn und ein Paar im roten Kleid — schlendern auf einer Kopfsteinpflasterallee um warme Symbol-Terrassen",
+      "groups": [
+        "Straße & Bürgersteig",
+        "Kakerlaken-Cast"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Bürgersteigbreite",
+          "hint": "Wie weit sich die warme geflieste Bürgersteiginsel um deine Desktop-Symbole erstreckt"
+        },
+        "warp": {
+          "label": "Bordsteinkurve",
+          "hint": "Wie natürlich der Bordstein um deine Symbolgruppen verläuft"
+        },
+        "glow": {
+          "label": "Straßenlaternenschein",
+          "hint": "Intensität warmer bernsteinfarbener Lampenreflexionen in Pfützen"
+        },
+        "vibe": {
+          "label": "Tageslichthof",
+          "hint": "Überblendung von einer dämmrigen Beyoğlu-Kopfsteinpflasterallee zu einem sonnigen Hof"
+        },
+        "crowd": {
+          "label": "Kakerlaken-Cast",
+          "hint": "Anzahl schlendernder, tanzender und Saft nippender Kakerlakenfiguren; auf 0 setzen zum Ausblenden",
+          "unit": ""
+        },
+        "speed": {
+          "label": "Schlendertempo",
+          "hint": "Wie flott der Kakerlaken-Cast läuft, tanzt und um Ecken reagiert"
+        },
+        "props": {
+          "label": "Straßenlaternen & Requisiten",
+          "hint": "Dichte von schmiedeeisernen Laternen, Saftboxen und Tulpen-Teegläsern"
+        },
+        "audio": {
+          "label": "Hintergrund-Audio",
+          "hint": "Wähle eine lokale Audiodatei für die Kakerlakenstadt und spiele sie jederzeit ab oder pausiere sie",
+          "defaultName": "Kakerlakenstadt (Standard)"
+        }
+      }
+    },
+    "rosebrook": {
+      "name": "Rosenbach",
+      "desc": "Üppige grüne Wiesen, durchzogen von einem funkelnden Kristallbach. Wenn du ein Symbol ablegst oder bewegst, blühen um es herum mehrschichtige Rosen und Wildblumen, während Blütenblätter im Wind treiben.",
+      "groups": [
+        "Bach & Wiese",
+        "Rosen & Blütenblätter"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Wiesenradius",
+          "hint": "Wie weit sich der sonnige Rasen und der Blütenring um jedes Symbol ausbreiten",
+          "unit": "px"
+        },
+        "stream": {
+          "label": "Bachbreite",
+          "hint": "Breite des gewundenen Waldbaches über die Wiese"
+        },
+        "flow": {
+          "label": "Strömungsgeschwindigkeit",
+          "hint": "Wie flott Wellen und Sonnenkaustiken flussabwärts wandern"
+        },
+        "sunlight": {
+          "label": "Wasserschimmer",
+          "hint": "Warmer Sonnenglanz und funkelnde Glanzlichter auf dem Bach"
+        },
+        "roses": {
+          "label": "Rosendichte",
+          "hint": "Fülle der blühenden Rosen und Wildblumen um abgelegte Symbole"
+        },
+        "petals": {
+          "label": "Treibende Blütenblätter",
+          "hint": "Anzahl der in der Luft schwebenden Rosenblätter und Garten-Schmetterlinge"
+        },
+        "breeze": {
+          "label": "Wiesenbrise",
+          "hint": "Geschwindigkeit, mit der Blüten schwanken und Rosenblätter treiben"
+        }
+      }
+    },
+    "polarnight": {
+      "name": "Polarnacht-Aurora",
+      "desc": "Eine Polarnacht an einem zugefrorenen See: Die Aurora wallt über den Himmel und spiegelt sich im Eis, und deine Symbole ruhen in einer Lichtung des verschneiten Kiefernwaldes",
+      "groups": [
+        "Um die Symbole",
+        "Aurora",
+        "Winternacht"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Lichtungsgröße",
+          "hint": "Wie weit sich der offene Schnee um deine Symbole erstreckt, bevor die Bäume beginnen"
+        },
+        "density": {
+          "label": "Waldbestandsdichte",
+          "hint": "Wie dicht der Kiefernwald hinter der Lichtung wächst; 0 blendet die Bäume aus"
+        },
+        "glow": {
+          "label": "Aurora-Helligkeit",
+          "hint": "Wie hell die drei Bänder am Himmel leuchten"
+        },
+        "flow": {
+          "label": "Fließgeschwindigkeit",
+          "hint": "Wie schnell die Aurora wallt, das Eis schimmert und der Schnee fällt"
+        },
+        "palette": {
+          "label": "Aurora-Farben",
+          "hint": "Die Farben der Bänder",
+          "options": [
+            "Grün & Rosa",
+            "Violett & Petrol",
+            "Gold & Grün"
+          ]
+        },
+        "snow": {
+          "label": "Schneefall",
+          "hint": "Wie viele Schneeflocken herabfallen; 0 stoppt den Schnee",
+          "unit": ""
+        },
+        "meteor": {
+          "label": "Sternschnuppen",
+          "hint": "Meteore, die hin und wieder über den Nachthimmel ziehen",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "cabin": {
+          "label": "Hütte",
+          "hint": "Eine kleine Uferhütte mit warmen Fenstern und Schornsteinrauch, die deinen Symbolen ausweicht",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        }
+      }
+    },
+    "desert": {
+      "name": "Sahara-Oase",
+      "desc": "Draufsicht auf goldene Wüstendünen: Abgelegte Symbole heben sonnige Sandhügel an, während Kamelkarawanen und arabische Reisende zwischen Palm-Oasen hindurchziehen",
+      "groups": [
+        "Symbol-Sanddünen",
+        "Oase & Sonnenlicht",
+        "Karawane & Reisende"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Dünengröße",
+          "hint": "Wie weit sich der angehobene Sanddünenhügel um jedes Symbol ausbreitet"
+        },
+        "warp": {
+          "label": "Windrippel",
+          "hint": "Natürliche Krümmung und windgeformte Konturen der Dünen"
+        },
+        "oases": {
+          "label": "Anzahl der Oasen",
+          "hint": "Anzahl der türkisfarbenen Wüstenoasen in den tiefen Becken",
+          "unit": ""
+        },
+        "warmth": {
+          "label": "Sonnenwärme",
+          "hint": "Intensität des goldenen Sahara-Sonnenlichts und des flimmernden Dunstes"
+        },
+        "wind": {
+          "label": "Wind- & Karawanentempo",
+          "hint": "Geschwindigkeit von wehendem Sandstaub, schwankenden Palmen und ziehenden Karawanen"
+        },
+        "camels": {
+          "label": "Kamele",
+          "hint": "Anzahl der über die Dünen ziehenden Kamele; 0 blendet die Karawanen aus",
+          "unit": ""
+        },
+        "travelers": {
+          "label": "Arabische Reisende",
+          "hint": "Gewandete arabische Karawanenführer mit Keffiyeh und Beduinen-Oasenzelte",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "palms": {
+          "label": "Dattelpalmen",
+          "hint": "Anzahl der üppigen Dattelpalmen, die die Oasen umrahmen",
+          "unit": ""
+        }
+      }
+    },
+    "zen-archipelago": {
+      "name": "Zen-Archipel",
+      "desc": "Biolumineszente Koi-Lagune, Holzbücken, Sakura-Inseln und schwimmende Laternen, die sich um deine Symbole anpassen",
+      "groups": [
+        "Atmosphäre & Wellen",
+        "Inseln & Brücken",
+        "Lagune & Laternen"
+      ],
+      "params": {
+        "timeOfDay": {
+          "label": "Tageszeit",
+          "hint": "Wechsle zwischen biolumineszenter Nacht, goldenem Sonnenuntergang und smaragdgrünem Tag",
+          "options": [
+            "Biolumineszente Nacht",
+            "Goldener Sonnenuntergang",
+            "Smaragdgrüner Tag"
+          ]
+        },
+        "waveIntensity": {
+          "label": "Wellenintensität",
+          "hint": "Stärke und Leuchten der Wellen, die um jede Insel spülen"
+        },
+        "islandMargin": {
+          "label": "Inselgröße",
+          "hint": "Wie weit jede Symbolinsel in Sand, Gras und Riff wächst"
+        },
+        "bridgeDistance": {
+          "label": "Brückenspannweite",
+          "hint": "Maximaler Abstand zwischen nahen Symbolinseln für Holzbrücken"
+        },
+        "koiCount": {
+          "label": "Koi-Fische",
+          "hint": "Anzahl der Koi, die anmutig durch die Lagune schwimmen",
+          "unit": ""
+        },
+        "lanternCount": {
+          "label": "Schwimmende Laternen",
+          "hint": "Warme hölzerne Tōrō-Laternen, die über die Lagune treiben",
+          "unit": ""
+        },
+        "sakuraDensity": {
+          "label": "Sakura-Blüte",
+          "hint": "Dichte der Kirschblütenbäume und treibenden Blütenblätter"
+        },
+        "fireflies": {
+          "label": "Glühwürmchen",
+          "hint": "Anzahl der biolumineszenten Sporen und Glühwürmchen darüber"
+        }
+      }
+    },
+    "istanbul": {
+      "name": "Istanbul — Bosporus bei Sonnenuntergang",
+      "desc": "Draufsicht auf Istanbul: Bosporus, Goldenes Horn, Kuppeln, Minarette, Fähren und Möwen mit tulpenbestandenen Fliesenplätzen und Holzpiers um deine Symbole",
+      "groups": [
+        "Zeit & Leuchten",
+        "Bosporus",
+        "Symbolumgebung",
+        "Stadt"
+      ],
+      "params": {
+        "time": {
+          "label": "Tageszeit",
+          "hint": "Automatisch folgt deiner Systemuhr durch Morgen, Mittag, Sonnenuntergang und Nacht",
+          "options": [
+            "Automatisch",
+            "Morgen",
+            "Mittag",
+            "Sonnenuntergang",
+            "Nacht"
+          ]
+        },
+        "glow": {
+          "label": "Lichtschein",
+          "hint": "Intensität von Wasserschimmer, Stadtfenstern und Platzlaternen"
+        },
+        "ferries": {
+          "label": "Fähren",
+          "hint": "Anzahl der Bosporus-Pendelfähren, die die Meerenge überqueren",
+          "unit": ""
+        },
+        "flow": {
+          "label": "Wasser- & Fährentempo",
+          "hint": "Geschwindigkeit vorbeiziehender Wellen und pendelnder Fähren"
+        },
+        "gulls": {
+          "label": "Möwen",
+          "hint": "Möwenschwärme, die über dem Bosporus kreisen",
+          "options": [
+            "Keine",
+            "Wenige",
+            "Viele"
+          ]
+        },
+        "pad": {
+          "label": "Platzgröße",
+          "hint": "Wie breit sich der geflieste Platz an Land und der Holzpiers auf dem Wasser um Symbole ausbreiten"
+        },
+        "tulips": {
+          "label": "Tulpen",
+          "hint": "Tulpenrabatten, die die Plätze um Land-Symbole säumen",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "cats": {
+          "label": "Straßenkatzen",
+          "hint": "Katzen, die auf friedlichen Istanbuler Plätzen sonnenbaden",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "landmarks": {
+          "label": "Historische Wahrzeichen",
+          "hint": "Hagia Sophia, Blaue Moschee, Süleymaniye, Galataturm und Mädchenturm",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        }
+      }
+    },
+    "solar-system": {
+      "name": "Interaktives Sonnensystem & Schwarzes Loch",
+      "desc": "Verwandelt Desktop-Symbole in lebendige Sonnensysteme, die um ein relativistisches Schwarzes Loch kreisen, mit Cursor-Schwerkraft und orbitaler Symbolbewegung",
+      "groups": [
+        "Schwarzes Loch & Kern",
+        "Sonnensystem",
+        "Weltraum",
+        "Physik",
+        "Leistung"
+      ],
+      "params": {
+        "centerBodyType": {
+          "label": "Zentralkörper-Typ",
+          "options": [
+            "Schwarzes Loch",
+            "Große Sonne",
+            "Tiefer Weltraum"
+          ]
+        },
+        "blackHoleSize": {
+          "label": "Skalierung des Schwarzen Lochs"
+        },
+        "accretionIntensity": {
+          "label": "Akkretions- & Linsenleuchten"
+        },
+        "iconOrbitMode": {
+          "label": "Orbitale Symbolbewegung",
+          "options": [
+            "Um Kern kreisen",
+            "Fester Anker"
+          ]
+        },
+        "globalOrbitSpeed": {
+          "label": "Umlaufgeschwindigkeit der Symbole"
+        },
+        "planetCount": {
+          "label": "Anzahl Planeten"
+        },
+        "orbitSize": {
+          "label": "Orbitgröße"
+        },
+        "orbitSpeed": {
+          "label": "Orbitgeschwindigkeit"
+        },
+        "planetSize": {
+          "label": "Planetengröße"
+        },
+        "starDensity": {
+          "label": "Sterndichte"
+        },
+        "nebulaIntensity": {
+          "label": "Nebelintensität"
+        },
+        "asteroidDensity": {
+          "label": "Asteroidendichte"
+        },
+        "shootingStars": {
+          "label": "Sternschnuppen",
+          "options": [
+            "Aus",
+            "An"
+          ]
+        },
+        "gravityStrength": {
+          "label": "Schwerkraftstärke"
+        },
+        "systemAttraction": {
+          "label": "Systemanziehung"
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "winter": {
+      "name": "Winterhütte & Lebendiger Schnee",
+      "desc": "Ruhige winterliche Dämmerungswelt mit verschneiten Gipfeln, Kiefernwald, warmem Hüttenrauch und Schneeverwehungen, die deine Desktop-Symbole umhüllen",
+      "groups": [
+        "Schnee & Wind",
+        "Landschaft & Hütte",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "snowIntensity": {
+          "label": "Schneestärke"
+        },
+        "snowSpeed": {
+          "label": "Schneegeschwindigkeit"
+        },
+        "windStrength": {
+          "label": "Windstärke"
+        },
+        "atmosphereDensity": {
+          "label": "Atmosphärendichte"
+        },
+        "mountainVisibility": {
+          "label": "Sichtbarkeit der Berge"
+        },
+        "treeDensity": {
+          "label": "Baumdichte"
+        },
+        "smokeAmount": {
+          "label": "Rauchmenge"
+        },
+        "iconSnowAmount": {
+          "label": "Schneemenge auf Symbolen"
+        },
+        "animSpeed": {
+          "label": "Animationsgeschwindigkeit"
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "neumorph": {
+      "name": "Neumorphe taktile Oberfläche",
+      "desc": "Weiche, geformte UI-Oberfläche mit tastbaren Kacheln mit Federphysik, dezenten Drehreglern, Klick-Wellern und herausgeformten Aufnahmen um Desktop-Symbole",
+      "groups": [
+        "Oberfläche & Beleuchtung",
+        "Taktile Bewegung",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "palette": {
+          "label": "Oberflächenpalette",
+          "options": [
+            "Alabaster",
+            "Warmer Sand",
+            "Mitternachtsschiefer",
+            "Salbeinebel"
+          ]
+        },
+        "accentColor": {
+          "label": "Akzent-LED",
+          "options": [
+            "Kobalt",
+            "Koralle",
+            "Smaragd",
+            "Bernstein"
+          ]
+        },
+        "reliefDepth": {
+          "label": "Relieftiefe"
+        },
+        "lightFollowCursor": {
+          "label": "Cursor-Beleuchtung",
+          "options": [
+            "Aus",
+            "An"
+          ]
+        },
+        "waveSpeed": {
+          "label": "Tempo der Atemwelle"
+        },
+        "tileDensity": {
+          "label": "Kacheldichte"
+        },
+        "rippleStrength": {
+          "label": "Stärke der Klick-Welle"
+        },
+        "iconStyle": {
+          "label": "Stil der Symbolform",
+          "options": [
+            "Erhabene Aufnahme",
+            "Vertiefte Mulde",
+            "Minimaler Ring"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "claymorph": {
+      "name": "Claymorphism – taktile Welt",
+      "desc": "Wolkige 3D-Pastell-Tonkugeln und -kapseln mit geleeartiger Quetschphysik, kissenartigem Cursordruck und weich aufgeblasenen Aufnahmen unter Desktop-Symbolen",
+      "groups": [
+        "Ton & Palette",
+        "Schwebende Skulpturen",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "palette": {
+          "label": "Tonpalette",
+          "options": [
+            "Pastellstudio",
+            "Beere & Creme",
+            "Matcha-Ton",
+            "Dämmerungston"
+          ]
+        },
+        "puffiness": {
+          "label": "Wolkigkeit"
+        },
+        "squishStrength": {
+          "label": "Quetschen & Federn"
+        },
+        "blobCount": {
+          "label": "Skulpturendichte"
+        },
+        "floatSpeed": {
+          "label": "Treibgeschwindigkeit"
+        },
+        "cursorRepel": {
+          "label": "Cursor-Kissendruck"
+        },
+        "iconCradle": {
+          "label": "Stil der Symbolaufnahme",
+          "options": [
+            "Wolkiges Pastell",
+            "Creme-Kissen",
+            "Tonring"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "neobrutalism": {
+      "name": "Neo-Brutalismus – Kinetisches Poster",
+      "desc": "Kontrastreiche Farbblockformen mit scharfen, kräftigen Tintenrändern, harten Offset-Schatten ohne Weichzeichnung, mechanischem Klick-Schnappen und gerahmten Desktop-Symbolkarten",
+      "groups": [
+        "Palette & Tinte",
+        "Bewegung & Interaktion",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "palette": {
+          "label": "Posterpalette",
+          "options": [
+            "Bauhaus-Pop",
+            "Acid-Poster",
+            "Retro-Zine",
+            "Mitternachts-Zine"
+          ]
+        },
+        "borderWeight": {
+          "label": "Rahmenstärke"
+        },
+        "shadowDepth": {
+          "label": "Harter Schattenversatz"
+        },
+        "halftonePattern": {
+          "label": "Halbtonpunkte",
+          "options": [
+            "Aus",
+            "An"
+          ]
+        },
+        "shapeCount": {
+          "label": "Blockdichte"
+        },
+        "motionSpeed": {
+          "label": "Treibgeschwindigkeit"
+        },
+        "cursorPush": {
+          "label": "Cursordruck"
+        },
+        "iconFrame": {
+          "label": "Stil des Symbolrahmens",
+          "options": [
+            "Farbkarte",
+            "Gekippter Sticker",
+            "Blaupausenlinie"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "voxelcraft": {
+      "name": "Voxel-Craft-Welt",
+      "desc": "Pixel-Art-Voxel-Ökosystem mit umschaltbaren Biomem, blockigem Tag-Nacht-Himmelszyklus, warmen Fackeln, Pixelbienen, XP-Blockabbau-Explosionen und schwebenden Voxel-Plattformen unter Desktop-Symbolen",
+      "groups": [
+        "Welt & Himmel",
+        "Leben & Atmosphäre",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "biome": {
+          "label": "Biom",
+          "options": [
+            "Ebenen-Overworld",
+            "Kirschhain",
+            "Verschneite Taiga",
+            "Karmesin-Nether"
+          ]
+        },
+        "timeOfDay": {
+          "label": "Tageszeit",
+          "options": [
+            "Automatischer Zyklus",
+            "Tageslicht",
+            "Sonnenuntergang",
+            "Sternennacht"
+          ]
+        },
+        "blockSize": {
+          "label": "Blockskalierung"
+        },
+        "cloudDensity": {
+          "label": "Blockige Wolken"
+        },
+        "weatherAmount": {
+          "label": "Partikel & Glühwürmchen"
+        },
+        "critterAmount": {
+          "label": "Pixelbienen"
+        },
+        "torchGlow": {
+          "label": "Fackelschein"
+        },
+        "animSpeed": {
+          "label": "Zyklusgeschwindigkeit"
+        },
+        "iconBlockStyle": {
+          "label": "Symbol-Voxel-Plattform",
+          "options": [
+            "Schwebende Insel",
+            "Holzplanken",
+            "Pixelrahmen"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "liquidglass": {
+      "name": "Liquid Glass – refraktive Oberfläche",
+      "creditPrefix": "Optik-Shader-Credit:",
+      "desc": "Mehrpassiges physikalisches Apple Liquid Glass in WebGL2: Snell'sches Brechungsgesetz an den Kanten, RGB-chromatische Dispersion, zweipassige Gauß-Frostunschärfe, LCH-Fresnel und doppelwinklige Blendflecken, flüssiges Verschmelzen (smin) und eine federnde Cursor-Linse",
+      "groups": [
+        "Glas & Licht",
+        "Flüssige Bewegung",
+        "Symbole & Leistung"
+      ],
+      "params": {
+        "palette": {
+          "label": "Seidenpalette",
+          "options": [
+            "Tahoe-Azurblau",
+            "Aurora-Prisma",
+            "Sonnenuntergangsseide",
+            "Obsidianglas",
+            "Klassische Seide"
+          ]
+        },
+        "refraction": {
+          "label": "Optische Refraktion"
+        },
+        "frostAmount": {
+          "label": "Frost-Diffusion"
+        },
+        "dispersion": {
+          "label": "Chromatischer Rand"
+        },
+        "mergeRate": {
+          "label": "Flüssige Verschmelzung",
+          "hint": "Wie weich schwebende Tropfen, die Cursor-Linse und die Glasaufnahmen der Symbole bei Annäherung miteinander verschmelzen"
+        },
+        "dropletCount": {
+          "label": "Anzahl Tropfen"
+        },
+        "flowSpeed": {
+          "label": "Fließgeschwindigkeit"
+        },
+        "cursorLens": {
+          "label": "Cursor-Glaslinse",
+          "options": [
+            "Aus",
+            "An"
+          ]
+        },
+        "iconGlassStyle": {
+          "label": "Glasstil der Symbole",
+          "options": [
+            "Mattierte Kapsel",
+            "Klare Tropfen",
+            "Prismenrand"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "papercut": {
+      "name": "Papiergarten — Katı'-Licht",
+      "desc": "Mehrschichtiger Papierschattenkasten-Garten mit Tulpen, Nelken, Hyazinthen, Zypressen und Platanen sowie einer fernen Bosporus-Silhouette. Desktop-Symbole werden zu dreifach gerahmten, vertieften Bogenfenstern.",
+      "groups": [
+        "Licht & Zeit",
+        "Papier",
+        "Garten",
+        "Bewegung",
+        "Symbolfenster",
+        "Leistung"
+      ],
+      "params": {
+        "time": {
+          "label": "Tageszeit",
+          "hint": "Wechselt anhand der Systemuhr automatisch zwischen Morgen-, Mittag-, Sonnenuntergangs- und Nachtpaletten",
+          "options": ["Automatisch", "Morgen", "Mittag", "Sonnenuntergang", "Nacht"]
+        },
+        "light": {
+          "label": "Lichtwinkel",
+          "hint": "Richtung des einfallenden Lichts; Schatten fallen entgegengesetzt (225° = oben links)"
+        },
+        "shadow": {
+          "label": "Schattentiefe",
+          "hint": "Dunkelheit der zwischen den Papierschichten geworfenen Schatten"
+        },
+        "palette": {
+          "label": "Palette",
+          "hint": "Farbfamilie für Papierschichten und Blumen",
+          "options": ["Rosengarten", "Türkis-Koralle", "Marine-Gold", "Pastell"]
+        },
+        "grain": {
+          "label": "Papierkorn",
+          "hint": "Stärke von Papierfasern und Kornstruktur"
+        },
+        "gap": {
+          "label": "Schichtabstand",
+          "hint": "Abstand zwischen den Papierschichten; höhere Werte vertiefen den Schattenkasten"
+        },
+        "flowers": {
+          "label": "Blumendichte",
+          "hint": "Anzahl der Tulpen, Nelken und Hyazinthen im Vordergrund"
+        },
+        "trees": {
+          "label": "Zypressen & Platanen",
+          "hint": "Seitliche Baumschicht mit ausgestanzten Blattlöchern",
+          "options": ["Ausblenden", "Anzeigen"]
+        },
+        "critters": {
+          "label": "Vögel & Schmetterlinge",
+          "hint": "Papier-Vögel, die über dir fliegen, und Schmetterlinge über den Blumen",
+          "options": ["Keine", "Wenige", "Viele"]
+        },
+        "skyline": {
+          "label": "Stadtsilhouette",
+          "hint": "Kuppeln, Minarette und die Silhouette des Galataturms",
+          "options": ["Ausblenden", "Anzeigen"]
+        },
+        "frame": {
+          "label": "Kastenrahmen",
+          "hint": "Geprägter Papierrand entlang des Bildschirmrands",
+          "options": ["Ausblenden", "Anzeigen"]
+        },
+        "sway": {
+          "label": "Brise",
+          "hint": "Wie stark Blumen in der Brise schwanken"
+        },
+        "fw": {
+          "label": "Rahmenbreite",
+          "hint": "Gesamtbreite der drei Papierringe um Symbole"
+        },
+        "fstyle": {
+          "label": "Rahmenform",
+          "hint": "Die Bogennische ist oben rund und unten flach",
+          "options": ["Bogennische", "Abgerundet"]
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Renderauflösungsskala und Blumenanzahl-Budget",
+          "options": ["Niedrig", "Ausgewogen", "Hoch"]
+        }
+      }
+    },
+    "software-world": {
+      "name": "Software-Welt",
+      "desc": "Lebendiges Software-Ökosystem, in dem Desktop-Symbole zu interaktiven Knoten mit Datenflüssen, Paketen, Git-Branches und subtiler Terminal-Atmosphäre werden.",
+      "groups": [
+        "Ökosystem",
+        "Atmosphäre",
+        "Leistung"
+      ],
+      "params": {
+        "animSpeed": {
+          "label": "Animationsgeschwindigkeit",
+          "hint": "Gesamtgeschwindigkeit von Paketen, Knotenimpulsen, Git-Branches und Umgebungsdrift"
+        },
+        "networkActivity": {
+          "label": "Netzwerkaktivität",
+          "hint": "Häufigkeit und Durchsatz von Datenpaketen entlang der Verbindungen"
+        },
+        "connectionIntensity": {
+          "label": "Verbindungsintensität",
+          "hint": "Sichtbarkeit und Reichweite von Abhängigkeits- und Datenflussverbindungen zwischen Knoten"
+        },
+        "particleDensity": {
+          "label": "Partikeldichte",
+          "hint": "Dichte der Umgebungsnetzwerk- und Hintergrundsystempartikel"
+        },
+        "codeParticleDensity": {
+          "label": "Code-Partikeldichte",
+          "hint": "Dichte subtiler Programmier-Symbolpartikel im Hintergrund"
+        },
+        "envDetail": {
+          "label": "Umgebungsdetails",
+          "hint": "Detailgrad von Git-Branches, Terminal-Logs, Build-Bögen und Raster"
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Skalierung der Renderauflösung und Ökosystem-Budget",
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "thinking-orbs": {
+      "name": "ThinkingOrbs 3D",
+      "desc": "Große volumetrische 3D-Punktkugel in der Bildschirmmitte mit allen 9 ThinkingOrbs-Modi, magnetischer Cursor-Hover-Neigung und Wellenphysik sowie adaptiven Desktop-Symbolverbindungen",
+      "groups": [
+        "Kugel & Modus",
+        "Bewegung & Interaktion",
+        "Aussehen & Leistung"
+      ],
+      "params": {
+        "orbDesign": {
+          "label": "Kugelmodus",
+          "hint": "Wechsle live zwischen allen 9 punktierten 3D-ThinkingOrbs-Designs",
+          "options": [
+            "Working",
+            "Searching",
+            "Solving",
+            "Listening",
+            "Connecting",
+            "Weaving",
+            "Composing",
+            "Breathing",
+            "Shaping"
+          ]
+        },
+        "autoCycle": {
+          "label": "Modi autom. wechseln",
+          "hint": "Wechselt in regelmäßigen Abständen weich durch alle 9 Kugelmodi",
+          "options": [
+            "Aus",
+            "An"
+          ]
+        },
+        "orbScale": {
+          "label": "Kugelgröße",
+          "hint": "Gesamtdurchmesser der zentralen Heldenkugel"
+        },
+        "dotDensity": {
+          "label": "Punktdichte",
+          "hint": "Partikel- und Gitterdichte auf der Kugeloberfläche"
+        },
+        "animSpeed": {
+          "label": "Animationsgeschwindigkeit",
+          "hint": "Gesamttempo von Rotation, Scan-Meridian und Welle"
+        },
+        "hoverReaction": {
+          "label": "Hover- & Berührungsreaktion",
+          "hint": "3D-Parallaxenneigung, magnetische Punktabstoßung und Stärke der Klick-/Tipp-Welle",
+          "options": [
+            "Aus",
+            "Sanft",
+            "Stark"
+          ]
+        },
+        "dotGlow": {
+          "label": "Kernleuchten",
+          "hint": "Umgebender Kernhof und Lumineszenz der aktiven Punkte"
+        },
+        "palette": {
+          "label": "Palette",
+          "options": [
+            "Obsidian-Mono",
+            "Papier-Mono",
+            "Kobalt-KI",
+            "Bernstein-Puls",
+            "Smaragd-Raster"
+          ]
+        },
+        "iconLinks": {
+          "label": "Symbol-Telemetrieverbindungen",
+          "hint": "Zeichnet subtile gepunktete Linien zwischen Desktop-Symbolen und der zentralen Kugel, wenn Adaptiv aktiviert ist",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    }
+  }
+}

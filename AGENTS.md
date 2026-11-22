@@ -10,7 +10,7 @@
 **DiyarDesk** renders adaptive HTML5/Canvas/WebGL desktop wallpapers that react in real time to desktop icon positions (`icons` messages with icon bounding rectangles) without AI, cloud accounts, telemetry, purchase flows, or auto-updater endpoints.
 
 This fork (**DiyarDesk**) builds on upstream Deskland Preview (`tools/version.json`: `0.1.4`, GPL-3.0) using its own product identity and original icon, and includes:
-1. **Shared Web Prototype (`prototype/`)** — All wallpaper theme pages, parameter definitions (`themes.json`), settings UI (`settings.html`), snapshot/video sharing (`share.js`), and UI translations (`i18n/en.json`, `i18n/zh-CN.json`).
+1. **Shared Web Prototype (`prototype/`)** — All wallpaper theme pages, parameter definitions (`themes.json`), settings UI (`settings.html`), snapshot/video sharing (`share.js`), and UI translations (`i18n/en.json`, `i18n/zh-CN.json`, `i18n/zh-TW.json`, `i18n/tr.json`, `i18n/de.json`, `i18n/fr.json`, `i18n/ja.json`, `i18n/ko.json`).
 2. **Linux Desktop Host (`linux/`)** — Python 3 + GTK3 + WebKit2GTK host with X11/Wayland layer-shell wallpaper support, static wallpaper fallback, KDE Plasma wallpaper plugin + IconSpy integration, system tray, fullscreen auto-pause, theme importer, and `.deb`/Arch packaging.
 3. **Windows Desktop Host (`host/` & `tools/`)** — Upstream C#/WinForms/WebView2 host (`host/DesktopHost.cs`), PowerShell build script (`host/build.ps1`), and NSIS installer scripts (`tools/build-installer.ps1`, `tools/installer.nsi`).
 4. **Android Tablet Live Wallpaper (`android/`)** — Native Kotlin `WallpaperService` (`DiyarWallpaperService`, `minSdk = 29`, `requiresSmallestWidthDp = "600"`), shared `settings.html` host, SAF theme importer, and interactive tablet icon/widget layout editor.
@@ -25,7 +25,7 @@ This fork (**DiyarDesk**) builds on upstream Deskland Preview (`tools/version.js
 | `prototype/themes.json` | Canonical theme registry (`meadow`, `beach`, `aurora`, `glade`, `rift`, `strike`, `pocket`, `roach`, `rosebrook`, `polarnight`, `desert`, `zen-archipelago`, `istanbul`) |
 | `prototype/settings.html` | Settings window UI (theme grid, live preview iframe, controls, import button & `?` guide modal, snapshot/video share) |
 | `prototype/share.js` | Shared privacy-safe snapshot/video capture helpers (sample icons & color blocks, never real user filenames) |
-| `prototype/i18n/` | UI & theme localization dictionaries (`en.json`, `zh-CN.json` only) |
+| `prototype/i18n/` | UI & theme localization dictionaries (`en.json`, `zh-CN.json`, `zh-TW.json`, `tr.json`, `de.json`, `fr.json`, `ja.json`, `ko.json`) |
 | `prototype/assets/` | Sprite artwork and audio assets (palms, kite boy, black cat, `roach-default.mp3`) |
 | `prototype/thumbs/` | Hand-crafted theme thumbnails (`beach.webp`, `meadow.webp`) and inline data (`thumbs-data.js`) |
 | `prototype/serve.mjs` | Zero-dependency Node dev server (`http://localhost:5178/settings.html`) |
@@ -71,9 +71,9 @@ All 13 built-in themes in this fork have `status: "ready"` and full source code 
 - **`desert`** (`desert.html`, adaptive): Overhead Sahara desert dunes with raised sunlit sand hills beneath dropped icons, turquoise date-palm oases, Bedouin tents, walking camel caravans, and robed Arab travelers (`desert-props.js`).
 
 ### Localization & Consistency
-- **Supported UI languages**: **Simplified Chinese (`zh-CN`), English (`en`), and Turkish (`tr`)**.
+- **Supported UI languages**: **Simplified Chinese (`zh-CN`), Traditional Chinese (`zh-TW`), English (`en`), Turkish (`tr`), German (`de`), French (`fr`), Japanese (`ja`), and Korean (`ko`)**.
 - `settings.html` resolves `t(key)` as `lang -> 'en' -> 'zh-CN' -> key`, while `el.textContent` is written by `applyStatic()` (do not embed HTML markup inside `i18n` values).
-- Keep defaults in `prototype/themes.json` synchronized with fallback defaults in each theme page HTML and translations in `prototype/i18n/en.json`, `prototype/i18n/tr.json`, and `prototype/i18n/zh-CN.json`.
+- Keep defaults in `prototype/themes.json` synchronized with fallback defaults in each theme page HTML and translations in `prototype/i18n/en.json`, `prototype/i18n/zh-CN.json`, `prototype/i18n/zh-TW.json`, `prototype/i18n/tr.json`, `prototype/i18n/de.json`, `prototype/i18n/fr.json`, `prototype/i18n/ja.json`, and `prototype/i18n/ko.json`.
 - **Plasma bridge registration**: When adding or renaming a theme HTML page, verify `linux/plasma-wallpaper/org.deskland.preview/contents/ui/inject.js` handles/recognizes it alongside icon injection.
 - **Thumbnails**: `prototype/thumbs/` and `prototype/thumbs-data.js` are hand-crafted; never regenerate or overwrite existing thumbnails unless explicitly requested.
 

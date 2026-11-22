@@ -4,6 +4,13 @@
         "Id": "org.deskland.preview",
         "Name": "DiyarDesk",
         "Description": "Adaptive animated wallpaper that follows desktop icons",
+        "Description[de]": "Adaptives animiertes Hintergrundbild, das den Desktop-Symbolen folgt",
+        "Description[fr]": "Fond d'écran animé adaptatif qui suit les icônes du bureau",
+        "Description[ja]": "デスクトップアイコンに合わせてリアルタイムに変化するアダプティブ動く壁紙",
+        "Description[ko]": "바탕 화면 아이콘을 실시간으로 따라가는 적응형 애니메이션 배경 화면",
+        "Description[tr]": "Masaüstü simgelerini canlı olarak takip eden uyarlanabilir animasyonlu duvar kağıdı",
+        "Description[zh_CN]": "跟随桌面图标实时变化的自适应动画壁纸",
+        "Description[zh_TW]": "跟隨桌面圖示即時變化的自適應動態桌布",
         "Icon": "preferences-desktop-wallpaper",
         "Category": "Appearance",
         "License": "GPL-3.0-only"
