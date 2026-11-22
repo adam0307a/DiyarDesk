@@ -8,7 +8,7 @@
 # For openSUSE, map the GTK/WebKit typelib packages accordingly.
 
 Name:           diyardesk
-Version:        0.3.0
+Version:        0.3.1
 Release:        1%{?dist}
 Summary:        Adaptive animated wallpaper that follows desktop icons
 
