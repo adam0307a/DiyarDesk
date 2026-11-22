@@ -52,13 +52,30 @@ using System.Reflection;
 [assembly: AssemblyCopyright("Copyright 2026 Deskland authors")]
 "@
 [IO.File]::WriteAllText($versionSource, $versionText, (New-Object Text.UTF8Encoding($false)))
+$rtDir = [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+$winRtRefs = @()
+$winRtDll = Join-Path $rtDir 'System.Runtime.WindowsRuntime.dll'
+$winMeta = Join-Path $env:WINDIR 'System32\WinMetadata'
+if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $winMeta 'Windows.Media.winmd'))) {
+    $winRtRefs = @(
+        '/define:HAS_WINRT_SMTC',
+        "/r:$(Join-Path $rtDir 'System.Runtime.dll')",
+        "/r:$(Join-Path $rtDir 'System.Threading.Tasks.dll')",
+        "/r:$(Join-Path $rtDir 'System.Runtime.InteropServices.WindowsRuntime.dll')",
+        "/r:$winRtDll",
+        "/r:$winMeta\Windows.Foundation.winmd",
+        "/r:$winMeta\Windows.Media.winmd",
+        "/r:$winMeta\Windows.Storage.winmd"
+    )
+}
 & $csc /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 /win32manifest:"$root\app.manifest" `
     /win32icon:"$root\DesklandPreview.ico" `
     /out:"$bin\Deskland.exe" `
     /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
     /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
+    @winRtRefs `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
-    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$versionSource"
+    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force

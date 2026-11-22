@@ -2296,6 +2296,7 @@ class WallpaperForm : Form
         allowMoveIcons = false;
         reader.ResetOrbitalPositions();
         uiRectGroups.Clear();
+        SetUiTextFocus(false);
         uiMouseCaptured = false;
         page = newPage;
         if (web.CoreWebView2 == null) return;
@@ -2391,6 +2392,29 @@ class WallpaperForm : Form
         {
             object vObj;
             if (m.TryGetValue("v", out vObj) && VirtualBarCollapsedSaved != null) VirtualBarCollapsedSaved(vObj);
+        }
+        else if (kind == "textFocus")
+        {
+            object vObj;
+            bool focused = m.TryGetValue("v", out vObj) && vObj is bool && (bool)vObj;
+            SetUiTextFocus(focused);
+        }
+        else if (kind == "mediaSubscribe")
+        {
+            object vObj;
+            bool sub = !m.TryGetValue("v", out vObj) || !(vObj is bool) || (bool)vObj;
+            SetMediaSubscribed(sub);
+        }
+        else if (kind == "mediaCmd")
+        {
+            object actObj, posObj;
+            string act = m.TryGetValue("action", out actObj) ? actObj as string : null;
+            double pos = 0;
+            if (m.TryGetValue("pos", out posObj) && posObj != null)
+            {
+                try { pos = Convert.ToDouble(posObj); } catch { pos = 0; }
+            }
+            if (mediaBridge != null) mediaBridge.HandleCommand(act, pos);
         }
         else if (kind == "moveIcons")
         {
@@ -2576,8 +2600,11 @@ class WallpaperForm : Form
     Native.WinEventDelegate winTrackProc;               // 实时跟踪顶层窗口移动/大小/开关
     int lastWinPollTick;
     readonly Dictionary<string, List<Rectangle>> uiRectGroups = new Dictionary<string, List<Rectangle>>();
-    IntPtr mouseHook;
+    IntPtr mouseHook, keyHook;
     Native.LowLevelMouseProc mouseHookProc;
+    Native.LowLevelKeyboardProc keyHookProc;
+    volatile bool uiTextFocused;
+    MediaBridge mediaBridge;
     double uiScale = 1.0;
     bool uiMouseCaptured, desktopMouseDown;
     int lastDownTick = -1, lastClickCount = 1, lastHoverTick;
@@ -2666,6 +2693,10 @@ class WallpaperForm : Form
                 BeginInvoke((Action)delegate { DispatchWebMouse("mousePressed", cssX, cssY, "left", cc, 1); });
                 return (IntPtr)1;
             }
+            if (uiTextFocused)
+            {
+                BeginInvoke((Action)delegate { BlurUiText(); });
+            }
             if (lastPause != 1 && screen.Contains(hs.pt.X, hs.pt.Y) && IsDesktopHit(hs.pt))
             {
                 desktopMouseDown = true;
@@ -2724,6 +2755,237 @@ class WallpaperForm : Form
         RefreshUiScale();
         mouseHookProc = OnMouseHook;
         mouseHook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, mouseHookProc, Native.GetModuleHandle(null), 0);
+    }
+
+    bool IsDesktopForeground()
+    {
+        IntPtr fg = Native.GetForegroundWindow();
+        if (fg == IntPtr.Zero || fg == Handle || Native.IsChild(Handle, fg)) return true;
+        var sb = new StringBuilder(64);
+        Native.GetClassName(fg, sb, sb.Capacity);
+        string cls = sb.ToString();
+        return cls == "Progman" || cls == "WorkerW" || cls == "SHELLDLL_DefView" || cls == "SysListView32";
+    }
+
+    void SetUiTextFocus(bool focused)
+    {
+        if (shuttingDown || IsDisposed) focused = false;
+        uiTextFocused = focused;
+        try
+        {
+            if (web != null && web.CoreWebView2 != null)
+            {
+                web.CoreWebView2.CallDevToolsProtocolMethodAsync(
+                    "Emulation.setFocusEmulationEnabled",
+                    Json.Stringify(Json.Obj("enabled", focused)));
+            }
+        }
+        catch { }
+
+        if (focused)
+        {
+            if (keyHook == IntPtr.Zero)
+            {
+                keyHookProc = OnKeyboardHook;
+                keyHook = Native.SetWindowsHookEx(Native.WH_KEYBOARD_LL, keyHookProc, Native.GetModuleHandle(null), 0);
+            }
+        }
+        else
+        {
+            StopKeyHook();
+        }
+    }
+
+    void BlurUiText()
+    {
+        if (!uiTextFocused && keyHook == IntPtr.Zero) return;
+        SetUiTextFocus(false);
+        try { Post(Json.Stringify(Json.Obj("t", "blurInput"))); } catch { }
+    }
+
+    void StopKeyHook()
+    {
+        uiTextFocused = false;
+        if (keyHook != IntPtr.Zero)
+        {
+            Native.UnhookWindowsHookEx(keyHook);
+            keyHook = IntPtr.Zero;
+        }
+    }
+
+    void DispatchWebText(string text)
+    {
+        if (shuttingDown || IsDisposed || web.CoreWebView2 == null || string.IsNullOrEmpty(text)) return;
+        try
+        {
+            web.CoreWebView2.CallDevToolsProtocolMethodAsync(
+                "Input.insertText",
+                Json.Stringify(Json.Obj("text", text)));
+        }
+        catch { }
+    }
+
+    void DispatchWebKey(string key, string code, int vk, int modifiers, string text, string[] commands)
+    {
+        if (shuttingDown || IsDisposed || web.CoreWebView2 == null) return;
+        try
+        {
+            var down = Json.Obj(
+                "type", string.IsNullOrEmpty(text) ? "rawKeyDown" : "keyDown",
+                "key", key,
+                "code", code,
+                "windowsVirtualKeyCode", vk,
+                "nativeVirtualKeyCode", vk,
+                "modifiers", modifiers);
+            if (!string.IsNullOrEmpty(text))
+            {
+                down["text"] = text;
+                down["unmodifiedText"] = text;
+            }
+            if (commands != null && commands.Length > 0)
+            {
+                down["commands"] = commands;
+            }
+            web.CoreWebView2.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", Json.Stringify(down));
+
+            var up = Json.Obj(
+                "type", "keyUp",
+                "key", key,
+                "code", code,
+                "windowsVirtualKeyCode", vk,
+                "nativeVirtualKeyCode", vk,
+                "modifiers", modifiers);
+            web.CoreWebView2.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", Json.Stringify(up));
+        }
+        catch { }
+    }
+
+    static bool IsModifierVk(int vk)
+    {
+        return vk == 0x10 || vk == 0x11 || vk == 0x12 || vk == 0x14 || vk == 0x90 || vk == 0x91
+            || vk == 0x5B || vk == 0x5C || (vk >= 0xA0 && vk <= 0xA5);
+    }
+
+    static string TranslateVkToUnicode(uint vk, uint scanCode)
+    {
+        byte[] state = new byte[256];
+        if ((Native.GetAsyncKeyState(0x10) & 0x8000) != 0) state[0x10] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA0) & 0x8000) != 0) state[0xA0] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA1) & 0x8000) != 0) state[0xA1] = 0x80;
+        if ((Native.GetAsyncKeyState(0x11) & 0x8000) != 0) state[0x11] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA2) & 0x8000) != 0) state[0xA2] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA3) & 0x8000) != 0) state[0xA3] = 0x80;
+        if ((Native.GetAsyncKeyState(0x12) & 0x8000) != 0) state[0x12] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA4) & 0x8000) != 0) state[0xA4] = 0x80;
+        if ((Native.GetAsyncKeyState(0xA5) & 0x8000) != 0) state[0xA5] = 0x80;
+        if ((Native.GetKeyState(0x14) & 0x0001) != 0) state[0x14] = 0x01; // CapsLock
+
+        uint fgPid;
+        IntPtr fg = Native.GetForegroundWindow();
+        uint fgTid = fg != IntPtr.Zero ? Native.GetWindowThreadProcessId(fg, out fgPid) : 0;
+        IntPtr hkl = Native.GetKeyboardLayout(fgTid);
+        var sb = new StringBuilder(8);
+        int rc = Native.ToUnicodeEx(vk, scanCode, state, sb, sb.Capacity, 0x04, hkl);
+        if (rc > 0)
+        {
+            string s = sb.ToString(0, rc);
+            if (s.Length > 0 && !char.IsControl(s[0])) return s;
+        }
+        return null;
+    }
+
+    IntPtr OnKeyboardHook(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || web.CoreWebView2 == null || !HasAnyUiRect())
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        int msg = wParam.ToInt32();
+        if (msg != Native.WM_KEYDOWN && msg != Native.WM_SYSKEYDOWN)
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        var ks = (Native.KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Native.KBDLLHOOKSTRUCT));
+        if ((ks.flags & 0x10) != 0) // LLKHF_INJECTED
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        int vk = (int)ks.vkCode;
+        if (IsModifierVk(vk))
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        if (!IsDesktopForeground())
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        bool ctrl = (Native.GetAsyncKeyState(0x11) & 0x8000) != 0;
+        bool alt = (Native.GetAsyncKeyState(0x12) & 0x8000) != 0;
+        bool shift = (Native.GetAsyncKeyState(0x10) & 0x8000) != 0;
+        bool win = (Native.GetAsyncKeyState(0x5B) & 0x8000) != 0 || (Native.GetAsyncKeyState(0x5C) & 0x8000) != 0;
+
+        // Never intercept OS shortcuts (Win+*, Alt+Tab, Alt+F4, Ctrl+Alt+Del, F1..F12)
+        if (win || (alt && !ctrl) || (vk == 0x2E && ctrl && alt) || (vk >= 0x70 && vk <= 0x87))
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+
+        int mods = (alt ? 1 : 0) | (ctrl ? 2 : 0) | (shift ? 8 : 0);
+
+        if (vk == 0x1B) // Escape
+        {
+            BeginInvoke((Action)delegate { BlurUiText(); });
+            return (IntPtr)1;
+        }
+
+        // Ctrl editing shortcuts (only when AltGr is not active)
+        if (ctrl && !alt)
+        {
+            if (vk == 0x56) // Ctrl+V
+            {
+                BeginInvoke((Action)delegate
+                {
+                    try
+                    {
+                        if (Clipboard.ContainsText()) DispatchWebText(Clipboard.GetText());
+                    }
+                    catch { }
+                });
+                return (IntPtr)1;
+            }
+            if (vk == 0x41) { BeginInvoke((Action)delegate { DispatchWebKey("a", "KeyA", 0x41, 2, null, new[] { "selectAll" }); }); return (IntPtr)1; }
+            if (vk == 0x43) { BeginInvoke((Action)delegate { DispatchWebKey("c", "KeyC", 0x43, 2, null, new[] { "copy" }); }); return (IntPtr)1; }
+            if (vk == 0x58) { BeginInvoke((Action)delegate { DispatchWebKey("x", "KeyX", 0x58, 2, null, new[] { "cut" }); }); return (IntPtr)1; }
+            if (vk == 0x5A) { BeginInvoke((Action)delegate { DispatchWebKey("z", "KeyZ", 0x5A, 2, null, new[] { "undo" }); }); return (IntPtr)1; }
+            return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+        }
+
+        // Navigation & editing control keys
+        string spKey = null, spCode = null, spText = null;
+        switch (vk)
+        {
+            case 0x08: spKey = "Backspace"; spCode = "Backspace"; break;
+            case 0x09: spKey = "Tab"; spCode = "Tab"; break;
+            case 0x0D: spKey = "Enter"; spCode = "Enter"; spText = "\r"; break;
+            case 0x2E: spKey = "Delete"; spCode = "Delete"; break;
+            case 0x25: spKey = "ArrowLeft"; spCode = "ArrowLeft"; break;
+            case 0x26: spKey = "ArrowUp"; spCode = "ArrowUp"; break;
+            case 0x27: spKey = "ArrowRight"; spCode = "ArrowRight"; break;
+            case 0x28: spKey = "ArrowDown"; spCode = "ArrowDown"; break;
+            case 0x24: spKey = "Home"; spCode = "Home"; break;
+            case 0x23: spKey = "End"; spCode = "End"; break;
+        }
+        if (spKey != null)
+        {
+            string k = spKey, c = spCode, t = spText;
+            int m = mods;
+            BeginInvoke((Action)delegate { DispatchWebKey(k, c, vk, m, t, null); });
+            return (IntPtr)1;
+        }
+
+        // Printable text (supports Turkish Q/F, Shift, CapsLock, AltGr symbols)
+        string ch = TranslateVkToUnicode(ks.vkCode, ks.scanCode);
+        if (!string.IsNullOrEmpty(ch))
+        {
+            string txt = ch;
+            BeginInvoke((Action)delegate { DispatchWebText(txt); });
+            return (IntPtr)1;
+        }
+
+        return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
     }
 
     void BindSystemEvents()
@@ -2805,10 +3067,39 @@ class WallpaperForm : Form
         )));
     }
 
+    void SetMediaSubscribed(bool sub)
+    {
+        if (shuttingDown || IsDisposed) sub = false;
+        if (sub)
+        {
+            if (mediaBridge == null)
+            {
+                mediaBridge = new MediaBridge();
+                mediaBridge.StateChanged += delegate(string json)
+                {
+                    if (shuttingDown || IsDisposed) return;
+                    try { BeginInvoke((Action)delegate { Post(json); }); } catch { }
+                };
+                mediaBridge.Start();
+            }
+            else
+            {
+                mediaBridge.RequestRefresh();
+            }
+        }
+        else if (mediaBridge != null)
+        {
+            try { mediaBridge.Dispose(); } catch { }
+            mediaBridge = null;
+        }
+    }
+
     void StopMouseHook()
     {
         uiMouseCaptured = false;
         desktopMouseDown = false;
+        StopKeyHook();
+        SetMediaSubscribed(false);
         if (mouseHook != IntPtr.Zero)
         {
             Native.UnhookWindowsHookEx(mouseHook);
@@ -3680,11 +3971,18 @@ static class Native
     public const int WS_CHILD = 0x40000000, WS_VISIBLE = 0x10000000, WS_POPUP = unchecked((int)0x80000000);
     public const int WS_CAPTION = 0x00C00000, WS_THICKFRAME = 0x00040000;
     public const uint SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020;
-    public const int WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202;
+    public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202;
+    public const int WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
     public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
     [StructLayout(LayoutKind.Sequential)] public struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData, flags, time; public IntPtr dwExtraInfo; }
+    [StructLayout(LayoutKind.Sequential)] public struct KBDLLHOOKSTRUCT { public uint vkCode, scanCode, flags, time; public IntPtr dwExtraInfo; }
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr GetModuleHandle(string lpModuleName);
     [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
+    [DllImport("user32.dll")] public static extern IntPtr GetKeyboardLayout(uint idThread);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
     [DllImport("user32.dll")] public static extern bool UnhookWindowsHookEx(IntPtr hhk);
     [DllImport("user32.dll")] public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT pt);

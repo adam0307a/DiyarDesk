@@ -200,6 +200,153 @@
     "errStart": "Impossible de démarrer : {msg}"
   },
   "themes": {
+    "material-impulse": {
+      "name": "DiyarDesk Impulse · Widgets",
+      "creditPrefix": "Inspiré de",
+      "desc": "Fond d'écran Material You DiyarDesk inspiré de end-4/dots-hyprland (illogical-impulse) : fonctionne nativement dans DiyarDesk sans shell externe. Inclut horloge Cookie hybride, lecteur audio ondulé, DiyarDesk Agenda hors ligne (.ics), DiyarDesk Tâches, barre /todo, notes et minuteur Focus.",
+      "groups": [
+        "Palette Material You & Fond",
+        "Widgets DiyarDesk",
+        "Cartes & Icônes du bureau",
+        "Performances"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette dynamique",
+          "hint": "Changez instantanément les tons et surfaces Material You",
+          "options": [
+            "Lavande",
+            "Sauge",
+            "Corail",
+            "Cyan Océan",
+            "Encre Mono"
+          ]
+        },
+        "colorMode": {
+          "label": "Mode d'apparence",
+          "hint": "Auto alterne entre surfaces claires et sombres selon l'heure locale",
+          "options": [
+            "Auto",
+            "Sombre",
+            "Clair"
+          ]
+        },
+        "backdrop": {
+          "label": "Style d'arrière-plan",
+          "hint": "Formes fluides Material You, rubans topographiques ou bokeh étoilé",
+          "options": [
+            "Formes soyeuses",
+            "Ondes topo",
+            "Maillage étoilé"
+          ]
+        },
+        "motion": {
+          "label": "Mouvement ambiant",
+          "hint": "Vitesse d'animation des dégradés d'arrière-plan"
+        },
+        "layout": {
+          "label": "Disposition des widgets",
+          "hint": "Choisissez un préréglage (ou glissez librement chaque carte par son en-tête)",
+          "options": [
+            "Impulse Split",
+            "Barre droite",
+            "Bento centré",
+            "Horloge min."
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk Horloge",
+          "hint": "Affiche l'horloge hybride Cookie Material 3 ou la carte At a Glance",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "clockStyle": {
+          "label": "Style d'horloge",
+          "hint": "Basculer entre l'horloge Cookie hybride ondulée à 12 lobes et la carte At a Glance",
+          "options": [
+            "Cookie hybride",
+            "Carte At a Glance"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk Musique",
+          "hint": "Synchronise les médias Windows en direct (Spotify, YouTube, VLC) avec barre ondulée ou lit vos fichiers audio locaux",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk Agenda (.ics)",
+          "hint": "Calendrier mensuel interactif avec import .ics 100 % hors ligne",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk Tâches",
+          "hint": "Liste de tâches locale avec favoris et filtres",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk Outils",
+          "hint": "Commande /todo, calculatrice/convertisseur hors ligne, notes et anneaux Focus/Système",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "clock24": {
+          "label": "Format de l'heure",
+          "hint": "Basculer entre 24 h et 12 h (AM/PM)",
+          "options": [
+            "12 h",
+            "24 h"
+          ]
+        },
+        "widgetScale": {
+          "label": "Échelle des widgets",
+          "hint": "Taille globale de toutes les cartes widgets"
+        },
+        "cardOpacity": {
+          "label": "Opacité des cartes",
+          "hint": "Translucidité des conteneurs Material You"
+        },
+        "glassBlur": {
+          "label": "Flou dépoli",
+          "hint": "Rayon de flou derrière les cartes (désactivé en mode Eco)"
+        },
+        "cornerRadius": {
+          "label": "Arrondi des coins",
+          "hint": "Rayon des coins Material 3 Expressive des cartes et socles d'icônes"
+        },
+        "iconStyle": {
+          "label": "Style de socle d'icône",
+          "hint": "Support Material You sous les icônes du bureau en mode adaptatif",
+          "options": [
+            "Pilule douce",
+            "Carte contour",
+            "Halo lumineux",
+            "Désactivé"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Budget de résolution du canevas d'arrière-plan",
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Haute"
+          ]
+        }
+      }
+    },
     "studio-glass": {
       "name": "Studio Glass",
       "creditPrefix": "Inspiré par",

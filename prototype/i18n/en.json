@@ -200,6 +200,104 @@
     "errStart": "Couldn't start: {msg}"
   },
   "themes": {
+    "material-impulse": {
+      "name": "DiyarDesk Impulse · Widgets",
+      "creditPrefix": "Inspired by",
+      "desc": "DiyarDesk Material You desktop widget wallpaper inspired by end-4/dots-hyprland (illogical-impulse): runs natively inside DiyarDesk with zero extra shells. Includes scalloped Cookie hybrid clock, live wavy music player, offline DiyarDesk Calendar (.ics import), DiyarDesk Tasks, /todo command & calculator bar, notes, and Pomodoro + system rings.",
+      "groups": [
+        "DiyarDesk Palette & Backdrop",
+        "DiyarDesk Widgets",
+        "Cards & Desktop Icons",
+        "Performance"
+      ],
+      "params": {
+        "palette": {
+          "label": "Dynamic palette",
+          "hint": "Switch Material You tonal surfaces and accents instantly",
+          "options": ["Lavender Dusk", "Sage Forest", "Sunset Coral", "Oceanic Cyan", "Monochrome Ink"]
+        },
+        "colorMode": {
+          "label": "Surface mode",
+          "hint": "Auto adapts smoothly between light and dark Material surfaces using local solar hours",
+          "options": ["Auto Solar", "Dark", "Light"]
+        },
+        "backdrop": {
+          "label": "Backdrop style",
+          "hint": "Organic Material You silk blobs, topographic ribbons, or starlit bokeh mesh",
+          "options": ["Silk Blobs", "Topographic Waves", "Starlit Mesh"]
+        },
+        "motion": {
+          "label": "Ambient motion",
+          "hint": "Flow speed of background tonal gradients and accents"
+        },
+        "layout": {
+          "label": "Widget layout",
+          "hint": "Choose a preset arrangement (or drag any widget card directly by its header)",
+          "options": ["Impulse Split", "Right Sidebar", "Bento Center", "Minimal Clock"]
+        },
+        "showClock": {
+          "label": "DiyarDesk Clock",
+          "hint": "Show the Material 3 scalloped Cookie hybrid clock or DiyarDesk Glance card",
+          "options": ["Hide", "Show"]
+        },
+        "clockStyle": {
+          "label": "Clock style",
+          "hint": "Switch between the 12-lobed Cookie hybrid analog+digital clock with month/day badges and DiyarDesk Glance card",
+          "options": ["Cookie Hybrid", "DiyarDesk Glance"]
+        },
+        "showMedia": {
+          "label": "DiyarDesk Music",
+          "hint": "Syncs live with Windows media (Spotify, YouTube, VLC) with animated wavy seekbar, or click cover art for local audio",
+          "options": ["Hide", "Show"]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk Calendar (.ics)",
+          "hint": "Interactive monthly calendar and agenda with 100% offline .ics calendar import",
+          "options": ["Hide", "Show"]
+        },
+        "showTasks": {
+          "label": "DiyarDesk Tasks",
+          "hint": "Interactive local checklist with starring, filters, and instant add",
+          "options": ["Hide", "Show"]
+        },
+        "showTools": {
+          "label": "DiyarDesk Tools",
+          "hint": "/todo quick command, offline calculator & unit converter, notes, and Pomodoro/system gauges",
+          "options": ["Hide", "Show"]
+        },
+        "clock24": {
+          "label": "Time format",
+          "hint": "Switch between 24-hour and 12-hour (AM/PM) clock display",
+          "options": ["12-hour", "24-hour"]
+        },
+        "widgetScale": {
+          "label": "Widget scale",
+          "hint": "Overall size multiplier for all desktop widget cards"
+        },
+        "cardOpacity": {
+          "label": "Card opacity",
+          "hint": "Translucency of Material You tonal surface containers"
+        },
+        "glassBlur": {
+          "label": "Frosted blur",
+          "hint": "Backdrop blur radius behind widget cards (auto-disabled in Eco mode)"
+        },
+        "cornerRadius": {
+          "label": "Corner roundness",
+          "hint": "Material 3 Expressive corner radius for widget cards and icon cradles"
+        },
+        "iconStyle": {
+          "label": "Icon cradle style",
+          "hint": "Material You backing placed beneath desktop icons in adaptive mode",
+          "options": ["Soft Pill", "Outlined Chip", "Glow Aura", "Off"]
+        },
+        "quality": {
+          "label": "Quality",
+          "hint": "Background canvas resolution budget",
+          "options": ["Low", "Balanced", "High"]
+        }
+      }
+    },
     "studio-glass": {
       "name": "Studio Glass",
       "creditPrefix": "Inspired by",

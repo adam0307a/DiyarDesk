@@ -2,6 +2,184 @@
   "version": 1,
   "themes": [
     {
+      "id": "material-impulse",
+      "adaptive": true,
+      "name": "DiyarDesk Impulse · 桌面小组件",
+      "desc": "灵感源自 end-4/dots-hyprland (illogical-impulse) 的 DiyarDesk Material You 桌面组件壁纸：无需额外 Shell（无需 Quickshell/AGS/Eww），原生集成 12 瓣曲奇混合时钟、动态波浪音乐播放器、离线 DiyarDesk 日历与 .ics 导入、任务清单、/todo 命令栏、便签与番茄钟",
+      "page": "material-impulse.html",
+      "status": "ready",
+      "product": "free",
+      "credit": {
+        "prefix": "灵感源自",
+        "label": "end-4/dots-hyprland (illogical-impulse)",
+        "url": "https://github.com/end-4/dots-hyprland"
+      },
+      "thumb": "radial-gradient(circle at 24% 26%, rgba(50,197,184,0.62) 0%, transparent 46%), radial-gradient(circle at 78% 28%, rgba(245,201,122,0.48) 0%, transparent 44%), radial-gradient(circle at 64% 82%, rgba(224,139,73,0.46) 0%, transparent 48%), linear-gradient(145deg, #101924 0%, #17273b 55%, #1d2633 100%)",
+      "groups": [
+        {
+          "name": "Material You 配色与背景",
+          "params": [
+            {
+              "key": "palette",
+              "label": "动态调色板",
+              "hint": "切换 Material You 动态色调（薰衣草、鼠尾草、珊瑚、深海与极简墨色）",
+              "options": ["薰衣草夜色", "鼠尾草森系", "落日珊瑚", "深海青蓝", "极简墨色"],
+              "default": 0
+            },
+            {
+              "key": "colorMode",
+              "label": "明暗模式",
+              "hint": "自动模式随本地时段在浅色与深色 Material 表面之间切换",
+              "options": ["自动时段", "深色", "浅色"],
+              "default": 1
+            },
+            {
+              "key": "backdrop",
+              "label": "背景质感",
+              "hint": "动态流体光晕、等高线丝带或星尘微光背景",
+              "options": ["流体光晕", "几何丝带", "星尘微光"],
+              "default": 0
+            },
+            {
+              "key": "motion",
+              "label": "背景动效",
+              "hint": "背景流动渐变与微光的呼吸速度",
+              "min": 0,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "DiyarDesk 小组件",
+          "params": [
+            {
+              "key": "layout",
+              "label": "组件布局",
+              "hint": "选择预设桌面排布（也可直接在桌面按住标题栏自由拖动任意卡片）",
+              "options": ["Impulse 分栏", "右侧边栏", "居中便当格", "极简时钟"],
+              "default": 0
+            },
+            {
+              "key": "showClock",
+              "label": "DiyarDesk 时钟",
+              "hint": "显示 Material 3 曲奇混合时钟或 DiyarDesk 一瞥时钟卡片",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "clockStyle",
+              "label": "时钟样式",
+              "hint": "在 12 瓣波浪曲奇混合指针时钟与 DiyarDesk 一瞥卡片之间切换",
+              "options": ["曲奇混合", "一瞥卡片"],
+              "default": 0
+            },
+            {
+              "key": "showMedia",
+              "label": "DiyarDesk 波形音乐",
+              "hint": "实时同步 Windows 正在播放的媒体（Spotify/YouTube 等）或点击封面播放本地音频，带动态波浪进度条",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "showCalendar",
+              "label": "DiyarDesk 日历 (.ics)",
+              "hint": "月历视图与日程清单，支持 100% 离线导入 .ics 日历文件",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "showTasks",
+              "label": "DiyarDesk 任务",
+              "hint": "交互式待办事项与星标筛选，数据全部安全保存在本地",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "showTools",
+              "label": "DiyarDesk 工具栏",
+              "hint": "支持 /todo 快捷指令、离线计算器与单位换算、便签及番茄钟/系统环",
+              "options": ["隐藏", "显示"],
+              "default": 1
+            },
+            {
+              "key": "clock24",
+              "label": "时间格式",
+              "hint": "切换 24 小时制或 12 小时制（AM/PM）",
+              "options": ["12 小时", "24 小时"],
+              "default": 1
+            }
+          ]
+        },
+        {
+          "name": "卡片外观与图标",
+          "params": [
+            {
+              "key": "widgetScale",
+              "label": "组件缩放",
+              "hint": "整体缩放所有桌面小组件卡片尺寸",
+              "min": 0.75,
+              "max": 1.2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "cardOpacity",
+              "label": "卡片不透明度",
+              "hint": "调节 Material You 表面容器的半透明质感",
+              "min": 0.35,
+              "max": 0.96,
+              "step": 0.02,
+              "default": 0.78,
+              "format": "percent"
+            },
+            {
+              "key": "glassBlur",
+              "label": "磨砂模糊",
+              "hint": "卡片背后的高斯背景模糊半径（Eco 模式下自动关闭以省电）",
+              "min": 0,
+              "max": 32,
+              "step": 1,
+              "default": 18,
+              "unit": "px"
+            },
+            {
+              "key": "cornerRadius",
+              "label": "圆角弧度",
+              "hint": "Material 3 Expressive 卡片与图标底座的圆角大小",
+              "min": 12,
+              "max": 36,
+              "step": 1,
+              "default": 26,
+              "unit": "px"
+            },
+            {
+              "key": "iconStyle",
+              "label": "图标底座样式",
+              "hint": "自适应模式下桌面图标下方的 Material You 托盘样式",
+              "options": ["柔和胶囊", "描边卡片", "柔光晕", "关闭"],
+              "default": 0
+            }
+          ]
+        },
+        {
+          "name": "性能",
+          "params": [
+            {
+              "key": "quality",
+              "label": "画质",
+              "hint": "背景画布渲染分辨率预算",
+              "options": ["低", "平衡", "高"],
+              "default": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "studio-glass",
       "adaptive": true,
       "name": "工作室光影玻璃",

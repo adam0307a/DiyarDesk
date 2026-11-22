@@ -200,6 +200,104 @@
     "errStart": "Başlatılamadı: {msg}"
   },
   "themes": {
+    "material-impulse": {
+      "name": "DiyarDesk Impulse · Widget'lar",
+      "creditPrefix": "İlham kaynağı",
+      "desc": "end-4/dots-hyprland (illogical-impulse) tasarımından ilham alan DiyarDesk Material You duvar kağıdı: harici shell kurmadan DiyarDesk içinde çalışan Cookie hibrit saat, dalgalı müzik oynatıcı, çevrimdışı DiyarDesk Takvim (.ics içe aktarma), DiyarDesk Görevler, /todo komut ve hesap makinesi çubuğu, notlar ve odak zamanlayıcısı.",
+      "groups": [
+        "DiyarDesk Renk & Arka Plan",
+        "DiyarDesk Widget'ları",
+        "Kart Görünümü & Simgeler",
+        "Performans"
+      ],
+      "params": {
+        "palette": {
+          "label": "Dinamik renk paleti",
+          "hint": "Material You yüzey ve vurgu tonlarını anında değiştirin",
+          "options": ["Lavanta Akşamı", "Adaçayı Ormanı", "Gün Batımı Mercan", "Okyanus Camgöbeği", "Monokrom Mürekkep"]
+        },
+        "colorMode": {
+          "label": "Tema kipi",
+          "hint": "Otomatik kip yerel gün saatine göre açık ve koyu Material yüzeyler arasında geçiş yapar",
+          "options": ["Otomatik", "Koyu", "Açık"]
+        },
+        "backdrop": {
+          "label": "Arka plan dokusu",
+          "hint": "Akışkan Material You bulutları, topografik şeritler veya yıldızlı bokeh ağı",
+          "options": ["Akışkan Işıltı", "Topografik Şerit", "Yıldızlı Ağ"]
+        },
+        "motion": {
+          "label": "Arka plan hareketi",
+          "hint": "Arka plan geçişlerinin ve ışık dalgalarının akış hızı"
+        },
+        "layout": {
+          "label": "Widget yerleşimi",
+          "hint": "Hazır yerleşim seçin (veya herhangi bir kartı başlığından tutup masaüstünde sürükleyin)",
+          "options": ["Impulse Bölünmüş", "Sağ Kenar Çubuğu", "Orta Bento", "Minimal Saat"]
+        },
+        "showClock": {
+          "label": "DiyarDesk Saat",
+          "hint": "Material 3 dalgalı Cookie hibrit saati veya DiyarDesk Bakış saat kartını gösterir",
+          "options": ["Gizle", "Göster"]
+        },
+        "clockStyle": {
+          "label": "Saat stili",
+          "hint": "12 dilimli dalgalı Cookie hibrit (analog + dijital + ay/gün rozetli) veya DiyarDesk Bakış kartı",
+          "options": ["Cookie Hibrit", "DiyarDesk Bakış"]
+        },
+        "showMedia": {
+          "label": "DiyarDesk Müzik",
+          "hint": "Windows'ta çalan müziği (Spotify, YouTube vb.) canlı gösterir ve kontrol eder; kapağa tıklayarak yerel ses de çalabilirsiniz",
+          "options": ["Gizle", "Göster"]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk Takvim (.ics)",
+          "hint": "Etkileşimli aylık takvim ve ajanda; .ics takvim dosyalarını %100 çevrimdışı içe aktarır",
+          "options": ["Gizle", "Göster"]
+        },
+        "showTasks": {
+          "label": "DiyarDesk Görevler",
+          "hint": "Yıldızlama ve filtre destekli yerel yapılacaklar listesi",
+          "options": ["Gizle", "Göster"]
+        },
+        "showTools": {
+          "label": "DiyarDesk Araçlar",
+          "hint": "/todo hızlı ekleme, çevrimdışı hesap makinesi/birim çevirici, notlar ve Pomodoro/sistem halkaları",
+          "options": ["Gizle", "Göster"]
+        },
+        "clock24": {
+          "label": "Saat biçimi",
+          "hint": "24 saat veya 12 saat (AM/PM) gösterimi arasında geçiş yapın",
+          "options": ["12 saat", "24 saat"]
+        },
+        "widgetScale": {
+          "label": "Widget ölçeği",
+          "hint": "Tüm masaüstü widget kartlarının genel boyut ölçeği"
+        },
+        "cardOpacity": {
+          "label": "Kart opaklığı",
+          "hint": "Material You yüzey kaplarının saydamlık yoğunluğu"
+        },
+        "glassBlur": {
+          "label": "Buzlu cam bulanıklığı",
+          "hint": "Kartların arkasındaki bulanıklık yarıçapı (Eco modda güç tasarrufu için kapanır)"
+        },
+        "cornerRadius": {
+          "label": "Köşe yuvarlaklığı",
+          "hint": "Material 3 Expressive kart ve simge yuvası köşe yarıçapı"
+        },
+        "iconStyle": {
+          "label": "Simge yuvası stili",
+          "hint": "Uyarlanabilir kipte masaüstü simgelerinin altında görünen Material You tabanı",
+          "options": ["Yumuşak Kapsül", "Çerçeveli Kart", "Işık Halesi", "Kapalı"]
+        },
+        "quality": {
+          "label": "Kalite",
+          "hint": "Arka plan tuvali çözünürlük bütçesi",
+          "options": ["Düşük", "Dengeli", "Yüksek"]
+        }
+      }
+    },
     "studio-glass": {
       "name": "Stüdyo Camı",
       "creditPrefix": "İlham kaynağı:",

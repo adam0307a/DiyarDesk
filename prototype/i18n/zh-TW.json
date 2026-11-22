@@ -200,6 +200,153 @@
     "errStart": "無法啟動：{msg}"
   },
   "themes": {
+    "material-impulse": {
+      "name": "DiyarDesk Impulse · 桌面小工具",
+      "creditPrefix": "靈感源自",
+      "desc": "靈感源自 end-4/dots-hyprland (illogical-impulse) 的 DiyarDesk Material You 桌面小工具桌布：無須安裝額外 Shell，原生內建 12 瓣曲奇混合時鐘、動態波浪音樂播放器、離線 DiyarDesk 日曆（.ics 匯入）、DiyarDesk 任務、/todo 指令列、便條與番茄鐘。",
+      "groups": [
+        "Material You 配色與背景",
+        "DiyarDesk 小工具",
+        "卡片外觀與圖示",
+        "效能"
+      ],
+      "params": {
+        "palette": {
+          "label": "動態調色盤",
+          "hint": "即時切換 Material You 動態色調與表面容器色彩",
+          "options": [
+            "薰衣草夜色",
+            "鼠尾草森系",
+            "落日珊瑚",
+            "深海青藍",
+            "極簡墨色"
+          ]
+        },
+        "colorMode": {
+          "label": "明暗模式",
+          "hint": "自動模式依本地時段在淺色與深色 Material 表面間切換",
+          "options": [
+            "自動時段",
+            "深色",
+            "淺色"
+          ]
+        },
+        "backdrop": {
+          "label": "背景質感",
+          "hint": "動態流體光暈、等高線絲帶或星塵微光背景",
+          "options": [
+            "流體光暈",
+            "幾何絲帶",
+            "星塵微光"
+          ]
+        },
+        "motion": {
+          "label": "背景動效",
+          "hint": "背景流動漸層與微光的呼吸速度"
+        },
+        "layout": {
+          "label": "小工具版面",
+          "hint": "選擇預設桌面排布（也可直接按住卡片標題列自由拖曳）",
+          "options": [
+            "Impulse 分欄",
+            "右側邊欄",
+            "置中便當格",
+            "極簡時鐘"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk 時鐘",
+          "hint": "顯示 Material 3 曲奇混合時鐘或一覽資訊卡片",
+          "options": [
+            "隱藏",
+            "顯示"
+          ]
+        },
+        "clockStyle": {
+          "label": "時鐘樣式",
+          "hint": "在 12 瓣波浪曲奇混合指針時鐘與一覽卡片之間切換",
+          "options": [
+            "曲奇混合",
+            "一覽卡片"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk 波形音樂",
+          "hint": "即時同步 Windows 播放中媒體（Spotify/YouTube 等）並搭配動態波浪進度條，也可點擊封面播放本機音樂",
+          "options": [
+            "隱藏",
+            "顯示"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk 日曆 (.ics)",
+          "hint": "互動月曆與行程清單，支援 100% 離線匯入 .ics 日曆檔案",
+          "options": [
+            "隱藏",
+            "顯示"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk 任務",
+          "hint": "互動式本機待辦清單，支援星號標記與篩選",
+          "options": [
+            "隱藏",
+            "顯示"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk 工具列",
+          "hint": "支援 /todo 快捷指令、離線計算機與單位換算、便條及番茄鐘/系統環",
+          "options": [
+            "隱藏",
+            "顯示"
+          ]
+        },
+        "clock24": {
+          "label": "時間格式",
+          "hint": "切換 24 小時制或 12 小時制（AM/PM）",
+          "options": [
+            "12 小時",
+            "24 小時"
+          ]
+        },
+        "widgetScale": {
+          "label": "小工具縮放",
+          "hint": "整體調整所有桌面小工具卡片大小"
+        },
+        "cardOpacity": {
+          "label": "卡片不透明度",
+          "hint": "調整 Material You 表面容器的半透明質感"
+        },
+        "glassBlur": {
+          "label": "霧面模糊",
+          "hint": "卡片背後的模糊半徑（Eco 模式下自動停用以省電）"
+        },
+        "cornerRadius": {
+          "label": "圓角弧度",
+          "hint": "Material 3 Expressive 卡片與圖示底座的圓角大小"
+        },
+        "iconStyle": {
+          "label": "圖示底座樣式",
+          "hint": "自適應模式下桌面圖示下方的 Material You 托盤樣式",
+          "options": [
+            "柔和膠囊",
+            "描邊卡片",
+            "柔光暈",
+            "關閉"
+          ]
+        },
+        "quality": {
+          "label": "畫質",
+          "hint": "背景畫布繪製解析度預算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
     "studio-glass": {
       "name": "Studio Glass 工作室玻璃",
       "creditPrefix": "靈感來源",

@@ -168,6 +168,7 @@
     papercut: 'papercut.html',
     quietsnow: 'quietsnow.html',
     'studio-glass': 'studio-glass.html',
+    'material-impulse': 'material-impulse.html',
   };
 
   var CUSTOM_DIR = HOME + '/.config/deskland/themes';
