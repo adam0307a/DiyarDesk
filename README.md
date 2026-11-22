@@ -125,6 +125,15 @@ DiyarDesk includes a native **Android Tablet** live wallpaper companion (`androi
 | `prototype/` | Shared themes, settings UI (`settings.html`), i18n JSONs (`en`, `zh-CN`), sharing script, assets |
 | `tools/` | Version metadata and Windows NSIS installer scripts |
 
+## Contributors
+
+Thank you to everyone who has helped build and improve DiyarDesk:
+
+- **[@adam0307a](https://github.com/adam0307a)** — Creator & maintainer of DiyarDesk (Linux, Windows, Android Tablet & original themes)
+- **[@EvernightFedora](https://github.com/EvernightFedora)** — Multilingual localization (`zh-TW`, `de`, `fr`, `ja`, `ko`), GNOME/KDE desktop translations, and Fedora/RHEL RPM packaging ([#3](https://github.com/adam0307a/DiyarDesk/pull/3))
+- **[@BLEZZ0102](https://github.com/BLEZZ0102)** & **[@qwen-intl](https://github.com/qwen-intl)** — Upstream Deskland foundation contributors
+- **Antigravity** *(Google DeepMind AI coding assistant)* — Collaborative theme development (**Studio Glass** 3D Three.js + WebGL2 engine, shaders, localization & release engineering)
+
 ## Credits and license
 
 Source code and included theme assets are licensed under [GPL-3.0](LICENSE). Third-party dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [NOTICE](NOTICE), and [TRADEMARKS.md](TRADEMARKS.md).
@@ -188,6 +197,15 @@ NSIS kurulum paketi üretmek için:
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1
 ```
+
+### Katkıda Bulunanlar
+
+DiyarDesk'in geliştirilmesine ve çevirilerine katkı sunan herkese teşekkürler:
+
+- **[@adam0307a](https://github.com/adam0307a)** — DiyarDesk kurucusu ve ana geliştiricisi (Linux, Windows, Android Tablet ve özgün temalar)
+- **[@EvernightFedora](https://github.com/EvernightFedora)** — Çoklu dil desteği (`zh-TW`, `de`, `fr`, `ja`, `ko`), GNOME/KDE masaüstü çevirileri ve Fedora/RHEL RPM paketlemesi ([#3](https://github.com/adam0307a/DiyarDesk/pull/3))
+- **[@BLEZZ0102](https://github.com/BLEZZ0102)** & **[@qwen-intl](https://github.com/qwen-intl)** — Yukarı akış Deskland temel katkıda bulunanları
+- **Antigravity** *(Google DeepMind yapay zeka kodlama asistanı)* — Ortak tema geliştirme (**Studio Glass** 3B Three.js + WebGL2 motoru, shader, yerelleştirme ve sürüm desteği)
 
 ### Lisans
 
