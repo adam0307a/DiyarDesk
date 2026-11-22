@@ -162,6 +162,89 @@
     "errStart": "Impossible de démarrer : {msg}"
   },
   "themes": {
+    "studio-glass": {
+      "name": "Studio Glass",
+      "creditPrefix": "Inspiré par",
+      "desc": "Espace de travail 3D Three.js interactif inspiré de Studio Glass : Matin, Orage (pluie sur vitre), Après-midi, Coucher de soleil et Nuit. Tirez les stores en bois, pivotez le moniteur, déplacez clavier, souris, chaise, carnet et plantes, et bougez les cartes en verre réfractif.",
+      "groups": [
+        "Éclairage & Météo",
+        "Studio & Mobilier",
+        "Verre & Icônes",
+        "Performance"
+      ],
+      "params": {
+        "preset": {
+          "label": "Préréglage lumineux",
+          "hint": "Transition fluide entre l’heure automatique et cinq ambiances 3D de studio",
+          "options": [
+            "Automatique",
+            "Matin",
+            "Orage",
+            "Après-midi",
+            "Coucher de soleil",
+            "Nuit"
+          ]
+        },
+        "blinds": {
+          "label": "Stores en bois",
+          "hint": "Ouvrir ou fermer les stores vénitiens en bois (ou glisser directement sur la fenêtre)"
+        },
+        "shafts": {
+          "label": "Rayons lumineux",
+          "hint": "Intensité des faisceaux volumétriques 3D traversant les stores"
+        },
+        "weather": {
+          "label": "Pluie & poussières",
+          "hint": "Densité des gouttes et éclairs en mode Orage, ou poussières ensoleillées"
+        },
+        "monitorAngle": {
+          "label": "Rotation de l’écran",
+          "hint": "Pivoter l’écran 3D à gauche ou à droite (clavier, souris, chaise et plantes sont déplaçables)"
+        },
+        "deskLamp": {
+          "label": "Lampe champignon",
+          "hint": "Lueur chaleureuse de la lampe en verre dépoli à droite (cliquer pour basculer)"
+        },
+        "parallax": {
+          "label": "Parallaxe caméra",
+          "hint": "Léger décalage de perspective 3D suivant votre curseur"
+        },
+        "showHud": {
+          "label": "Panneau lumineux en verre",
+          "hint": "Afficher les cartes d’éclairage en verre réfractif et le curseur de luminosité",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "refraction": {
+          "label": "Réfraction & dispersion",
+          "hint": "Réfraction optique et dispersion prismatique RVB sur les bords en verre"
+        },
+        "frost": {
+          "label": "Flou verre dépoli",
+          "hint": "Diffusion gaussienne dépolie à travers les surfaces en verre"
+        },
+        "iconGlass": {
+          "label": "Forme du verre d’icône",
+          "hint": "Géométrie de la plaque de verre réfractif placée sous chaque icône du bureau",
+          "options": [
+            "Carte verre",
+            "Prisme",
+            "Désactivé"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Budget de résolution de la scène 3D Three.js et du verre réfractif",
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Haute"
+          ]
+        }
+      }
+    },
     "quietsnow": {
       "name": "Neige tranquille",
       "creditPrefix": "Inspiré par",
@@ -176,7 +259,12 @@
         "mode": {
           "label": "Mode saison",
           "hint": "Passez en direct entre neige réaliste, pluie en perles de verre, feuilles d'automne et fleurs de cerisier",
-          "options": ["Neige", "Pluie", "Feuilles d'automne", "Fleurs de cerisier"]
+          "options": [
+            "Neige",
+            "Pluie",
+            "Feuilles d'automne",
+            "Fleurs de cerisier"
+          ]
         },
         "intensity": {
           "label": "Intensité",
@@ -193,12 +281,19 @@
         "accumulate": {
           "label": "Accumulation sur",
           "hint": "Choisissez si la neige, les feuilles ou les perles de pluie se déposent uniquement au sol ou aussi sur les icônes du bureau",
-          "options": ["Désactivé", "Sol uniquement", "Sol et icônes"]
+          "options": [
+            "Désactivé",
+            "Sol uniquement",
+            "Sol et icônes"
+          ]
         },
         "windows": {
           "label": "Accumulation sur les fenêtres",
           "hint": "Dépose neige, feuilles, pétales et éclaboussures de pluie sur le bord supérieur des fenêtres ouvertes ; tout tombe quand les fenêtres bougent ou se ferment",
-          "options": ["Désactivé", "Activé"]
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
         },
         "melt": {
           "label": "Fonte / effacement naturel",
@@ -207,7 +302,11 @@
         "cursor": {
           "label": "Interaction avec le curseur",
           "hint": "Balayez les congères, dispersez les feuilles et pétales ou étalez les gouttes de pluie avec le pointeur",
-          "options": ["Désactivé", "Doux", "Fort"]
+          "options": [
+            "Désactivé",
+            "Doux",
+            "Fort"
+          ]
         },
         "depth": {
           "label": "Profondeur des congères",
@@ -216,7 +315,12 @@
         "atmosphere": {
           "label": "Atmosphère",
           "hint": "Choisissez un décor saisonnier calme et un éclairage d'ambiance",
-          "options": ["Nuit calme", "Heure bleue", "Matin brumeux", "Chaleur du lampadaire"]
+          "options": [
+            "Nuit calme",
+            "Heure bleue",
+            "Matin brumeux",
+            "Chaleur du lampadaire"
+          ]
         },
         "sparkle": {
           "label": "Scintillement et lustre",
@@ -229,7 +333,11 @@
         "quality": {
           "label": "Qualité",
           "hint": "Résolution de rendu et budget de particules physiques",
-          "options": ["Basse", "Équilibrée", "Élevée"]
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Élevée"
+          ]
         }
       }
     },
@@ -1279,7 +1387,13 @@
         "time": {
           "label": "Moment de la journée",
           "hint": "Bascule automatiquement entre les palettes matin, midi, coucher de soleil et nuit selon l'horloge du système",
-          "options": ["Auto", "Matin", "Midi", "Coucher de soleil", "Nuit"]
+          "options": [
+            "Auto",
+            "Matin",
+            "Midi",
+            "Coucher de soleil",
+            "Nuit"
+          ]
         },
         "light": {
           "label": "Angle de la lumière",
@@ -1292,7 +1406,12 @@
         "palette": {
           "label": "Palette",
           "hint": "Famille de couleurs des couches de papier et des fleurs",
-          "options": ["Jardin de roses", "Turquoise-corail", "Bleu nuit-or", "Pastel"]
+          "options": [
+            "Jardin de roses",
+            "Turquoise-corail",
+            "Bleu nuit-or",
+            "Pastel"
+          ]
         },
         "grain": {
           "label": "Grain du papier",
@@ -1309,22 +1428,35 @@
         "trees": {
           "label": "Cyprès et platanes",
           "hint": "Couche d'arbres latérale aux feuilles perforées",
-          "options": ["Masquer", "Afficher"]
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
         },
         "critters": {
           "label": "Oiseaux et papillons",
           "hint": "Oiseaux de papier volant au-dessus et papillons au-dessus des fleurs",
-          "options": ["Aucun", "Peu", "Beaucoup"]
+          "options": [
+            "Aucun",
+            "Peu",
+            "Beaucoup"
+          ]
         },
         "skyline": {
           "label": "Silhouette de la ville",
           "hint": "Dômes, minarets et silhouette de la tour de Galata",
-          "options": ["Masquer", "Afficher"]
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
         },
         "frame": {
           "label": "Cadre de la boîte",
           "hint": "Bordure de papier gaufré autour du bord de l'écran",
-          "options": ["Masquer", "Afficher"]
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
         },
         "sway": {
           "label": "Brise",
@@ -1337,12 +1469,19 @@
         "fstyle": {
           "label": "Forme du cadre",
           "hint": "La niche en arche est arrondie en haut et plate en bas",
-          "options": ["Niche en arche", "Arrondi"]
+          "options": [
+            "Niche en arche",
+            "Arrondi"
+          ]
         },
         "quality": {
           "label": "Qualité",
           "hint": "Échelle de résolution de rendu et budget de fleurs",
-          "options": ["Basse", "Équilibrée", "Élevée"]
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Élevée"
+          ]
         }
       }
     },

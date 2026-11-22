@@ -162,6 +162,89 @@
     "errStart": "Start fehlgeschlagen: {msg}"
   },
   "themes": {
+    "studio-glass": {
+      "name": "Studio Glass",
+      "creditPrefix": "Inspiriert von",
+      "desc": "Interaktiver 3D-Three.js-Designer-Arbeitsplatz inspiriert von Studio Glass: Morgen, Gewitter (Regen auf Glas), Nachmittag, Sonnenuntergang und Nacht. Holzjalousien ziehen, Monitor drehen, Tastatur, Maus, Stuhl, Notizbuch und wiegende Pflanzen verschieben sowie lichtbrechende Glas-Steuerelemente bewegen.",
+      "groups": [
+        "Licht & Wetter",
+        "Studio & Möbel",
+        "Glas & Symbole",
+        "Leistung"
+      ],
+      "params": {
+        "preset": {
+          "label": "Licht-Voreinstellung",
+          "hint": "Sanfter Übergang zwischen automatischer Tageszeit und fünf 3D-Studio-Lichtstimmungen",
+          "options": [
+            "Automatisch",
+            "Morgen",
+            "Gewitter",
+            "Nachmittag",
+            "Sonnenuntergang",
+            "Nacht"
+          ]
+        },
+        "blinds": {
+          "label": "Holzjalousien",
+          "hint": "Linke Holzjalousien öffnen oder schließen (oder direkt am Fenster ziehen)"
+        },
+        "shafts": {
+          "label": "Fenster-Lichtstrahlen",
+          "hint": "Intensität der volumetrischen 3D-Lichtstrahlen durch die Jalousien"
+        },
+        "weather": {
+          "label": "Regen & Staubpartikel",
+          "hint": "Dichte der Regentropfen & Blitze im Gewittermodus oder Staub im Sonnenlicht"
+        },
+        "monitorAngle": {
+          "label": "Monitor-Drehung",
+          "hint": "3D-Display nach links oder rechts drehen (Tastatur, Maus, Stuhl und Pflanzen sind direkt verschiebbar)"
+        },
+        "deskLamp": {
+          "label": "Pilzlampe",
+          "hint": "Warmes Leuchten der Milchglas-Pilzlampe auf dem rechten Sideboard (zum Umschalten anklicken)"
+        },
+        "parallax": {
+          "label": "Kamera-Parallaxe",
+          "hint": "Subtile 3D-Perspektivverschiebung entsprechend dem Mauszeiger"
+        },
+        "showHud": {
+          "label": "Glas-Lichtpanel",
+          "hint": "Bewegliche Glas-Karten für die Studiobeleuchtung und Helligkeitsregler anzeigen",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "refraction": {
+          "label": "Brechung & Dispersion",
+          "hint": "Optische Lichtbrechung und prismatische RGB-Kantenstreuung in Glaskarten und Symbolplaketten"
+        },
+        "frost": {
+          "label": "Milchglas-Unschärfe",
+          "hint": "Gaußsche Milchglas-Diffusion innerhalb der Glasflächen"
+        },
+        "iconGlass": {
+          "label": "Symbol-Glasform",
+          "hint": "Geometrie der lichtbrechenden Glasplakette unter jedem Desktop-Symbol",
+          "options": [
+            "Glaskarte",
+            "Prisma",
+            "Aus"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Auflösungsbudget für Three.js-3D-Szene und lichtbrechendes Glas",
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
+            "Hoch"
+          ]
+        }
+      }
+    },
     "quietsnow": {
       "name": "Stiller Schnee",
       "creditPrefix": "Inspiriert von",
@@ -176,7 +259,12 @@
         "mode": {
           "label": "Jahreszeit-Modus",
           "hint": "Wechsle live zwischen realistischem Schnee, Regen mit Glasperlen, Herbstblättern und Kirschblüten",
-          "options": ["Schnee", "Regen", "Herbstblätter", "Kirschblüte"]
+          "options": [
+            "Schnee",
+            "Regen",
+            "Herbstblätter",
+            "Kirschblüte"
+          ]
         },
         "intensity": {
           "label": "Intensität",
@@ -193,12 +281,19 @@
         "accumulate": {
           "label": "Ansammeln auf",
           "hint": "Wähle, ob sich Schnee, Blätter oder Regentropfen nur auf dem Boden oder auch auf Desktop-Symbolen absetzen",
-          "options": ["Aus", "Nur Boden", "Boden & Symbole"]
+          "options": [
+            "Aus",
+            "Nur Boden",
+            "Boden & Symbole"
+          ]
         },
         "windows": {
           "label": "Auf Fenstern ansammeln",
           "hint": "Schnee, Blätter, Blüten und Regenspritzer auf den Oberkanten offener Fenster absetzen; rutschen beim Bewegen oder Schließen herunter",
-          "options": ["Aus", "An"]
+          "options": [
+            "Aus",
+            "An"
+          ]
         },
         "melt": {
           "label": "Natürliches Schmelzen / Verblassen",
@@ -207,7 +302,11 @@
         "cursor": {
           "label": "Cursor-Interaktion",
           "hint": "Fegt Schneeverwehungen auseinander, wirbelt Blätter und Blüten auf oder verwischt Regentropfen mit dem Zeiger",
-          "options": ["Aus", "Sanft", "Stark"]
+          "options": [
+            "Aus",
+            "Sanft",
+            "Stark"
+          ]
         },
         "depth": {
           "label": "Verwehungstiefe",
@@ -216,7 +315,12 @@
         "atmosphere": {
           "label": "Atmosphäre",
           "hint": "Wähle eine ruhige saisonale Kulisse und Umgebungsbeleuchtung",
-          "options": ["Stille Nacht", "Blaue Stunde", "Nebliger Morgen", "Laternenwärme"]
+          "options": [
+            "Stille Nacht",
+            "Blaue Stunde",
+            "Nebliger Morgen",
+            "Laternenwärme"
+          ]
         },
         "sparkle": {
           "label": "Glitzern & Schimmer",
@@ -229,7 +333,11 @@
         "quality": {
           "label": "Qualität",
           "hint": "Renderauflösung und Partikelbudget der Physik",
-          "options": ["Niedrig", "Ausgewogen", "Hoch"]
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
+            "Hoch"
+          ]
         }
       }
     },
@@ -1279,7 +1387,13 @@
         "time": {
           "label": "Tageszeit",
           "hint": "Wechselt anhand der Systemuhr automatisch zwischen Morgen-, Mittag-, Sonnenuntergangs- und Nachtpaletten",
-          "options": ["Automatisch", "Morgen", "Mittag", "Sonnenuntergang", "Nacht"]
+          "options": [
+            "Automatisch",
+            "Morgen",
+            "Mittag",
+            "Sonnenuntergang",
+            "Nacht"
+          ]
         },
         "light": {
           "label": "Lichtwinkel",
@@ -1292,7 +1406,12 @@
         "palette": {
           "label": "Palette",
           "hint": "Farbfamilie für Papierschichten und Blumen",
-          "options": ["Rosengarten", "Türkis-Koralle", "Marine-Gold", "Pastell"]
+          "options": [
+            "Rosengarten",
+            "Türkis-Koralle",
+            "Marine-Gold",
+            "Pastell"
+          ]
         },
         "grain": {
           "label": "Papierkorn",
@@ -1309,22 +1428,35 @@
         "trees": {
           "label": "Zypressen & Platanen",
           "hint": "Seitliche Baumschicht mit ausgestanzten Blattlöchern",
-          "options": ["Ausblenden", "Anzeigen"]
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
         },
         "critters": {
           "label": "Vögel & Schmetterlinge",
           "hint": "Papier-Vögel, die über dir fliegen, und Schmetterlinge über den Blumen",
-          "options": ["Keine", "Wenige", "Viele"]
+          "options": [
+            "Keine",
+            "Wenige",
+            "Viele"
+          ]
         },
         "skyline": {
           "label": "Stadtsilhouette",
           "hint": "Kuppeln, Minarette und die Silhouette des Galataturms",
-          "options": ["Ausblenden", "Anzeigen"]
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
         },
         "frame": {
           "label": "Kastenrahmen",
           "hint": "Geprägter Papierrand entlang des Bildschirmrands",
-          "options": ["Ausblenden", "Anzeigen"]
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
         },
         "sway": {
           "label": "Brise",
@@ -1337,12 +1469,19 @@
         "fstyle": {
           "label": "Rahmenform",
           "hint": "Die Bogennische ist oben rund und unten flach",
-          "options": ["Bogennische", "Abgerundet"]
+          "options": [
+            "Bogennische",
+            "Abgerundet"
+          ]
         },
         "quality": {
           "label": "Qualität",
           "hint": "Renderauflösungsskala und Blumenanzahl-Budget",
-          "options": ["Niedrig", "Ausgewogen", "Hoch"]
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
+            "Hoch"
+          ]
         }
       }
     },
