@@ -1033,7 +1033,7 @@ class Wallpaper:
         try:
             visible, rects = self.icon_adapter.read()
             raw_rects = [rect.as_array() for rect in rects]
-            settings = getattr(self.host, "settings", None)
+            settings = getattr(getattr(self, "host", None), "settings", None)
             window_aware = bool(getattr(settings, "window_aware", False))
             if window_aware:
                 wins = detect_active_windows()
@@ -1178,9 +1178,10 @@ class Wallpaper:
         return False
 
     def push_environment(self, force: bool = False) -> None:
-        if self._closed or not self._ready or self.bridge is None:
+        host = getattr(self, "host", None)
+        if host is None or self._closed or not self._ready or self.bridge is None:
             return
-        settings = getattr(self.host, "settings", None)
+        settings = getattr(host, "settings", None)
         solar_sync = bool(getattr(settings, "solar_sync", False))
         now = time.monotonic()
         last_ts = float(getattr(self, "_last_env_ts", 0.0))
@@ -1195,11 +1196,12 @@ class Wallpaper:
 
     def sync_mpv_video(self) -> None:
         mpv = getattr(self, "mpv_backend", None)
-        if mpv is None:
+        host = getattr(self, "host", None)
+        if mpv is None or host is None:
             return
-        settings = getattr(self.host, "settings", None)
+        settings = getattr(host, "settings", None)
         prefer_mpv = bool(getattr(settings, "prefer_mpv", False))
-        custom_dir = getattr(self.host, "custom_themes_dir", None)
+        custom_dir = getattr(host, "custom_themes_dir", None)
         page = str(getattr(self, "_page", "") or "")
         if prefer_mpv and self.backend == "x11" and page.startswith("__custom/") and custom_dir is not None:
             tid = page.split("/", 2)[1]
@@ -1213,7 +1215,8 @@ class Wallpaper:
         mpv.stop()
 
     def _tick_system_bridge_and_watchdog(self) -> None:
-        if self._closed:
+        host = getattr(self, "host", None)
+        if self._closed or host is None:
             return
         now = time.monotonic()
         # 1. Runaway script CPU/RAM watchdog every 10s
@@ -1228,7 +1231,7 @@ class Wallpaper:
                     rw.reset()
                     self._on_web_process_terminated(reason)
         # 2. Opt-in local System Stats & Audio Reactive bridge
-        settings = getattr(self.host, "settings", None)
+        settings = getattr(host, "settings", None)
         bridge_on = bool(getattr(settings, "system_bridge", False))
         am = getattr(self, "audio_meter", None)
         if not bridge_on:

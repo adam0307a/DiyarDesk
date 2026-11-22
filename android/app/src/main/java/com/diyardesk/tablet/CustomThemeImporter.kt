@@ -855,7 +855,7 @@ class CustomThemeImporter(private val customThemesRoot: File) {
                     }
                 }
                 if (eocdOffset < 0) return false
-                val eocd = ByteBuffer.wrap(tail, eocdOffset, 22).order(ByteOrder.LITTLE_ENDIAN)
+                val eocd = ByteBuffer.wrap(tail, eocdOffset, 22).slice().order(ByteOrder.LITTLE_ENDIAN)
                 val totalEntries = eocd.getShort(10).toInt() and 0xFFFF
                 val cdOffset = eocd.getInt(16).toLong() and 0xFFFFFFFFL
                 if (cdOffset < 0 || cdOffset >= length) return false
