@@ -4,6 +4,13 @@
         "Id": "org.deskland.iconspy",
         "Name": "DiyarDesk IconSpy",
         "Description": "Reads desktop folder-view icon geometry for the DiyarDesk wallpaper",
+        "Description[de]": "Liest die Symbolpositionen der Desktop-Ordneransicht für das DiyarDesk-Hintergrundbild",
+        "Description[fr]": "Lit la géométrie des icônes de la vue dossier du bureau pour le fond d'écran DiyarDesk",
+        "Description[ja]": "DiyarDesk 壁紙のためにデスクトップのフォルダービューからアイコン位置を読み取ります",
+        "Description[ko]": "DiyarDesk 배경 화면을 위해 바탕 화면 폴더 보기의 아이콘 위치를 읽습니다",
+        "Description[tr]": "DiyarDesk duvar kağıdı için masaüstü klasör görünümündeki simge konumlarını okur",
+        "Description[zh_CN]": "为 DiyarDesk 壁纸读取桌面文件夹视图中的图标位置",
+        "Description[zh_TW]": "為 DiyarDesk 桌布讀取桌面資料夾檢視中的圖示位置",
         "Icon": "preferences-desktop-icons-size",
         "Category": "System Information",
         "License": "GPL-3.0-only"

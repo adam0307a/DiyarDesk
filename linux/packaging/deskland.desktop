@@ -2,6 +2,13 @@
 Type=Application
 Name=DiyarDesk
 Comment=Adaptive wallpaper that follows desktop icons
+Comment[de]=Adaptives Hintergrundbild, das den Desktop-Symbolen folgt
+Comment[fr]=Fond d'écran adaptatif qui suit les icônes du bureau
+Comment[ja]=デスクトップアイコンに合わせて変化するアダプティブ壁紙
+Comment[ko]=바탕 화면 아이콘을 따라가는 적응형 배경 화면
+Comment[tr]=Masaüstü simgelerine uyum sağlayan duvar kağıdı
+Comment[zh_CN]=随桌面图标自适应的壁纸
+Comment[zh_TW]=隨桌面圖示自適應的桌布
 Exec=deskland-linux
 Icon=deskland
 Terminal=false

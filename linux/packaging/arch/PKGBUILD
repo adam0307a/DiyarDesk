@@ -6,6 +6,7 @@ pkgdesc="DiyarDesk — adaptive animated wallpaper that follows desktop icons (b
 arch=('any')
 url="https://github.com/adam0307a/DiyarDesk"
 license=('GPL-3.0-only')
+makedepends=('gettext')
 provides=('deskland-preview')
 conflicts=('deskland-preview')
 replaces=('deskland-preview')
@@ -44,6 +45,11 @@ package() {
   cp -a "$src/linux/plasma-wallpaper/org.deskland.preview" "$pkgdir/usr/share/plasma/wallpapers/"
   cp -a "$src/linux/kde-iconspy/org.deskland.iconspy" "$pkgdir/usr/share/plasma/plasmoids/"
   cp -a "$src/linux/gnome-extension/deskland@deskland.app" "$pkgdir/usr/share/gnome-shell/extensions/"
+  # Compile gettext catalogs into the system locale tree; system extensions
+  # bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
+  sh "$src/linux/gnome-extension/build-mo.sh" "$pkgdir/usr/share/locale"
+  rm -rf "$pkgdir/usr/share/gnome-shell/extensions/deskland@deskland.app/locale" \
+         "$pkgdir/usr/share/gnome-shell/extensions/deskland@deskland.app/po"
   install -m644 "$src/linux/packaging/deskland.desktop" \
     "$pkgdir/usr/share/applications/deskland.desktop"
   install -m644 "$src/linux/packaging/deskland.svg" \

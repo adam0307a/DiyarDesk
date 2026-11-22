@@ -1,0 +1,1300 @@
+{
+  "name": "繁體中文",
+  "ui": {
+    "adaptive": "自適應",
+    "themes": "主題",
+    "collectionTitle": "尋找你的風景。",
+    "collectionSubtitle": "讓圖示成為風景的一部分。",
+    "language": "語言",
+    "langAuto": "跟隨系統",
+    "langAutoWith": "跟隨系統（{name}）",
+    "autostart": "開機時自動啟動",
+    "autostartTitle": "登入 Windows 時自動執行 DiyarDesk",
+    "autostartBlocked": "開機自動啟動可能遭到封鎖",
+    "autostartWarnSw": "這次開機時 DiyarDesk 沒有自動啟動，可能是被{sw}封鎖了。請開啟{sw}，在其啟動管理員中找到 DiyarDesk，並設為「允許」。",
+    "autostartWarnGeneric": "這次開機時 DiyarDesk 沒有自動啟動，可能是被安全軟體或 Windows 的「啟動應用程式」設定封鎖了。請在安全軟體的啟動管理員中，或 Windows 設定 → 應用程式 → 啟動 中，將 DiyarDesk 開啟。",
+    "gotIt": "知道了",
+    "updateAvailable": "有可用更新",
+    "updateVersion": "DiyarDesk {version} 已就緒，更新後會保留目前的主題與設定。",
+    "updateProgram": "立即更新",
+    "updateRetry": "重試更新",
+    "updateWorking": "更新中…",
+    "updateDownloading": "正在下載並安裝… {progress}",
+    "updateInstalling": "正在安裝更新… {progress}",
+    "updateCompletedTitle": "更新完成",
+    "updateCompleted": "更新已下載並安裝。如果程式沒有自動重新啟動，請重新開啟 DiyarDesk。",
+    "updateDone": "完成",
+    "updateCanceled": "更新已取消，您可以稍後再試。",
+    "updateLowBattery": "電池電力不足，更新未能完成。請接上電源後再試。",
+    "updateWifiRecommended": "此網路可能需要付費。請切換網路，或稍後再試。",
+    "updateWifiRequired": "請連線至 Wi-Fi 以下載此更新。",
+    "updateStoreRequired": "此更新方式僅適用於 Microsoft Store 版本。",
+    "updateFailed": "更新失敗。請檢查連線或 Microsoft Store 後再試。",
+    "updateCheckingTitle": "正在檢查更新",
+    "updateChecking": "正在連線至更新伺服器並檢查新版本…",
+    "updateFailedTitle": "更新未完成",
+    "updateCheckFailedTitle": "無法檢查更新",
+    "networkTimeout": "連線或下載逾時。請檢查網路、代理伺服器或防火牆後再試。若其他網站可正常開啟，伺服器也可能回應較慢。",
+    "networkDns": "無法解析伺服器位址。請檢查網路、DNS 或代理伺服器設定後再試。",
+    "networkTls": "無法建立安全連線。請檢查系統時間，以及網路或代理伺服器的安全攔截後再試。",
+    "networkLocal": "網路連線失敗或中斷。請檢查網路、代理伺服器或防火牆後再試。",
+    "serverUnavailable": "已連線至伺服器，但服務暫時無法使用（HTTP 5xx）。請稍後再試。",
+    "serverRejected": "伺服器拒絕了要求（HTTP 4xx）。請稍後再試；若持續發生，請聯絡支援。",
+    "serverInvalid": "伺服器傳回無法辨識的回應。請稍後再試；若持續發生，請聯絡支援。",
+    "downloadInvalid": "下載的檔案不完整或未通過安全驗證，已停止安裝。請重試；若持續發生，請聯絡支援。",
+    "livePreview": "即時預覽",
+    "previewIcons": "即時預覽 · 使用桌面上 {n} 個圖示",
+    "previewNoIcons": "即時預覽 · 桌面圖示已隱藏",
+    "refresh": "重新整理",
+    "refreshTitle": "為此主題重新產生畫面",
+    "shareImage": "分享圖片",
+    "shareImageTitle": "以保護隱私的方式分享桌面圖片",
+    "shareVideo": "分享影片",
+    "shareVideoTitle": "以保護隱私的方式分享桌面動畫",
+    "generating": "正在產生…",
+    "preparingRec": "準備錄製…",
+    "recording": "錄製中 {p}%",
+    "savingVideo": "正在儲存…",
+    "shareFailImage": "無法建立分享圖片：{msg}",
+    "shareFailVideo": "無法錄製分享影片：{msg}",
+    "unknownReason": "不明錯誤",
+    "shareReadyImage": "桌面圖片已準備好",
+    "shareReadyVideo": "桌面影片已錄製完成",
+    "sharePrivacy": "圖示會換成範例圖示，檔名會換成色塊，不會顯示您的檔案。",
+    "shareCopiedImage": "圖片已複製到剪貼簿，可直接貼到聊天室或貼文中。",
+    "shareCopiedVideo": "影片檔案已複製到剪貼簿，可直接貼到聊天視窗傳送。",
+    "shareBrowserHint": "（瀏覽器預覽：按一下「{btn}」下載。）",
+    "savedTo": "已儲存至 {path}",
+    "openFolder": "在資料夾中顯示",
+    "openImage": "開啟圖片",
+    "openVideo": "開啟影片",
+    "saveImage": "儲存圖片",
+    "saveVideo": "儲存影片",
+    "ok": "確定",
+    "sharePreviewAlt": "分享圖片預覽",
+    "autosave": "變更會自動儲存，並立即套用到桌面",
+    "saved": "已儲存 ✓",
+    "resetAll": "全部重設",
+    "resetAllTitle": "將此主題的所有設定重設為預設值",
+    "helpButtonTitle": "常見問題與疑難排解",
+    "helpTitle": "說明",
+    "helpSubtitle": "常見問題與疑難排解",
+    "helpWallpaperQ": "DiyarDesk 一直閃爍或重新啟動，該怎麼處理？",
+    "helpWallpaperA": "如果一般桌布會自動變更，每次變更都可能讓 DiyarDesk 閃爍或重新啟動。請改用不會輪播的固定背景。",
+    "helpWallpaperStep1": "開啟 Windows 設定 → 個人化 → 背景。",
+    "helpWallpaperStep2": "將「個人化您的背景」設為「圖片」或「純色」，請勿使用「投影片放映」或「Windows 焦點」。",
+    "helpWallpaperStep3": "變更此設定後，請重新啟動 DiyarDesk。",
+    "badgeOn": "使用中",
+    "badgeReady": "可用",
+    "badgeSoon": "即將推出",
+    "ongoingTitle": "持續新增中",
+    "ongoingDesc": "新的風景與元素會陸續加入。",
+    "noParams": "此主題尚無可調整的設定",
+    "resetOne": "重設為預設值：{v}",
+    "resetOneAria": "將{label}重設為預設值",
+    "dblclickReset": "按兩下以重設（{v}）",
+    "comingSoon": "即將推出：",
+    "audioNone": "未選擇檔案",
+    "audioPick": "選擇音訊…",
+    "audioPlay": "▶ 播放",
+    "audioPause": "⏸ 暫停",
+    "importTheme": "匯入主題…",
+    "importThemeTitle": "匯入主題套件（.zip、.deskland）、HTML 頁面、圖片或影片",
+    "importHelpBtnTitle": "支援的匯入格式與說明",
+    "importHelpTitle": "主題匯入說明",
+    "importHelpSubtitle": "按一下「+ 匯入主題…」即可選擇本機檔案。下列格式皆已支援並會自動驗證：",
+    "importHelpHowTitle": "支援的格式與匯入方式",
+    "importHelpZipTitle": "主題套件（.zip、.deskland）",
+    "importHelpZipDesc": "多檔案 HTML/JS/CSS/資源主題。若包含 manifest.json 或 theme.json，會自動讀取名稱、說明、入口 HTML、縮圖與參數；否則改用 index.html 或第一個 .html 檔，自動偵測 thumb/preview 縮圖（含 .svg），並阻擋路徑穿越（zip-slip）與符號連結。",
+    "importHelpHtmlTitle": "單一網頁（.html、.htm）",
+    "importHelpHtmlDesc": "單檔案互動式著色器或 HTML 主題（會使用 <title> 標籤作為主題名稱）。",
+    "importHelpImageTitle": "圖片桌布（.png、.jpg、.jpeg、.webp、.gif、.svg、.avif、.bmp）",
+    "importHelpImageDesc": "自動包裝成互動式桌布頁面，具備柔和的環境縮放/平移、亮度、動態與圖示背板光暈（dimIcons）控制項、自適應版面與快照分享（desklandSnapshot）。",
+    "importHelpVideoTitle": "影片桌布（.mp4、.webm、.mkv、.mov）",
+    "importHelpVideoDesc": "以亮度、播放速度與圖示背板光暈（dimIcons）控制項，順暢地循環播放影片。",
+    "importHelpNote": "壓縮檔在解壓縮前會先驗證完整性（每個套件上限 150 MB / 2,000 個檔案）。匯入的主題會儲存在您的使用者資料夾中，您可隨時使用預覽標頭的「移除」刪除。",
+    "importHelpManifestTitle": "資訊清單與設定結構（manifest.json / theme.json）",
+    "importHelpManifestMetaTitle": "中繼資料與縮圖",
+    "importHelpManifestMetaDesc": "支援 name/title、desc/description、entry/page/main/file（預設為 index.html）、adaptive（true/false），以及 thumb/thumbnail/preview（相對圖片路徑，可含 .svg，或 CSS 顏色/漸層）。",
+    "importHelpManifestParamsTitle": "參數（groups 或 settings）",
+    "importHelpManifestParamsDesc": "同時接受 DiyarDesk 原生的 groups 陣列（[{ name, params }]）與分組的 settings 物件（使用 group/category）；支援滑桿（range: min/max/step/default）、選單（select: 字串清單或 { label, value } 選項）與開關（checkbox: true/false）。",
+    "importHelpProtoTitle": "互動式 HTML 主題通訊協定",
+    "importHelpProtoReadyTitle": "就緒握手",
+    "importHelpProtoReadyDesc": "在桌布模式中呼叫 window.chrome.webview.postMessage('ready')，或在預覽模式（?preview=1）中呼叫 parent.postMessage(JSON.stringify({ t: 'ready' }), '*')，以接收初始設定與圖示矩形。",
+    "importHelpProtoMsgTitle": "主機訊息與分享",
+    "importHelpProtoMsgDesc": "您的頁面會收到 { t: 'icons', vis, r: [[l, t, r, b], ...] }（實體像素；CSS 像素請除以 devicePixelRatio）、{ t: 'settings', v: {...} }、{ t: 'reset', v: {...} } 與 { t: 'pause', v: true|false }。您可選擇提供 window.desklandSnapshot() / window.desklandRecord() 以支援分享。",
+    "removeTheme": "移除",
+    "removeThemeTitle": "移除此匯入的主題",
+    "importErrorTitle": "主題匯入失敗",
+    "importError": "無法匯入主題：{msg}",
+    "virtualBarTitle": "桌面虛擬圖示列",
+    "virtualBarAuto": "圖示：自動",
+    "virtualBarAlways": "圖示：一律顯示",
+    "virtualBarOff": "圖示：隱藏",
+    "lowMode": "低耗能模式",
+    "lowModeTitle": "嚴格節能最佳化：限制 15 FPS、0.75x 縮放、停用耗費資源的模糊/陰影，並在視窗後方加快暫停",
+    "disableAutoPause": "停用自動暫停",
+    "disableAutoPauseTitle": "啟用後，即使開啟最大化或全螢幕視窗，動畫仍會持續播放"
+  },
+  "host": {
+    "traySettings": "設定…",
+    "trayPause": "暫停動畫",
+    "trayLowMode": "低耗能模式（節能）",
+    "trayReload": "重新載入",
+    "trayAutostart": "開機時自動啟動",
+    "trayExit": "結束（還原桌布）",
+    "welcomeTitle": "DiyarDesk 正在執行",
+    "welcomeBody": "按一下系統匣中的 DiyarDesk 圖示{hotkey}以開啟選單。\n看不到圖示嗎？請按一下工作列右側的 ^。",
+    "welcomeHotkey": "，或按 Ctrl+Alt+H，",
+    "errNotReady": "桌布尚未就緒",
+    "errNoImage": "未取得圖片",
+    "errNoVideo": "未取得影片",
+    "errBusyImage": "上一張圖片仍在產生中",
+    "errBusyVideo": "上一段影片仍在錄製中",
+    "errImageTimeout": "產生逾時",
+    "errVideoTimeout": "錄製逾時",
+    "errBadData": "頁面傳回的資料不完整",
+    "errRebuilt": "Windows 不斷重建桌布層，因此 DiyarDesk 已停止。",
+    "errSeeLog": "詳情請參閱記錄檔：{path}",
+    "errSettings": "無法開啟設定視窗：{msg}",
+    "errNoPage": "找不到頁面：{path}",
+    "errNoDesktop": "找不到桌面視窗，因此無法附加桌布。",
+    "errStart": "無法啟動：{msg}"
+  },
+  "themes": {
+    "quietsnow": {
+      "name": "靜雪",
+      "creditPrefix": "靈感源自",
+      "desc": "靈感源自 Snowhush 的真實物理互動降雪桌布：支援飄雪、細雨玻璃水珠、秋葉與櫻花四種季節模式，雪會在螢幕底部、桌面圖示及開啟視窗頂端自然堆積、滑落與融化，並隨游標劃過而飛揚",
+      "groups": [
+        "季節與天氣",
+        "堆積與互動",
+        "氛圍與外觀",
+        "效能"
+      ],
+      "params": {
+        "mode": {
+          "label": "季節模式",
+          "hint": "在真實飄雪、窗面雨滴、秋葉飄落與櫻花花瓣之間即時切換",
+          "options": ["飄雪", "細雨", "秋葉", "櫻花"]
+        },
+        "intensity": {
+          "label": "降落強度",
+          "hint": "雪花、雨絲、秋葉或花瓣的整體密度與降落量"
+        },
+        "wind": {
+          "label": "風向與風力",
+          "hint": "負值向左吹，正值向右吹"
+        },
+        "gusts": {
+          "label": "自然陣風",
+          "hint": "不定期拂過的微風陣與雪面吹雪效果"
+        },
+        "accumulate": {
+          "label": "堆積位置",
+          "hint": "控制積雪、落葉與雨珠是僅停留在螢幕底部，還是同時落在桌面圖示上",
+          "options": ["關閉", "僅地面", "地面與圖示"]
+        },
+        "windows": {
+          "label": "視窗頂端堆積",
+          "hint": "積雪、落葉與雨滴同樣會在開啟的應用程式視窗頂端堆積，移動或關閉視窗時自然滑落",
+          "options": ["關閉", "開啟"]
+        },
+        "melt": {
+          "label": "自然消融",
+          "hint": "積雪緩慢融化，或落葉花瓣逐漸枯萎，保持畫面清爽平衡"
+        },
+        "cursor": {
+          "label": "游標掃雪互動",
+          "hint": "移動滑鼠即可撥開積雪、捲起落葉花瓣或劃開玻璃上的雨珠",
+          "options": ["關閉", "柔和", "強烈"]
+        },
+        "depth": {
+          "label": "堆積厚度",
+          "hint": "地面與圖示頂端積雪及落葉堆的最大高度"
+        },
+        "atmosphere": {
+          "label": "背景氛圍",
+          "hint": "切換靜謐冬夜、藍色時刻、霧靄冬晨或路燈暖光背景",
+          "options": ["靜謐夜色", "藍色時刻", "霧靄冬晨", "路燈暖光"]
+        },
+        "sparkle": {
+          "label": "微光與質感",
+          "hint": "雪面晶粒微閃、雨珠反光以及花瓣透光強弱"
+        },
+        "backdrop": {
+          "label": "遠景霧嵐",
+          "hint": "遠山輪廓、常青樹影與低空薄霧的可見度"
+        },
+        "quality": {
+          "label": "畫質",
+          "hint": "渲染解析度與物理粒子數量預算",
+          "options": ["低", "平衡", "高"]
+        }
+      }
+    },
+    "beach": {
+      "name": "沙灘",
+      "desc": "海岸線繞著您的檔案彎曲，海浪一層層沖上沙灘",
+      "groups": [
+        "岸線",
+        "海水",
+        "元素"
+      ],
+      "params": {
+        "palms": {
+          "label": "椰子樹數量",
+          "hint": "沿岸椰子樹的數量，設為 0 可隱藏；沙地不足時會減少顯示",
+          "unit": "棵"
+        },
+        "sigma": {
+          "label": "離岸距離",
+          "hint": "海岸線離圖示多遠"
+        },
+        "warp": {
+          "label": "海岸曲折",
+          "hint": "岸線彎彎繞繞的程度"
+        },
+        "shoal": {
+          "label": "透明淺灘",
+          "hint": "能看見沙底的淺水有多寬"
+        },
+        "shallow": {
+          "label": "淺海寬度",
+          "hint": "從青綠過渡到深藍的距離"
+        },
+        "kayaks": {
+          "label": "獨木舟",
+          "unit": "艘"
+        },
+        "birds": {
+          "label": "海鳥",
+          "hint": "在上空滑翔、盤旋的海鷗",
+          "unit": "隻"
+        }
+      }
+    },
+    "meadow": {
+      "name": "草地",
+      "desc": "鋼筆淡彩的草地，圖示藏在白雲裡，雲影是一塊塊深綠",
+      "groups": [
+        "圖示周圍",
+        "雲",
+        "角色"
+      ],
+      "params": {
+        "sigma": {
+          "label": "雲團大小",
+          "hint": "圖示所在的雲從圖示往外鋪多遠"
+        },
+        "cover": {
+          "label": "草地上的雲",
+          "hint": "空曠的草地上空零星飄著的雲有多少"
+        },
+        "flow": {
+          "label": "流動速度",
+          "hint": "雲飄多快、雲團的鼓包變化多快"
+        },
+        "showBoy": {
+          "label": "顯示男孩",
+          "hint": "男孩和他手中的風箏一起顯示或隱藏",
+          "options": ["隱藏", "顯示"]
+        },
+        "showCat": {
+          "label": "顯示小貓",
+          "hint": "躺在草地上的小黑貓",
+          "options": ["隱藏", "顯示"]
+        }
+      }
+    },
+    "aurora": {
+      "name": "極光冰湖",
+      "desc": "深藍冰湖倒映流動的翠綠極光，圖示落在暮色雪島上，雪松與暖燈籠相伴",
+      "groups": [
+        "雪岸",
+        "極光與冰面",
+        "景物"
+      ],
+      "params": {
+        "sigma": {
+          "label": "雪地範圍",
+          "hint": "雪地小島從圖示向外延伸多遠"
+        },
+        "warp": {
+          "label": "岸線曲折",
+          "hint": "雪岸輪廓彎彎曲曲的程度"
+        },
+        "shoal": {
+          "label": "淺冰邊緣",
+          "hint": "冰岸外圍淺藍冰層的寬度"
+        },
+        "aurora": {
+          "label": "極光亮度",
+          "hint": "冰面上流動的極光倒影有多明亮"
+        },
+        "flow": {
+          "label": "流動速度",
+          "hint": "極光飄動和飄雪的速度"
+        },
+        "pines": {
+          "label": "雪松數量",
+          "hint": "雪地小島上覆雪的松樹數量，設為 0 可隱藏",
+          "unit": "棵"
+        },
+        "lanterns": {
+          "label": "暖燈籠",
+          "hint": "雪岸邊點亮的暖色燈籠",
+          "unit": "盞"
+        },
+        "snow": {
+          "label": "飄雪密度",
+          "hint": "夜空中緩緩飄落的雪花多少"
+        }
+      }
+    },
+    "glade": {
+      "name": "林間空地",
+      "desc": "水彩森林隨圖示靈動讓路，陽光草地與林間棲鳥相映成趣",
+      "groups": [
+        "空地",
+        "樹林",
+        "生靈"
+      ],
+      "params": {
+        "sigma": {
+          "label": "空地大小",
+          "hint": "圖示周圍陽光草地空開的範圍"
+        },
+        "warp": {
+          "label": "林緣曲折",
+          "hint": "林緣輪廓起伏變化的程度"
+        },
+        "density": {
+          "label": "樹木密度",
+          "hint": "森林覆蓋的樹木疏密程度"
+        },
+        "wind": {
+          "label": "微風搖曳",
+          "hint": "樹冠與林間小鳥隨風擺動的幅度"
+        },
+        "birds": {
+          "label": "林間小鳥",
+          "hint": "停駐在樹梢或穿行林間的小鳥數量，設為 0 可隱藏",
+          "unit": "隻"
+        }
+      }
+    },
+    "rift": {
+      "name": "符文峽谷",
+      "desc": "手繪幽林與發光靈河之間，圖示周圍展開雕花青石聖壇、海克斯符文與守衛燈柱",
+      "groups": [
+        "聖壇",
+        "符文與靈河",
+        "秘境生靈"
+      ],
+      "params": {
+        "sigma": {
+          "label": "符文台大小",
+          "hint": "圖示周圍雕花青石聖壇空開的範圍"
+        },
+        "warp": {
+          "label": "崖岸曲折",
+          "hint": "青石聖壇與林野崖岸輪廓蜿蜒變化的程度"
+        },
+        "glow": {
+          "label": "符文輝光",
+          "hint": "海克斯金藍符文與河道水光的明亮程度"
+        },
+        "wind": {
+          "label": "靈風流速",
+          "hint": "樹冠搖曳、河水流動與靈光飄遊的速度"
+        },
+        "heroes": {
+          "label": "英雄夥伴",
+          "hint": "在聖壇與河畔漫步巡邏的峽谷英雄與小魄羅數量，設為 0 可隱藏",
+          "unit": "位"
+        },
+        "turrets": {
+          "label": "防禦塔",
+          "hint": "駐守在聖壇邊緣的藍紫雙方奧術防禦塔數量，設為 0 可隱藏",
+          "unit": "座"
+        },
+        "wards": {
+          "label": "守衛燈柱",
+          "hint": "矗立在青石邊緣的海克斯守衛燈柱數量，設為 0 可隱藏",
+          "unit": "座"
+        },
+        "wisps": {
+          "label": "奧術靈光",
+          "hint": "在河谷與林梢間輕盈游弋的奧術光點數量，設為 0 可隱藏",
+          "unit": "縷"
+        }
+      }
+    },
+    "strike": {
+      "name": "炙熱沙城",
+      "desc": "烈日沙磚廣場之上，圖示四周展開佈滿彈孔裂紋與彈出彈殼的水泥戰區，可把場內足球踢向空曠處，木箱與小雞點綴其間",
+      "groups": [
+        "交火區",
+        "沙城氛圍",
+        "道具與彩蛋"
+      ],
+      "params": {
+        "sigma": {
+          "label": "彈孔區大小",
+          "hint": "圖示周圍彈痕水泥戰區空開的範圍"
+        },
+        "warp": {
+          "label": "邊緣碎裂",
+          "hint": "戰區碎石邊緣起伏變化的程度"
+        },
+        "holes": {
+          "label": "彈孔密度",
+          "hint": "圖示區域彈孔裂紋與地面散落黃銅彈殼的密集程度"
+        },
+        "smoke": {
+          "label": "戰術煙塵",
+          "hint": "廣場邊角飄散的戰術煙霧與沙塵薄靄濃度"
+        },
+        "wind": {
+          "label": "沙風流速",
+          "hint": "熱浪沙塵、煙霧飄移與巡遊小雞走動的速度"
+        },
+        "ball": {
+          "label": "場內足球",
+          "hint": "圖示落到足球上時會將球踢往空曠沙地，設為 0 可隱藏",
+          "unit": "顆"
+        },
+        "chickens": {
+          "label": "巡遊小雞",
+          "hint": "在廣場踱步、受驚會撲棱躲開的沙漠小雞數量，設為 0 可隱藏",
+          "unit": "隻"
+        },
+        "crates": {
+          "label": "木箱掩體",
+          "hint": "廣場空地上堆放的戰術木箱、油桶與沙袋密集程度"
+        }
+      }
+    },
+    "pocket": {
+      "name": "戰線包圍",
+      "desc": "大戰略沙盤地形圖之上，桌面圖示化作被重兵合圍的戰區口袋，依據資料夾語言自動派遣土耳其、德意志或英倫師級部隊與突擊箭頭步步進逼",
+      "groups": [
+        "戰線與包圍",
+        "編制與兵力",
+        "戰場局勢"
+      ],
+      "params": {
+        "sigma": {
+          "label": "包圍圈大小",
+          "hint": "圖示周圍被合圍戰區口袋展開的範圍"
+        },
+        "warp": {
+          "label": "戰線曲折",
+          "hint": "包圍戰線輪廓隨地形蜿蜒起伏的程度"
+        },
+        "arrows": {
+          "label": "突擊箭頭",
+          "hint": "戰線邊緣動態內向突擊箭頭與前線輝光亮度"
+        },
+        "divisions": {
+          "label": "包圍師數量",
+          "hint": "環繞圖示包圍圈佈防的大戰略師級編制牌數量，設為 0 可隱藏",
+          "unit": "師"
+        },
+        "faction": {
+          "label": "包圍軍團",
+          "hint": "0 = 依資料夾語言自動切換（土耳其語/德語/英語）；1 = 土耳其部隊；2 = 德意志部隊；3 = 英倫部隊"
+        },
+        "pace": {
+          "label": "行軍節奏",
+          "hint": "戰線推進波紋與師級部隊機動駐防的速度"
+        },
+        "skirmish": {
+          "label": "砲火交鋒",
+          "hint": "前線部隊向口袋內發射零星砲火與戰地煙塵的頻率"
+        },
+        "supply": {
+          "label": "地圖細節",
+          "hint": "等高線、經緯網格與後方星形要塞補給站點的顯示強度"
+        }
+      }
+    },
+    "roach": {
+      "name": "小強劇場",
+      "desc": "爆紅小強街區上線：皮背心喝柳橙汁、白襯衫領帶校草、安全帽工頭、粉羽天后與紅裙情侶齊聚鵝卵石街道，圍繞圖示磚塊人行道悠閒巡街",
+      "groups": [
+        "街景與地磚",
+        "小強天團"
+      ],
+      "params": {
+        "sigma": {
+          "label": "人行道範圍",
+          "hint": "圖示周圍暖色石板人行道台地向外展開的寬度"
+        },
+        "warp": {
+          "label": "磚縫起伏",
+          "hint": "人行道與街頭路緣隨磚石走勢彎曲的程度"
+        },
+        "glow": {
+          "label": "街燈暖光",
+          "hint": "街頭水窪與鵝卵石反射暖琥珀路燈光的亮度"
+        },
+        "vibe": {
+          "label": "晴天校園",
+          "hint": "從黃昏伊斯坦堡老街逐步切換為陽光明媚的校園操場"
+        },
+        "crowd": {
+          "label": "小強人數",
+          "hint": "在鵝卵石街道上散步、跳舞、喝柳橙汁的擬人小強數量，設為 0 可隱藏",
+          "unit": "隻"
+        },
+        "speed": {
+          "label": "漫步節奏",
+          "hint": "小強巡街、情侶同行以及停下舞動的速度"
+        },
+        "props": {
+          "label": "路燈與道具",
+          "hint": "街角暖光鐵藝路燈、吸管柳橙汁盒與紅茶杯的佈置密度"
+        },
+        "audio": {
+          "label": "背景音訊",
+          "hint": "選擇本機音訊檔案作為小強街區背景音，可在旁按一下播放或暫停",
+          "defaultName": "預設背景音"
+        }
+      }
+    },
+    "rosebrook": {
+      "name": "玫瑰溪畔",
+      "desc": "翠綠草地間清溪蜿蜒，拖曳或放下桌面圖示時，玫瑰與繁花圍繞它悄然盛放，花瓣隨風輕落。",
+      "groups": [
+        "溪流與草地",
+        "玫瑰與花瓣"
+      ],
+      "params": {
+        "sigma": {
+          "label": "草地柔邊",
+          "hint": "圖示周圍修剪草坪與鮮花圍合的範圍大小",
+          "unit": "px"
+        },
+        "stream": {
+          "label": "溪流寬度",
+          "hint": "林間溪水河道的寬窄比例"
+        },
+        "flow": {
+          "label": "水流速度",
+          "hint": "清溪漣漪與日光波紋的前行節奏"
+        },
+        "sunlight": {
+          "label": "水波日照",
+          "hint": "溪面碎金反光與林間暖光強度"
+        },
+        "roses": {
+          "label": "玫瑰花叢",
+          "hint": "放下圖示時環繞盛開的玫瑰與草花密度"
+        },
+        "petals": {
+          "label": "飄落花瓣",
+          "hint": "微風中漂浮的玫瑰花瓣與蝴蝶數量"
+        },
+        "breeze": {
+          "label": "林間微風",
+          "hint": "花枝搖曳與花瓣隨風飄移的速度"
+        }
+      }
+    },
+    "polarnight": {
+      "name": "極地極光",
+      "desc": "極地夜湖：極光在天上流動、冰面映著光，圖示停在雪松林間的空地上",
+      "groups": [
+        "圖示周圍",
+        "極光",
+        "冬夜"
+      ],
+      "params": {
+        "sigma": {
+          "label": "空地大小",
+          "hint": "圖示四周不留樹的空地往外鋪多遠"
+        },
+        "density": {
+          "label": "森林密度",
+          "hint": "空地之外長得多密，設為 0 就沒有樹"
+        },
+        "glow": {
+          "label": "極光亮度",
+          "hint": "天上三條飄帶有多亮"
+        },
+        "flow": {
+          "label": "流動速度",
+          "hint": "極光流動、湖面波光和落雪有多快"
+        },
+        "palette": {
+          "label": "極光配色",
+          "hint": "飄帶的顏色",
+          "options": ["綠粉", "紫青", "金綠"]
+        },
+        "snow": {
+          "label": "落雪",
+          "hint": "緩緩飄落的雪片有多少，設為 0 可停雪",
+          "unit": "片"
+        },
+        "meteor": {
+          "label": "流星",
+          "hint": "偶爾劃過夜空的流星",
+          "options": ["隱藏", "顯示"]
+        },
+        "cabin": {
+          "label": "小木屋",
+          "hint": "岸邊亮著暖光、冒著炊煙的小木屋，會自動避開圖示",
+          "options": ["隱藏", "顯示"]
+        }
+      }
+    },
+    "desert": {
+      "name": "沙漠綠洲",
+      "desc": "俯瞰金色撒哈拉沙海：圖示周圍隆起溫暖沙丘，駱駝商隊與阿拉伯旅人在椰棗綠洲間穿行",
+      "groups": [
+        "圖示沙丘",
+        "綠洲與陽光",
+        "商隊與旅人"
+      ],
+      "params": {
+        "sigma": {
+          "label": "沙丘範圍",
+          "hint": "圖示周圍隆起的沙丘向外鋪開多遠"
+        },
+        "warp": {
+          "label": "風紋起伏",
+          "hint": "沙丘輪廓和沙脊風紋的彎折程度"
+        },
+        "oases": {
+          "label": "綠洲數量",
+          "hint": "低窪沙盆中清水綠洲的數量",
+          "unit": "處"
+        },
+        "warmth": {
+          "label": "日照暖度",
+          "hint": "撒哈拉陽光的溫度與金色光澤強度"
+        },
+        "wind": {
+          "label": "風沙與駝速",
+          "hint": "風沙吹拂、棕櫚搖曳以及駱駝商隊行進的速度"
+        },
+        "camels": {
+          "label": "駱駝數量",
+          "hint": "在綠洲之間穿行的駱駝數量，設為 0 可隱藏",
+          "unit": "峰"
+        },
+        "travelers": {
+          "label": "阿拉伯旅人",
+          "hint": "帶領駱駝商隊的阿拉伯領路人與綠洲貝都因帳篷",
+          "options": ["隱藏", "顯示"]
+        },
+        "palms": {
+          "label": "綠洲椰棗樹",
+          "hint": "綠洲岸邊鬱鬱蔥蔥的椰棗棕櫚樹數量",
+          "unit": "棵"
+        }
+      }
+    },
+    "zen-archipelago": {
+      "name": "禪意群島",
+      "desc": "圍繞桌面圖示生成的螢光錦鯉潟湖、木橋、櫻花島嶼與漂浮河燈，點擊水面可餵食錦鯉",
+      "groups": [
+        "光影與氛圍",
+        "群島與木橋",
+        "生態與河燈"
+      ],
+      "params": {
+        "timeOfDay": {
+          "label": "時段氛圍",
+          "hint": "切換螢光夜晚、金色日落或翡翠白晝配色",
+          "options": ["螢光夜晚", "金色日落", "翡翠白晝"]
+        },
+        "waveIntensity": {
+          "label": "水波強度",
+          "hint": "岸邊螢光漣漪與水波波動幅度"
+        },
+        "islandMargin": {
+          "label": "島嶼尺寸",
+          "hint": "圖示四周砂石與草坪島嶼的外延半徑"
+        },
+        "bridgeDistance": {
+          "label": "木橋距離",
+          "hint": "相鄰圖示島嶼自動架設木橋的最大間距"
+        },
+        "koiCount": {
+          "label": "錦鯉數量",
+          "hint": "潟湖裡自由游弋的錦鯉數量",
+          "unit": "條"
+        },
+        "lanternCount": {
+          "label": "漂浮河燈",
+          "hint": "水面緩緩漂流的木質暖光河燈數量",
+          "unit": "盞"
+        },
+        "sakuraDensity": {
+          "label": "櫻花密度",
+          "hint": "島嶼櫻樹與飄落櫻瓣的繁茂程度"
+        },
+        "fireflies": {
+          "label": "螢火蟲",
+          "hint": "空中閃爍的螢光粒子數量"
+        }
+      }
+    },
+    "istanbul": {
+      "name": "伊斯坦堡 — 博斯普魯斯日落",
+      "desc": "俯瞰伊斯坦堡：博斯普魯斯海峽、金角灣、圓頂清真寺、宣禮塔、渡輪與海鷗。陸地圖示化作鬱金香瓷磚廣場，海中圖示則延伸出木質碼頭。",
+      "groups": [
+        "時間與光線",
+        "博斯普魯斯海峽",
+        "圖示周圍",
+        "城市"
+      ],
+      "params": {
+        "time": {
+          "label": "時段",
+          "hint": "自動模式會隨系統時間切換清晨、正午、日落或夜色",
+          "options": ["自動", "清晨", "正午", "日落", "夜晚"]
+        },
+        "glow": {
+          "label": "燈光強度",
+          "hint": "水面反光、萬家燈火與廣場路燈的亮度"
+        },
+        "ferries": {
+          "label": "渡輪數量",
+          "hint": "海峽中穿梭往來的城市渡輪數量",
+          "unit": "艘"
+        },
+        "flow": {
+          "label": "水流與航速",
+          "hint": "海浪與渡輪的整體流動速度"
+        },
+        "gulls": {
+          "label": "海鷗",
+          "hint": "在海面上空盤旋的海鷗數量",
+          "options": ["無", "少許", "成群"]
+        },
+        "pad": {
+          "label": "廣場寬度",
+          "hint": "陸地圖示旁瓷磚廣場與海面木質碼頭的延伸範圍"
+        },
+        "tulips": {
+          "label": "鬱金香",
+          "hint": "廣場邊緣盛開的鬱金香花帶",
+          "options": ["隱藏", "顯示"]
+        },
+        "cats": {
+          "label": "街貓",
+          "hint": "在廣場上曬太陽的伊斯坦堡街貓",
+          "options": ["隱藏", "顯示"]
+        },
+        "landmarks": {
+          "label": "歷史地標",
+          "hint": "聖索菲亞、藍色清真寺、蘇萊曼尼耶、加拉達塔與少女塔",
+          "options": ["隱藏", "顯示"]
+        }
+      }
+    },
+    "solar-system": {
+      "name": "太陽系與黑洞",
+      "desc": "將桌面圖示化作旋轉的太陽系與行星，圍繞中央相對論吸積盤黑洞公轉，支援圖示公轉與引力互動。",
+      "groups": [
+        "黑洞與核心",
+        "行星系統",
+        "深空環境",
+        "引力物理",
+        "效能"
+      ],
+      "params": {
+        "centerBodyType": {
+          "label": "中央天體",
+          "options": ["超大質量黑洞", "中央恆星", "深空背景"]
+        },
+        "blackHoleSize": {
+          "label": "黑洞大小"
+        },
+        "accretionIntensity": {
+          "label": "吸積盤輝光"
+        },
+        "iconOrbitMode": {
+          "label": "圖示公轉模式",
+          "options": ["繞中心公轉", "固定在原位"]
+        },
+        "globalOrbitSpeed": {
+          "label": "圖示公轉速度"
+        },
+        "planetCount": {
+          "label": "行星數量"
+        },
+        "orbitSize": {
+          "label": "軌道半徑"
+        },
+        "orbitSpeed": {
+          "label": "行星轉速"
+        },
+        "planetSize": {
+          "label": "行星大小"
+        },
+        "starDensity": {
+          "label": "星辰密度"
+        },
+        "nebulaIntensity": {
+          "label": "星雲濃度"
+        },
+        "asteroidDensity": {
+          "label": "小行星密度"
+        },
+        "shootingStars": {
+          "label": "流星",
+          "options": ["關閉", "開啟"]
+        },
+        "gravityStrength": {
+          "label": "中心引力"
+        },
+        "systemAttraction": {
+          "label": "星系潮汐"
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "winter": {
+      "name": "冬夜雪屋",
+      "desc": "靜謐暮雪世界：遠處雪山與松林環抱，木屋暖窗飄起炊煙，桌面圖示自然落入柔和雪堆之中",
+      "groups": [
+        "雪景與風",
+        "風景與木屋",
+        "圖示與效能"
+      ],
+      "params": {
+        "snowIntensity": {
+          "label": "降雪量"
+        },
+        "snowSpeed": {
+          "label": "飄雪速度"
+        },
+        "windStrength": {
+          "label": "微風風力"
+        },
+        "atmosphereDensity": {
+          "label": "冬霧氛圍"
+        },
+        "mountainVisibility": {
+          "label": "雪山可見度"
+        },
+        "treeDensity": {
+          "label": "松林密度"
+        },
+        "smokeAmount": {
+          "label": "煙囪炊煙"
+        },
+        "iconSnowAmount": {
+          "label": "圖示積雪"
+        },
+        "animSpeed": {
+          "label": "動畫速率"
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "neumorph": {
+      "name": "新擬態觸感表面",
+      "desc": "柔和光影塑形的新擬態互動桌面：微凹凸紋理矩陣、旋鈕與滑桿控制項隨指標與點擊產生真實彈性壓感，桌面圖示安放於柔光底座之中",
+      "groups": [
+        "質感與光影",
+        "觸感與律動",
+        "圖示與效能"
+      ],
+      "params": {
+        "palette": {
+          "label": "表面配色",
+          "options": ["柔白石膏", "暖沙陶土", "暗夜石板", "鼠尾草霧"]
+        },
+        "accentColor": {
+          "label": "指示燈色",
+          "options": ["鈷藍", "珊瑚", "翡翠", "琥珀"]
+        },
+        "reliefDepth": {
+          "label": "浮雕深度"
+        },
+        "lightFollowCursor": {
+          "label": "光線跟隨指標",
+          "options": ["關閉", "開啟"]
+        },
+        "waveSpeed": {
+          "label": "呼吸波速"
+        },
+        "tileDensity": {
+          "label": "紋理密度"
+        },
+        "rippleStrength": {
+          "label": "點擊壓感波紋"
+        },
+        "iconStyle": {
+          "label": "圖示底座樣式",
+          "options": ["凸起底座", "內凹槽位", "極簡光環"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "claymorph": {
+      "name": "黏土擬態糖果世界",
+      "desc": "蓬鬆 Q 彈的 3D 黏土擬態桌面：懸浮糖果色黏土球與膠囊隨滑鼠輕推產生果凍般回彈形變，桌面圖示安放於飽滿立體黏土托墊之上",
+      "groups": [
+        "黏土與配色",
+        "懸浮塑形",
+        "圖示與效能"
+      ],
+      "params": {
+        "palette": {
+          "label": "糖果配色",
+          "options": ["馬卡龍粉彩", "莓果奶油", "抹茶陶土", "暮色黏土"]
+        },
+        "puffiness": {
+          "label": "蓬鬆厚度"
+        },
+        "squishStrength": {
+          "label": "Q彈擠壓感"
+        },
+        "blobCount": {
+          "label": "黏土球數量"
+        },
+        "floatSpeed": {
+          "label": "漂浮速率"
+        },
+        "cursorRepel": {
+          "label": "指標推彈力"
+        },
+        "iconCradle": {
+          "label": "圖示托墊樣式",
+          "options": ["彩色糖果墊", "奶油枕墊", "立體圓環"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "neobrutalism": {
+      "name": "新粗野主義海報",
+      "desc": "高對比撞色塊、粗黑描邊與硬朗零模糊偏移投影構成的動態平面海報桌面，支援點擊機械按壓回饋與桌面圖示貼紙相框",
+      "groups": [
+        "配色與描邊",
+        "動態與互動",
+        "圖示與效能"
+      ],
+      "params": {
+        "palette": {
+          "label": "海報配色",
+          "options": ["包浩斯撞色", "酸性霓虹", "復古印刷", "暗夜刊物"]
+        },
+        "borderWeight": {
+          "label": "描邊粗細"
+        },
+        "shadowDepth": {
+          "label": "硬投影偏移"
+        },
+        "halftonePattern": {
+          "label": "網點紋理",
+          "options": ["關閉", "開啟"]
+        },
+        "shapeCount": {
+          "label": "幾何色塊數量"
+        },
+        "motionSpeed": {
+          "label": "律動速率"
+        },
+        "cursorPush": {
+          "label": "指標推彈力"
+        },
+        "iconFrame": {
+          "label": "圖示邊框樣式",
+          "options": ["撞色卡片", "傾斜貼紙", "極簡線框"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "voxelcraft": {
+      "name": "像素方塊世界",
+      "desc": "像素風體素生態桌面：支援四季生物群系、晝夜方塊日月循環、閃爍火把與螢火蟲、點擊碎塊經驗球，並在桌面圖示下方生成漂浮方塊島台",
+      "groups": [
+        "世界與天時",
+        "生態與粒子",
+        "圖示與效能"
+      ],
+      "params": {
+        "biome": {
+          "label": "生物群系",
+          "options": ["橡樹平原", "櫻花樹林", "雪原針葉林", "緋紅下界"]
+        },
+        "timeOfDay": {
+          "label": "晝夜時段",
+          "options": ["自動循環", "正午晴空", "日落黃昏", "星夜螢火"]
+        },
+        "blockSize": {
+          "label": "方塊尺寸"
+        },
+        "cloudDensity": {
+          "label": "方塊雲量"
+        },
+        "weatherAmount": {
+          "label": "落葉/螢火/雪花"
+        },
+        "critterAmount": {
+          "label": "像素蜜蜂"
+        },
+        "torchGlow": {
+          "label": "火把輝光"
+        },
+        "animSpeed": {
+          "label": "時間流速"
+        },
+        "iconBlockStyle": {
+          "label": "圖示底座方塊",
+          "options": ["漂浮草島", "木板平台", "像素線框"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "liquidglass": {
+      "name": "液態玻璃折射",
+      "creditPrefix": "光學演算法源自",
+      "desc": "基於 WebGL2 多通道光學渲染的真實蘋果風格液態玻璃：斯涅爾定律邊緣折射、RGB 色散稜鏡、雙通道高斯磨砂、LCH 菲涅爾高光與液態融合（smin），支援彈簧游標透鏡與桌面圖示玻璃底座",
+      "groups": [
+        "玻璃與流光",
+        "流體與水滴",
+        "圖示與效能"
+      ],
+      "params": {
+        "palette": {
+          "label": "流光配色",
+          "options": ["太浩冰藍", "極光稜鏡", "日落絲綢", "黑曜煙燻", "經典流光"]
+        },
+        "refraction": {
+          "label": "光學折射率"
+        },
+        "frostAmount": {
+          "label": "磨砂霧度"
+        },
+        "dispersion": {
+          "label": "邊緣色散"
+        },
+        "mergeRate": {
+          "label": "液態融合度",
+          "hint": "水滴、游標透鏡與桌面圖示玻璃靠近時像液態玻璃般融合的程度"
+        },
+        "dropletCount": {
+          "label": "液態水滴數"
+        },
+        "flowSpeed": {
+          "label": "流光流速"
+        },
+        "cursorLens": {
+          "label": "指標光學透鏡",
+          "options": ["關閉", "開啟"]
+        },
+        "iconGlassStyle": {
+          "label": "圖示玻璃樣式",
+          "options": ["磨砂膠囊", "晶瑩水滴", "稜鏡描邊"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    },
+    "papercut": {
+      "name": "紙雕花園",
+      "desc": "層疊剪紙光影盒花園：鬱金香、康乃馨、風信子、柏樹、梧桐與遠方博斯普魯斯天際線，桌面圖示化作三環紙雕拱窗",
+      "groups": [
+        "光影與時段",
+        "紙張",
+        "花園",
+        "動態",
+        "圖示視窗",
+        "效能"
+      ],
+      "params": {
+        "time": {
+          "label": "時段",
+          "hint": "自動模式依系統時間切換清晨、正午、日落或夜晚配色",
+          "options": ["自動", "清晨", "正午", "日落", "夜晚"]
+        },
+        "light": {
+          "label": "光照方向",
+          "hint": "光線來源角度，投影向反方向落下（225° 為左上）"
+        },
+        "shadow": {
+          "label": "陰影深度",
+          "hint": "紙層之間投射陰影的濃淡程度"
+        },
+        "palette": {
+          "label": "配色方案",
+          "hint": "紙層與花卉的整體色系",
+          "options": ["玫瑰花園", "松石珊瑚", "靛藍鎏金", "柔和粉彩"]
+        },
+        "grain": {
+          "label": "紙張紋理",
+          "hint": "紙張纖維與顆粒質感的強弱"
+        },
+        "gap": {
+          "label": "紙層間距",
+          "hint": "各紙層之間的距離，越大景深盒越立體"
+        },
+        "flowers": {
+          "label": "花卉密度",
+          "hint": "前景中鬱金香、康乃馨與風信子的數量"
+        },
+        "trees": {
+          "label": "柏樹與梧桐",
+          "hint": "畫面兩側帶鏤空葉紋的樹影紙層",
+          "options": ["隱藏", "顯示"]
+        },
+        "critters": {
+          "label": "飛鳥與蝴蝶",
+          "hint": "空中掠過的剪紙小鳥與花間飛舞的蝴蝶",
+          "options": ["無", "少", "多"]
+        },
+        "skyline": {
+          "label": "城市天際線",
+          "hint": "穹頂、宣禮塔與加拉達塔剪影",
+          "options": ["隱藏", "顯示"]
+        },
+        "frame": {
+          "label": "光影盒邊框",
+          "hint": "螢幕邊緣的浮雕紙質外框",
+          "options": ["隱藏", "顯示"]
+        },
+        "sway": {
+          "label": "微風",
+          "hint": "花朵隨風輕擺的幅度"
+        },
+        "fw": {
+          "label": "邊框寬度",
+          "hint": "圍繞圖示的三層紙環總寬度"
+        },
+        "fstyle": {
+          "label": "視窗形狀",
+          "hint": "拱形壁龕上圓下方，圓形為全圓角",
+          "options": ["拱形壁龕", "圓角"]
+        },
+        "quality": {
+          "label": "畫質",
+          "hint": "繪製解析度與花卉數量預算",
+          "options": ["低", "平衡", "高"]
+        }
+      }
+    },
+    "software-world": {
+      "name": "程式生態",
+      "desc": "即時軟體生態系統：桌面圖示化作互動式節點，呈現代理連線、資料封包流動、Git 分支與終端機氛圍",
+      "groups": [
+        "生態系統",
+        "氛圍細節",
+        "效能"
+      ],
+      "params": {
+        "animSpeed": {
+          "label": "動畫速度",
+          "hint": "資料封包、節點脈衝、Git 分支與環境漂移的整體速度"
+        },
+        "networkActivity": {
+          "label": "網路活躍度",
+          "hint": "沿節點連線穿梭的資料封包頻率與輸送量"
+        },
+        "connectionIntensity": {
+          "label": "連線強度",
+          "hint": "節點之間相依與資料流連線的可見度與覆蓋範圍"
+        },
+        "particleDensity": {
+          "label": "粒子密度",
+          "hint": "環境網路粒子與背景系統微粒的密度"
+        },
+        "codeParticleDensity": {
+          "label": "程式符號密度",
+          "hint": "背景中漂浮程式符號粒子的密度"
+        },
+        "envDetail": {
+          "label": "環境細節",
+          "hint": "Git 分支、終端機記錄、建置圓弧與網格的細節層級"
+        },
+        "quality": {
+          "label": "畫質",
+          "hint": "渲染解析度縮放與生態細節預算",
+          "options": ["低", "平衡", "高"]
+        }
+      }
+    },
+    "thinking-orbs": {
+      "name": "3D 思維球體",
+      "desc": "中心懸浮大型真 3D 點陣球體，支援 9 種 ThinkingOrbs 動態模式切換、懸停 3D 視差磁吸場與點擊波紋互動，並可與桌面圖示連線呼應",
+      "groups": [
+        "球體與模式",
+        "動效與互動",
+        "外觀與效能"
+      ],
+      "params": {
+        "orbDesign": {
+          "label": "球體模式",
+          "hint": "在 9 種 3D 點陣思考球體動畫之間即時切換",
+          "options": ["Working", "Searching", "Solving", "Listening", "Connecting", "Weaving", "Composing", "Breathing", "Shaping"]
+        },
+        "autoCycle": {
+          "label": "自動輪換模式",
+          "hint": "開啟後定期在 9 種動畫之間平滑切換",
+          "options": ["關閉", "開啟"]
+        },
+        "orbScale": {
+          "label": "球體尺寸",
+          "hint": "調節螢幕中央主球體的整體大小"
+        },
+        "dotDensity": {
+          "label": "點陣密度",
+          "hint": "調節球體表面粒子與晶格點的密集程度"
+        },
+        "animSpeed": {
+          "label": "動畫速度",
+          "hint": "球體旋轉、掃描與波紋演化的整體速度"
+        },
+        "hoverReaction": {
+          "label": "懸停互動反應",
+          "hint": "滑鼠懸停或觸控時 3D 視差傾斜、磁力排斥與點擊波紋的強度",
+          "options": ["關閉", "柔和", "強烈"]
+        },
+        "dotGlow": {
+          "label": "光暈強度",
+          "hint": "核心環境光暈與高亮點的輝光亮度"
+        },
+        "palette": {
+          "label": "色彩風格",
+          "options": ["極簡深黑", "極簡淺白", "鈷藍智算", "琥珀脈衝", "翡翠矩陣"]
+        },
+        "iconLinks": {
+          "label": "圖示連線脈衝",
+          "hint": "啟用自適應時，在桌面圖示與中心球體之間繪製虛點引力連線",
+          "options": ["隱藏", "顯示"]
+        },
+        "quality": {
+          "label": "畫質",
+          "options": ["低", "中", "高"]
+        }
+      }
+    }
+  }
+}

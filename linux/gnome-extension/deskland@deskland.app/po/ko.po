@@ -1,0 +1,16 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: DiyarDesk\n"
+"PO-Revision-Date: 2026-11-22 00:00+0800\n"
+"Last-Translator: DiyarDesk contributors <adam0307a@users.noreply.github.com>\n"
+"Language-Team: ko\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "DiyarDesk Live Wallpaper Bridge"
+msgstr "DiyarDesk 라이브 배경 화면 브리지"
+
+msgid "Pins the DiyarDesk live HTML5/WebGL wallpaper behind desktop windows on GNOME Shell Wayland and reports window coverage for auto-pause."
+msgstr "GNOME Shell Wayland에서 DiyarDesk 라이브 HTML5/WebGL 배경 화면을 바탕 화면 창 뒤에 고정하고 자동 일시 중지를 위해 창 가림 범위를 보고합니다."

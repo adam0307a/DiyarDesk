@@ -373,12 +373,17 @@ class ThemeStore(private val storageDir: File) {
 
     companion object {
         const val DEFAULT_THEME = "papercut"
+        private val SUPPORTED_LANGS = setOf("en", "zh-CN", "zh-TW", "tr", "de", "fr", "ja", "ko")
 
         fun resolveEffectiveLang(setting: String, systemLang: String): String {
+            if (setting in SUPPORTED_LANGS) return setting
+            val two = systemLang.take(2).lowercase()
+            val zhHant = systemLang.startsWith("zh", ignoreCase = true) &&
+                (systemLang.contains("Hant", ignoreCase = true) || listOf("-tw", "-hk", "-mo").any { systemLang.endsWith(it, true) })
             return when {
-                setting == "en" || setting == "zh-CN" || setting == "tr" -> setting
-                systemLang.startsWith("zh", ignoreCase = true) -> "zh-CN"
-                systemLang.startsWith("tr", ignoreCase = true) -> "tr"
+                zhHant -> "zh-TW"
+                two == "zh" -> "zh-CN"
+                two in SUPPORTED_LANGS -> two
                 else -> "en"
             }
         }

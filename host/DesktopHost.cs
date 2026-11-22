@@ -319,7 +319,7 @@ static class Settings
 static class I18n
 {
     // 增加语言时同步设置页 LANGS 与体验版导出的语言列表。
-    public static readonly string[] Supported = { "zh-CN", "en", "tr" };
+    public static readonly string[] Supported = { "zh-CN", "zh-TW", "en", "tr", "de", "fr", "ja", "ko" };
     public static string Code = "zh-CN", Sys = "en";     // 现在用的语言；"跟随系统"时会用的语言
     static Dictionary<string, object> cur, en, zh;
 
@@ -329,7 +329,7 @@ static class I18n
         bool zhHant = n.StartsWith("zh") && (n.Contains("hant") || n.EndsWith("-tw") || n.EndsWith("-hk") || n.EndsWith("-mo"));
         string want = n.StartsWith("zh") ? (zhHant ? "zh-TW" : "zh-CN") : two == "pt" ? "pt-BR" : two;
         if (Array.IndexOf(Supported, want) >= 0) return want;
-        return n.StartsWith("zh") ? "zh-CN" : "en";       // 繁体中文还没做：先用简体
+        return n.StartsWith("zh") ? "zh-CN" : "en";       // 其他中文变体先用简体
     }
 
     public static void Load(string pageDir, string setting)

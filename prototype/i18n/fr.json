@@ -1,0 +1,1479 @@
+{
+  "name": "Français",
+  "ui": {
+    "adaptive": "Adaptatif",
+    "themes": "Thèmes",
+    "collectionTitle": "Trouvez votre décor.",
+    "collectionSubtitle": "Faites de vos icônes une partie du paysage.",
+    "language": "Langue",
+    "langAuto": "Valeur système",
+    "langAutoWith": "Valeur système ({name})",
+    "autostart": "Lancer avec Windows",
+    "autostartTitle": "Exécuter DiyarDesk automatiquement à l'ouverture de session",
+    "autostartBlocked": "Le lancement avec Windows a peut-être été bloqué",
+    "autostartWarnSw": "DiyarDesk ne s'est pas lancé automatiquement cette fois — {sw} l'a peut-être bloqué. Ouvrez {sw}, trouvez DiyarDesk dans son gestionnaire de démarrage et autorisez-le.",
+    "autostartWarnGeneric": "DiyarDesk ne s'est pas lancé automatiquement cette fois — votre logiciel de sécurité ou le réglage Applications de démarrage de Windows l'a peut-être bloqué. Activez DiyarDesk dans le gestionnaire de démarrage de votre logiciel de sécurité, ou dans Paramètres Windows → Applications → Démarrage.",
+    "gotIt": "Compris",
+    "updateAvailable": "Mise à jour disponible",
+    "updateVersion": "DiyarDesk {version} est prêt. Votre thème et vos réglages actuels seront conservés.",
+    "updateProgram": "Mettre à jour",
+    "updateRetry": "Réessayer la mise à jour",
+    "updateWorking": "Mise à jour…",
+    "updateDownloading": "Téléchargement et installation… {progress}",
+    "updateInstalling": "Installation de la mise à jour… {progress}",
+    "updateCompletedTitle": "Mise à jour terminée",
+    "updateCompleted": "La mise à jour a été téléchargée et installée. Si DiyarDesk ne redémarre pas automatiquement, relancez-le.",
+    "updateDone": "Terminé",
+    "updateCanceled": "La mise à jour a été annulée. Vous pouvez réessayer plus tard.",
+    "updateLowBattery": "La mise à jour n'a pas pu se terminer sur batterie. Branchez votre appareil et réessayez.",
+    "updateWifiRecommended": "Ce réseau peut entraîner des frais. Changez de réseau ou réessayez plus tard.",
+    "updateWifiRequired": "Connectez-vous au Wi-Fi pour télécharger cette mise à jour.",
+    "updateStoreRequired": "Cette méthode de mise à jour n'est disponible que dans l'édition Microsoft Store.",
+    "updateFailed": "La mise à jour a échoué. Vérifiez votre connexion ou le Microsoft Store et réessayez.",
+    "updateCheckingTitle": "Recherche de mises à jour",
+    "updateChecking": "Connexion au serveur de mise à jour et recherche d'une nouvelle version…",
+    "updateFailedTitle": "Mise à jour non terminée",
+    "updateCheckFailedTitle": "Impossible de vérifier les mises à jour",
+    "networkTimeout": "La connexion ou le téléchargement a expiré. Vérifiez votre réseau, votre proxy ou votre pare-feu et réessayez. Si d'autres sites fonctionnent, le serveur répond peut-être aussi lentement.",
+    "networkDns": "L'adresse du serveur n'a pas pu être résolue. Vérifiez vos réglages réseau, DNS ou proxy et réessayez.",
+    "networkTls": "Une connexion sécurisée n'a pas pu être établie. Vérifiez l'heure du système et toute interception de sécurité par votre réseau ou votre proxy, puis réessayez.",
+    "networkLocal": "La connexion réseau a échoué ou a été interrompue. Vérifiez votre réseau, votre proxy ou votre pare-feu et réessayez.",
+    "serverUnavailable": "Le serveur a été atteint, mais le service est temporairement indisponible (HTTP 5xx). Réessayez plus tard.",
+    "serverRejected": "Le serveur a rejeté la requête (HTTP 4xx). Réessayez plus tard ou contactez l'assistance si cela persiste.",
+    "serverInvalid": "Le serveur a renvoyé une réponse non reconnue. Réessayez plus tard ou contactez l'assistance si cela persiste.",
+    "downloadInvalid": "Le téléchargement était incomplet ou a échoué à la vérification de sécurité, l'installation a donc été arrêtée. Réessayez ou contactez l'assistance si cela se reproduit.",
+    "livePreview": "Aperçu en direct",
+    "previewIcons": "Aperçu en direct · utilise les {n} icônes de votre bureau",
+    "previewNoIcons": "Aperçu en direct · icônes du bureau masquées",
+    "refresh": "Actualiser",
+    "refreshTitle": "Générer une nouvelle scène pour ce thème",
+    "shareImage": "Partager l'image",
+    "shareImageTitle": "Partagez l'image de votre bureau en protégeant votre vie privée",
+    "shareVideo": "Partager la vidéo",
+    "shareVideoTitle": "Partagez l'animation de votre bureau en protégeant votre vie privée",
+    "generating": "Génération…",
+    "preparingRec": "Préparation…",
+    "recording": "Enregistrement {p} %",
+    "savingVideo": "Sauvegarde…",
+    "shareFailImage": "Impossible de créer l'image : {msg}",
+    "shareFailVideo": "Impossible d'enregistrer la vidéo : {msg}",
+    "unknownReason": "erreur inconnue",
+    "shareReadyImage": "L'image de votre bureau est prête",
+    "shareReadyVideo": "Le clip de votre bureau est prêt",
+    "sharePrivacy": "Les icônes sont remplacées par des icônes d'exemple et les noms de fichiers par des blocs de couleur ; aucun de vos fichiers n'est affiché.",
+    "shareCopiedImage": "L'image est dans votre presse-papiers — collez-la directement dans une conversation ou une publication.",
+    "shareCopiedVideo": "Le fichier vidéo est dans votre presse-papiers — collez-le dans une fenêtre de discussion pour l'envoyer.",
+    "shareBrowserHint": " (Aperçu navigateur : cliquez sur « {btn} » pour télécharger.)",
+    "savedTo": "Enregistré dans {path}",
+    "openFolder": "Afficher dans le dossier",
+    "openImage": "Ouvrir l'image",
+    "openVideo": "Ouvrir la vidéo",
+    "saveImage": "Enregistrer l'image",
+    "saveVideo": "Enregistrer la vidéo",
+    "ok": "OK",
+    "sharePreviewAlt": "Aperçu de l'image partagée",
+    "autosave": "Les modifications sont enregistrées automatiquement et appliquées immédiatement à votre bureau",
+    "saved": "Enregistré ✓",
+    "resetAll": "Tout réinitialiser",
+    "resetAllTitle": "Rétablir tous les réglages de ce thème",
+    "helpButtonTitle": "Questions fréquentes et dépannage",
+    "helpTitle": "Aide",
+    "helpSubtitle": "Questions fréquentes et dépannage",
+    "helpWallpaperQ": "DiyarDesk clignote ou redémarre sans cesse. Comment corriger cela ?",
+    "helpWallpaperA": "Si votre fond d'écran habituel change automatiquement, chaque changement peut faire clignoter ou redémarrer DiyarDesk. Utilisez un arrière-plan fixe qui ne change pas.",
+    "helpWallpaperStep1": "Ouvrez Paramètres Windows → Personnalisation → Arrière-plan.",
+    "helpWallpaperStep2": "Réglez « Personnaliser votre arrière-plan » sur « Image » ou « Couleur unie ». N'utilisez pas « Diaporama » ni « Windows Spotlight ».",
+    "helpWallpaperStep3": "Redémarrez DiyarDesk après avoir modifié ce réglage.",
+    "badgeOn": "En cours",
+    "badgeReady": "Disponible",
+    "badgeSoon": "Bientôt",
+    "ongoingTitle": "D'autres arrivent",
+    "ongoingDesc": "De nouvelles scènes et de nouveaux éléments seront ajoutés au fil du temps.",
+    "noParams": "Ce thème n'a pas encore de réglages",
+    "resetOne": "Rétablir par défaut : {v}",
+    "resetOneAria": "Rétablir {label} par défaut",
+    "dblclickReset": "Double-cliquez pour réinitialiser ({v})",
+    "comingSoon": "Bientôt :",
+    "audioNone": "Aucun fichier sélectionné",
+    "audioPick": "Choisir un audio…",
+    "audioPlay": "▶ Lire",
+    "audioPause": "⏸ Pause",
+    "importTheme": "Importer un thème…",
+    "importThemeTitle": "Importer un pack de thème (.zip, .deskland), une page HTML, une image ou une vidéo",
+    "importHelpBtnTitle": "Formats d'import pris en charge et guide",
+    "importHelpTitle": "Guide d'importation de thèmes",
+    "importHelpSubtitle": "Cliquez sur + Importer un thème… pour choisir un fichier local. Tous les formats suivants sont pris en charge et validés automatiquement :",
+    "importHelpHowTitle": "Formats pris en charge et comportement",
+    "importHelpZipTitle": "Packs de thème (.zip, .deskland)",
+    "importHelpZipDesc": "Thèmes HTML/JS/CSS/ressources multi-fichiers. Si manifest.json ou theme.json est présent, les métadonnées, le HTML d'entrée, la vignette et les paramètres sont lus automatiquement ; sinon, le fichier index.html ou le premier fichier .html est utilisé, les images thumb/preview (y compris .svg) sont détectées automatiquement, et les chemins de traversée zip-slip ou les liens symboliques sont bloqués.",
+    "importHelpHtmlTitle": "Page web unique (.html, .htm)",
+    "importHelpHtmlDesc": "Thèmes shader ou HTML interactifs à fichier unique (utilise la balise <title> comme nom du thème).",
+    "importHelpImageTitle": "Fonds d'écran image (.png, .jpg, .jpeg, .webp, .gif, .svg, .avif, .bmp)",
+    "importHelpImageDesc": "Transformée automatiquement en page de fond d'écran interactive avec un léger zoom/panoramique ambiant, des réglages de luminosité, de mouvement et de halo d'arrière-plan des icônes (dimIcons), une mise en page adaptative et le partage d'instantanés (desklandSnapshot).",
+    "importHelpVideoTitle": "Fonds d'écran vidéo (.mp4, .webm, .mkv, .mov)",
+    "importHelpVideoDesc": "Lit la vidéo en boucle de façon fluide avec des réglages de luminosité, de vitesse de lecture et de halo d'arrière-plan des icônes (dimIcons).",
+    "importHelpNote": "Les archives sont vérifiées pour leur intégrité avant extraction (150 Mo max / 2 000 fichiers par pack). Les thèmes importés sont stockés dans votre dossier utilisateur et peuvent être supprimés à tout moment via Retirer dans l'en-tête de l'aperçu.",
+    "importHelpManifestTitle": "Manifeste et schéma de réglages (manifest.json / theme.json)",
+    "importHelpManifestMetaTitle": "Métadonnées et vignette",
+    "importHelpManifestMetaDesc": "Prend en charge name/title, desc/description, entry/page/main/file (index.html par défaut), adaptive (true/false) et thumb/thumbnail/preview (chemin d'image relatif incluant .svg, ou couleur/dégradé CSS).",
+    "importHelpManifestParamsTitle": "Paramètres (groups ou settings)",
+    "importHelpManifestParamsDesc": "Accepte à la fois le tableau groups natif de DiyarDesk ([{ name, params }]) et les objets settings groupés (via group/category) ; prend en charge les curseurs (range : min/max/step/default), les sélecteurs (select : listes de chaînes ou options { label, value }) et les bascules (checkbox : true/false).",
+    "importHelpProtoTitle": "Protocole des thèmes HTML interactifs",
+    "importHelpProtoReadyTitle": "Poignée de main Ready",
+    "importHelpProtoReadyDesc": "Appelez window.chrome.webview.postMessage('ready') en mode fond d'écran, ou parent.postMessage(JSON.stringify({ t: 'ready' }), '*') en mode aperçu (?preview=1) pour recevoir les réglages initiaux et les rectangles des icônes.",
+    "importHelpProtoMsgTitle": "Messages de l'hôte et partage",
+    "importHelpProtoMsgDesc": "Votre page reçoit { t: 'icons', vis, r: [[l, t, r, b], ...] } (pixels physiques ; divisez par devicePixelRatio pour des pixels CSS), { t: 'settings', v: {...} }, { t: 'reset', v: {...} } et { t: 'pause', v: true|false }. Vous pouvez éventuellement exposer window.desklandSnapshot() / window.desklandRecord() pour le partage.",
+    "removeTheme": "Retirer",
+    "removeThemeTitle": "Retirer ce thème importé",
+    "importErrorTitle": "Échec de l'importation du thème",
+    "importError": "Impossible d'importer le thème : {msg}",
+    "virtualBarTitle": "Barre d'icônes virtuelle sur le bureau",
+    "virtualBarAuto": "Icônes : Auto",
+    "virtualBarAlways": "Icônes : Toujours afficher",
+    "virtualBarOff": "Icônes : Masquées",
+    "lowMode": "Mode éco",
+    "lowModeTitle": "Optimisation éco stricte : limite à 15 FPS, échelle 0,75x, désactive les flous et ombres lourds et met en pause plus vite derrière les fenêtres",
+    "disableAutoPause": "Désactiver la pause auto",
+    "disableAutoPauseTitle": "Lorsque cette option est activée, les animations continuent même lorsqu'une fenêtre maximisée ou plein écran est ouverte"
+  },
+  "host": {
+    "traySettings": "Paramètres…",
+    "trayPause": "Mettre l'animation en pause",
+    "trayLowMode": "Mode éco",
+    "trayReload": "Recharger",
+    "trayAutostart": "Lancer avec Windows",
+    "trayExit": "Quitter (restaurer le fond d'écran)",
+    "welcomeTitle": "DiyarDesk est en cours d'exécution",
+    "welcomeBody": "Cliquez sur l'icône DiyarDesk dans la zone de notification{hotkey} pour ouvrir le menu.\nVous ne la voyez pas ? Cliquez sur ^ à droite de la barre des tâches.",
+    "welcomeHotkey": " ou appuyez sur Ctrl+Alt+H",
+    "errNotReady": "Le fond d'écran n'est pas encore prêt",
+    "errNoImage": "Aucune image n'a été renvoyée",
+    "errNoVideo": "Aucune vidéo n'a été renvoyée",
+    "errBusyImage": "L'image précédente est encore en cours de génération",
+    "errBusyVideo": "Le clip précédent est encore en cours d'enregistrement",
+    "errImageTimeout": "La génération a pris trop de temps",
+    "errVideoTimeout": "L'enregistrement a pris trop de temps",
+    "errBadData": "La page a renvoyé des données incomplètes",
+    "errRebuilt": "Windows n'arrêtait pas de reconstruire la couche du fond d'écran, DiyarDesk s'est donc arrêté.",
+    "errSeeLog": "Consultez le journal pour plus de détails : {path}",
+    "errSettings": "Impossible d'ouvrir la fenêtre des paramètres : {msg}",
+    "errNoPage": "Page introuvable : {path}",
+    "errNoDesktop": "Impossible de trouver la fenêtre du bureau, le fond d'écran ne peut donc pas être attaché.",
+    "errStart": "Impossible de démarrer : {msg}"
+  },
+  "themes": {
+    "quietsnow": {
+      "name": "Neige tranquille",
+      "creditPrefix": "Inspiré par",
+      "desc": "Physique vivante réaliste et interactions inspirées de Snowhush : neige, pluie en perles de verre, feuilles d'automne tourbillonnantes et modes fleurs de cerisier. S'accumule sur le sol, les icônes du bureau et les fenêtres ouvertes, glisse lorsqu'on les déplace ou les ferme, et se balaie sous votre curseur.",
+      "groups": [
+        "Saison et météo",
+        "Accumulation et interaction",
+        "Atmosphère et rendu",
+        "Performances"
+      ],
+      "params": {
+        "mode": {
+          "label": "Mode saison",
+          "hint": "Passez en direct entre neige réaliste, pluie en perles de verre, feuilles d'automne et fleurs de cerisier",
+          "options": ["Neige", "Pluie", "Feuilles d'automne", "Fleurs de cerisier"]
+        },
+        "intensity": {
+          "label": "Intensité",
+          "hint": "Densité globale de la neige, de la pluie, des feuilles ou des pétales qui tombent"
+        },
+        "wind": {
+          "label": "Direction et vitesse du vent",
+          "hint": "Les valeurs négatives soufflent vers la gauche, les positives vers la droite"
+        },
+        "gusts": {
+          "label": "Rafales naturelles",
+          "hint": "Rafales intermittentes et poudrerie soulevée par les crêtes de neige"
+        },
+        "accumulate": {
+          "label": "Accumulation sur",
+          "hint": "Choisissez si la neige, les feuilles ou les perles de pluie se déposent uniquement au sol ou aussi sur les icônes du bureau",
+          "options": ["Désactivé", "Sol uniquement", "Sol et icônes"]
+        },
+        "windows": {
+          "label": "Accumulation sur les fenêtres",
+          "hint": "Dépose neige, feuilles, pétales et éclaboussures de pluie sur le bord supérieur des fenêtres ouvertes ; tout tombe quand les fenêtres bougent ou se ferment",
+          "options": ["Désactivé", "Activé"]
+        },
+        "melt": {
+          "label": "Fonte / effacement naturel",
+          "hint": "Fait fondre progressivement les congères ou faner les feuilles et pétales tombés pour garder le bureau équilibré"
+        },
+        "cursor": {
+          "label": "Interaction avec le curseur",
+          "hint": "Balayez les congères, dispersez les feuilles et pétales ou étalez les gouttes de pluie avec le pointeur",
+          "options": ["Désactivé", "Doux", "Fort"]
+        },
+        "depth": {
+          "label": "Profondeur des congères",
+          "hint": "Épaisseur maximale des congères et amas sur le sol et les icônes"
+        },
+        "atmosphere": {
+          "label": "Atmosphère",
+          "hint": "Choisissez un décor saisonnier calme et un éclairage d'ambiance",
+          "options": ["Nuit calme", "Heure bleue", "Matin brumeux", "Chaleur du lampadaire"]
+        },
+        "sparkle": {
+          "label": "Scintillement et lustre",
+          "hint": "Reflets des cristaux de neige, brillance des gouttes de pluie et chatoyance des pétales translucides"
+        },
+        "backdrop": {
+          "label": "Brume et crêtes lointaines",
+          "hint": "Visibilité des crêtes douces à l'horizon, des pins lointains et de la brume au sol"
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Résolution de rendu et budget de particules physiques",
+          "options": ["Basse", "Équilibrée", "Élevée"]
+        }
+      }
+    },
+    "beach": {
+      "name": "Plage",
+      "desc": "Le rivage s'incurve autour de vos fichiers tandis que les vagues déferlent sur le sable",
+      "groups": [
+        "Littoral",
+        "Eau",
+        "Détails"
+      ],
+      "params": {
+        "palms": {
+          "label": "Cocotiers",
+          "hint": "Nombre de palmiers côtiers ; 0 pour les masquer. Il en apparaît moins s'il n'y a pas assez de sable.",
+          "unit": ""
+        },
+        "sigma": {
+          "label": "Distance par rapport aux icônes",
+          "hint": "Distance à laquelle se trouve le rivage par rapport à vos icônes"
+        },
+        "warp": {
+          "label": "Côte sinueuse",
+          "hint": "Ampleur des détours et des ondulations du rivage"
+        },
+        "shoal": {
+          "label": "Hauts-fonds clairs",
+          "hint": "Largeur de l'eau transparente au-dessus du sable"
+        },
+        "shallow": {
+          "label": "Mer peu profonde",
+          "hint": "Distance sur laquelle l'eau passe du turquoise au bleu profond"
+        },
+        "kayaks": {
+          "label": "Kayaks",
+          "unit": ""
+        },
+        "birds": {
+          "label": "Oiseaux marins",
+          "hint": "Mouettes planant et tournoyant au-dessus",
+          "unit": ""
+        }
+      }
+    },
+    "meadow": {
+      "name": "Prairie",
+      "desc": "Une prairie à l'encre et au lavis où vos icônes se cachent dans des nuages blancs projetant des ombres vert foncé",
+      "groups": [
+        "Autour des icônes",
+        "Nuages",
+        "Personnages"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Taille des nuages",
+          "hint": "Ampleur de l'étalement des nuages autour de vos icônes"
+        },
+        "cover": {
+          "label": "Nuages sur la prairie",
+          "hint": "Nombre de nuages dérivant au-dessus de la prairie dégagée"
+        },
+        "flow": {
+          "label": "Vitesse de dérive",
+          "hint": "Vitesse à laquelle les nuages dérivent et leurs formes changent"
+        },
+        "showBoy": {
+          "label": "Afficher le garçon",
+          "hint": "Afficher ou masquer le garçon avec son cerf-volant",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "showCat": {
+          "label": "Afficher le chaton",
+          "hint": "Le petit chaton noir qui se repose dans l'herbe",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        }
+      }
+    },
+    "aurora": {
+      "name": "Lac aurore",
+      "desc": "Un lac gelé de minuit reflète des rubans d'aurore tandis que vos icônes reposent sur des îlots enneigés crépusculaires avec pins et lanternes chaleureuses",
+      "groups": [
+        "Rive enneigée",
+        "Aurore et glace",
+        "Détails"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Clairière enneigée",
+          "hint": "Ampleur de l'extension des îlots enneigés autour de vos icônes"
+        },
+        "warp": {
+          "label": "Rive sinueuse",
+          "hint": "Ampleur des détours du rivage enneigé"
+        },
+        "shoal": {
+          "label": "Bord de glace",
+          "hint": "Largeur de la bordure de glace pâle qui brille autour de la rive"
+        },
+        "aurora": {
+          "label": "Lueur de l'aurore",
+          "hint": "Éclat des aurores boréales sur le lac gelé"
+        },
+        "flow": {
+          "label": "Vitesse de dérive",
+          "hint": "Vitesse de dérive des rubans d'aurore et des chutes de neige"
+        },
+        "pines": {
+          "label": "Pins enneigés",
+          "hint": "Pins saupoudrés de neige sur les îlots ; 0 pour les masquer",
+          "unit": ""
+        },
+        "lanterns": {
+          "label": "Lanternes chaleureuses",
+          "hint": "Lanternes chaudement lumineuses disposées le long de la rive enneigée",
+          "unit": ""
+        },
+        "snow": {
+          "label": "Chutes de neige",
+          "hint": "Densité des flocons légers qui dérivent dans la scène"
+        }
+      }
+    },
+    "glade": {
+      "name": "Clairière des bois",
+      "desc": "Des arbres à la gouache se balancent doucement et s'ouvrent en clairières ensoleillées autour de vos icônes, avec de minuscules oiseaux perchés dans la canopée",
+      "groups": [
+        "Clairière",
+        "Bois",
+        "Faune"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Taille de la clairière",
+          "hint": "Largeur de la clairière ensoleillée autour de vos icônes"
+        },
+        "warp": {
+          "label": "Courbe de la lisière",
+          "hint": "Ampleur des sinuosités de la lisière des bois"
+        },
+        "density": {
+          "label": "Densité d'arbres",
+          "hint": "Densité des arbres peints qui couvrent les bois"
+        },
+        "wind": {
+          "label": "Balancement au vent",
+          "hint": "Force avec laquelle les cimes et les oiseaux perchés se balancent dans la brise"
+        },
+        "birds": {
+          "label": "Oiseaux des bois",
+          "hint": "Minuscules oiseaux perchés sur les cimes et voletant dans les bois ; 0 pour les masquer",
+          "unit": ""
+        }
+      }
+    },
+    "rift": {
+      "name": "Faille runique",
+      "desc": "Des sanctuaires de pierre sculptée aux runes Hextech or et cyan pulsantes s'ouvrent autour de vos icônes, au milieu d'une jungle picturale et d'une rivière serpentine lumineuse",
+      "groups": [
+        "Sanctuaire",
+        "Runes et rivière",
+        "Reliques et lucioles"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Taille de l'arène",
+          "hint": "Largeur du sanctuaire de pierre sculptée dégagé autour de vos icônes"
+        },
+        "warp": {
+          "label": "Contour de la falaise",
+          "hint": "Caractère plus ou moins déchiqueté ou organique du bord de la falaise"
+        },
+        "glow": {
+          "label": "Lueur Hextech",
+          "hint": "Éclat des runes cyan, des cristaux de garde et de la rivière"
+        },
+        "wind": {
+          "label": "Dérive et brise",
+          "hint": "Vitesse de balancement des canopées, d'écoulement des ondulations de la rivière et d'errance des lucioles"
+        },
+        "heroes": {
+          "label": "Champions de la Faille",
+          "hint": "Champions chibi de la Faille et Poro errant entre les sanctuaires de pierre et les berges ; 0 pour les masquer",
+          "unit": ""
+        },
+        "turrets": {
+          "label": "Tourelles arcaniques",
+          "hint": "Tourelles de défense en pierre de l'Ordre bleu et du Chaos écarlate gardant les bords du sanctuaire ; 0 pour les masquer",
+          "unit": ""
+        },
+        "wards": {
+          "label": "Lanternes de garde",
+          "hint": "Lanternes runiques en laiton et cristal dressées le long des bords des icônes ; 0 pour les masquer",
+          "unit": ""
+        },
+        "wisps": {
+          "label": "Lucioles arcaniques",
+          "hint": "Lueurs de mana lumineuses dérivant au-dessus de la rivière et de la canopée ; 0 pour les masquer",
+          "unit": ""
+        }
+      }
+    },
+    "strike": {
+      "name": "Poussière du site de bombe",
+      "desc": "Un site de bombe désertique ensoleillé : les icônes se trouvent dans des zones d'impact en béton criblées de balles, avec des douilles en laiton, des caisses, des poules en patrouille et un ballon de football qui s'éloigne dès qu'une icône passe dessus",
+      "groups": [
+        "Zone d'impact",
+        "Atmosphère",
+        "Objets et clins d'œil"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Rayon d'impact",
+          "hint": "Largeur de la zone de béton criblée de balles dégagée autour de vos icônes"
+        },
+        "warp": {
+          "label": "Bord des gravats",
+          "hint": "Caractère plus ou moins déchiqueté de la transition entre le béton et le sable de la cour"
+        },
+        "holes": {
+          "label": "Densité de balles",
+          "hint": "Densité des cratères, fissures radiales et douilles usagées sur les zones d'icônes"
+        },
+        "smoke": {
+          "label": "Poussière et fumée",
+          "hint": "Visibilité des panaches de fumée tactique et de la brume désertique ensoleillée dans la cour"
+        },
+        "wind": {
+          "label": "Brise et rythme",
+          "hint": "Vitesse de dérive de la fumée tactique, du sable soufflé et des poules"
+        },
+        "ball": {
+          "label": "Ballon de football",
+          "hint": "Ballon de football classique de CS qui roule et rebondit dans l'espace libre dès qu'une icône passe dessus ; 0 pour le masquer",
+          "unit": ""
+        },
+        "chickens": {
+          "label": "Poules errantes",
+          "hint": "Poules de cour désertique qui picorent et s'envolent loin des icônes ou du ballon ; 0 pour les masquer",
+          "unit": ""
+        },
+        "crates": {
+          "label": "Caisses de couverture",
+          "hint": "Densité des caisses de ravitaillement en bois, bidons d'huile et sacs de sable dans les allées"
+        }
+      }
+    },
+    "pocket": {
+      "name": "Poche de front",
+      "desc": "Une carte de guerre de grande stratégie où les groupes d'icônes deviennent des poches de combat encerclées, entourées de pions de divisions OTAN turques, allemandes ou britanniques automatiquement associés à la langue des dossiers",
+      "groups": [
+        "Front et poche",
+        "Divisions et nations",
+        "Détails du théâtre"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Rayon de la poche",
+          "hint": "Ampleur de la poche de combat encerclée autour de vos icônes"
+        },
+        "warp": {
+          "label": "Courbe du front",
+          "hint": "Caractère plus ou moins organique du tracé de l'encerclement suivant les crêtes du terrain"
+        },
+        "arrows": {
+          "label": "Flèches d'attaque",
+          "hint": "Éclat des chevrons de plan de bataille dirigés vers l'intérieur et des mises en évidence du front"
+        },
+        "divisions": {
+          "label": "Pions de division",
+          "hint": "Nombre de pions de division de style Age of History / HOI4 encerclant les poches ; 0 pour les masquer",
+          "unit": ""
+        },
+        "faction": {
+          "label": "Force encerclante",
+          "hint": "0 = détection automatique de la langue des dossiers (turc/allemand/anglais) ; 1 = turc ; 2 = allemand ; 3 = britannique"
+        },
+        "pace": {
+          "label": "Rythme de campagne",
+          "hint": "Vitesse d'animation des poussées du front et de marche des divisions pour fermer de nouvelles poches"
+        },
+        "skirmish": {
+          "label": "Tir d'artillerie",
+          "hint": "Fréquence des éclairs d'artillerie et de la fumée de combat tirés vers l'intérieur par les divisions du front"
+        },
+        "supply": {
+          "label": "Carte et forts",
+          "hint": "Visibilité des courbes topographiques, des grilles de coordonnées et des dépôts en étoile extérieurs"
+        }
+      }
+    },
+    "roach": {
+      "name": "Ville des cafards",
+      "desc": "Des personnages cafards humanoïdes devenus viraux — buveur de jus en gilet de cuir, étudiant à cravate, équipe d'usine en casque, diva aux plumes roses et couple en robe rouge — se promènent autour de terrasses d'icônes chaleureuses sur une avenue pavée",
+      "groups": [
+        "Rue et trottoir",
+        "Distribution des cafards"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Largeur du trottoir",
+          "hint": "Ampleur de l'îlot de trottoir aux dalles chaudes autour de vos icônes de bureau"
+        },
+        "warp": {
+          "label": "Nature de la bordure",
+          "hint": "Fluidité avec laquelle la bordure du trottoir serpente autour de vos groupes d'icônes"
+        },
+        "glow": {
+          "label": "Lueur des réverbères",
+          "hint": "Intensité des reflets ambrés des lampes dans les flaques de la rue"
+        },
+        "vibe": {
+          "label": "Cour en plein jour",
+          "hint": "Fondu d'un boulevard pavé de Beyoğlu au crépuscule vers une cour ensoleillée"
+        },
+        "crowd": {
+          "label": "Distribution de cafards",
+          "hint": "Nombre de cafards se promenant, dansant et sirotant du jus ; 0 pour les masquer",
+          "unit": ""
+        },
+        "speed": {
+          "label": "Rythme de promenade",
+          "hint": "Vivacité de la marche, de la danse et des réactions des cafards au coin des rues"
+        },
+        "props": {
+          "label": "Réverbères et accessoires",
+          "hint": "Densité des réverbères en fer forgé, des briques de jus et des verres de thé tulipe"
+        },
+        "audio": {
+          "label": "Ambiance sonore",
+          "hint": "Choisissez un fichier audio local pour la Ville des cafards et lancez-le ou mettez-le en pause à tout moment",
+          "defaultName": "Ville des cafards (par défaut)"
+        }
+      }
+    },
+    "rosebrook": {
+      "name": "Ruisseau des roses",
+      "desc": "De vertes prairies luxuriantes traversées par un ruisseau de cristal étincelant. Déposer ou déplacer une icône fait éclore des roses et des fleurs sauvages autour d'elle, tandis que les pétales dérivent dans la brise.",
+      "groups": [
+        "Ruisseau et prairie",
+        "Roses et pétales"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Rayon de la prairie",
+          "hint": "Ampleur de la pelouse ensoleillée et de l'anneau floral autour de chaque icône",
+          "unit": "px"
+        },
+        "stream": {
+          "label": "Largeur du ruisseau",
+          "hint": "Largeur du ruisseau forestier sinueux à travers la prairie"
+        },
+        "flow": {
+          "label": "Vitesse du courant",
+          "hint": "Vivacité de la progression des ondulations et des caustiques solaires vers l'aval"
+        },
+        "sunlight": {
+          "label": "Scintillement de l'eau",
+          "hint": "Lueur chaude du soleil et reflets étincelants sur le ruisseau"
+        },
+        "roses": {
+          "label": "Densité de roses",
+          "hint": "Richesse des roses et des fleurs sauvages qui éclosent autour des icônes déposées"
+        },
+        "petals": {
+          "label": "Pétales en dérive",
+          "hint": "Nombre de pétales de rose et de papillons de jardin flottant dans l'air"
+        },
+        "breeze": {
+          "label": "Brise de la prairie",
+          "hint": "Vitesse de balancement des fleurs et de dérive des pétales de rose"
+        }
+      }
+    },
+    "polarnight": {
+      "name": "Aurore de nuit polaire",
+      "desc": "Une nuit polaire au bord d'un lac gelé : l'aurore ondule dans le ciel et se reflète sur la glace, et vos icônes reposent dans une clairière de la forêt de pins enneigés",
+      "groups": [
+        "Autour des icônes",
+        "Aurore",
+        "Nuit d'hiver"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Taille de la clairière",
+          "hint": "Ampleur de l'espace de neige dégagé autour de vos icônes avant que les arbres ne commencent"
+        },
+        "density": {
+          "label": "Densité de la forêt",
+          "hint": "Épaisseur des pins au-delà de la clairière ; 0 masque les arbres"
+        },
+        "glow": {
+          "label": "Éclat de l'aurore",
+          "hint": "Éclat des trois rubans qui brûlent dans le ciel"
+        },
+        "flow": {
+          "label": "Vitesse d'écoulement",
+          "hint": "Vitesse d'ondulation de l'aurore, de scintillement de la glace et de chute de la neige"
+        },
+        "palette": {
+          "label": "Couleurs de l'aurore",
+          "hint": "Les couleurs des rubans",
+          "options": [
+            "Vert et rose",
+            "Violet et turquoise",
+            "Or et vert"
+          ]
+        },
+        "snow": {
+          "label": "Chutes de neige",
+          "hint": "Nombre de flocons qui tombent ; 0 arrête la neige",
+          "unit": ""
+        },
+        "meteor": {
+          "label": "Étoiles filantes",
+          "hint": "Météores qui traversent parfois le ciel nocturne",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "cabin": {
+          "label": "Chalet",
+          "hint": "Un petit chalet de rive aux fenêtres chaudes et à la cheminée fumante, qui reste à l'écart de vos icônes",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        }
+      }
+    },
+    "desert": {
+      "name": "Oasis du Sahara",
+      "desc": "Vue plongeante sur les dunes dorées du désert : les icônes déposées soulèvent des collines de sable ensoleillées tandis que des caravanes de chameaux et des voyageurs arabes serpentent entre les oasis de palmiers",
+      "groups": [
+        "Dunes d'icônes",
+        "Oasis et soleil",
+        "Caravane et voyageurs"
+      ],
+      "params": {
+        "sigma": {
+          "label": "Taille des dunes",
+          "hint": "Ampleur de l'étalement du monticule de sable soulevé autour de chaque icône"
+        },
+        "warp": {
+          "label": "Ondulations du vent",
+          "hint": "Courbure naturelle et contours des dunes sculptés par le vent"
+        },
+        "oases": {
+          "label": "Nombre d'oasis",
+          "hint": "Nombre d'oasis désertiques turquoise nichées dans les bassins",
+          "unit": ""
+        },
+        "warmth": {
+          "label": "Chaleur du soleil",
+          "hint": "Intensité de la lumière dorée du Sahara et de la brume chatoyante"
+        },
+        "wind": {
+          "label": "Vent et rythme de la caravane",
+          "hint": "Vitesse du sable soufflé, des palmiers qui se balancent et des caravanes en marche"
+        },
+        "camels": {
+          "label": "Chameaux",
+          "hint": "Nombre de chameaux traversant les dunes ; 0 masque les caravanes",
+          "unit": ""
+        },
+        "travelers": {
+          "label": "Voyageurs arabes",
+          "hint": "Guides de caravane arabes en robe avec keffieh et tentes d'oasis bédouines",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "palms": {
+          "label": "Palmiers dattiers",
+          "hint": "Nombre de palmiers dattiers luxuriants entourant les oasis",
+          "unit": ""
+        }
+      }
+    },
+    "zen-archipelago": {
+      "name": "Archipel zen",
+      "desc": "Lagon de koïs bioluminescent, ponts en bois, îles de sakura et lanternes flottantes qui s'adaptent autour de vos icônes",
+      "groups": [
+        "Atmosphère et vagues",
+        "Îles et ponts",
+        "Lagon et lanternes"
+      ],
+      "params": {
+        "timeOfDay": {
+          "label": "Moment de la journée",
+          "hint": "Passez entre nuit bioluminescente, coucher de soleil doré et jour émeraude",
+          "options": [
+            "Nuit bioluminescente",
+            "Coucher de soleil doré",
+            "Jour émeraude"
+          ]
+        },
+        "waveIntensity": {
+          "label": "Intensité des vagues",
+          "hint": "Force et lueur des ondulations venant mourir autour de chaque île"
+        },
+        "islandMargin": {
+          "label": "Taille des îles",
+          "hint": "Ampleur de l'extension de chaque île d'icône en sable, herbe et récif"
+        },
+        "bridgeDistance": {
+          "label": "Portée des ponts",
+          "hint": "Distance maximale entre îles d'icônes proches pour construire un pont de bois"
+        },
+        "koiCount": {
+          "label": "Koïs",
+          "hint": "Nombre de koïs nageant gracieusement dans le lagon",
+          "unit": ""
+        },
+        "lanternCount": {
+          "label": "Lanternes flottantes",
+          "hint": "Lanternes tōrō en bois chaleureuses dérivant sur le lagon",
+          "unit": ""
+        },
+        "sakuraDensity": {
+          "label": "Floraison des sakuras",
+          "hint": "Densité des cerisiers en fleurs et des pétales en dérive"
+        },
+        "fireflies": {
+          "label": "Lucioles",
+          "hint": "Nombre de spores bioluminescentes et de lucioles planant au-dessus"
+        }
+      }
+    },
+    "istanbul": {
+      "name": "Istanbul — Coucher de soleil sur le Bosphore",
+      "desc": "Vue plongeante sur Istanbul : le Bosphore, la Corne d'Or, les dômes, les minarets, les ferries et les mouettes, avec des places carrelées bordées de tulipes et des pontons en bois autour de vos icônes",
+      "groups": [
+        "Heure et lueur",
+        "Bosphore",
+        "Environnement des icônes",
+        "Ville"
+      ],
+      "params": {
+        "time": {
+          "label": "Moment de la journée",
+          "hint": "Auto suit l'horloge de votre système entre matin, midi, coucher de soleil et nuit",
+          "options": [
+            "Auto",
+            "Matin",
+            "Midi",
+            "Coucher de soleil",
+            "Nuit"
+          ]
+        },
+        "glow": {
+          "label": "Lueur de la lumière",
+          "hint": "Intensité du scintillement de l'eau, des fenêtres de la ville et des lanternes des places"
+        },
+        "ferries": {
+          "label": "Ferries",
+          "hint": "Nombre de ferries urbains traversant le détroit",
+          "unit": ""
+        },
+        "flow": {
+          "label": "Vitesse de l'eau et des ferries",
+          "hint": "Vitesse des vagues qui passent et des ferries en service"
+        },
+        "gulls": {
+          "label": "Mouettes",
+          "hint": "Vols de mouettes tournoyant au-dessus du Bosphore",
+          "options": [
+            "Aucune",
+            "Peu",
+            "Beaucoup"
+          ]
+        },
+        "pad": {
+          "label": "Taille de la place",
+          "hint": "Largeur de la place carrelée sur terre et du ponton en bois sur l'eau autour des icônes"
+        },
+        "tulips": {
+          "label": "Tulipes",
+          "hint": "Bordures de tulipes bordant les places autour des icônes situées sur terre",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "cats": {
+          "label": "Chats de rue",
+          "hint": "Chats se prélassant au soleil sur les paisibles places d'Istanbul",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "landmarks": {
+          "label": "Monuments historiques",
+          "hint": "Sainte-Sophie, Mosquée bleue, Süleymaniye, tour de Galata et tour de la Vierge",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        }
+      }
+    },
+    "solar-system": {
+      "name": "Système solaire interactif et trou noir",
+      "desc": "Transforme les icônes du bureau en systèmes solaires vivants orbitant autour d'un trou noir relativiste, avec gravité du curseur et mouvement orbital des icônes",
+      "groups": [
+        "Trou noir et noyau",
+        "Système solaire",
+        "Espace",
+        "Physique",
+        "Performances"
+      ],
+      "params": {
+        "centerBodyType": {
+          "label": "Type de corps central",
+          "options": [
+            "Trou noir",
+            "Grand Soleil",
+            "Espace profond"
+          ]
+        },
+        "blackHoleSize": {
+          "label": "Échelle du trou noir"
+        },
+        "accretionIntensity": {
+          "label": "Lueur d'accrétion et de lentille"
+        },
+        "iconOrbitMode": {
+          "label": "Mouvement orbital des icônes",
+          "options": [
+            "Orbite autour du noyau",
+            "Ancrage fixe"
+          ]
+        },
+        "globalOrbitSpeed": {
+          "label": "Vitesse de révolution des icônes"
+        },
+        "planetCount": {
+          "label": "Nombre de planètes"
+        },
+        "orbitSize": {
+          "label": "Taille de l'orbite"
+        },
+        "orbitSpeed": {
+          "label": "Vitesse orbitale"
+        },
+        "planetSize": {
+          "label": "Taille des planètes"
+        },
+        "starDensity": {
+          "label": "Densité d'étoiles"
+        },
+        "nebulaIntensity": {
+          "label": "Intensité de la nébuleuse"
+        },
+        "asteroidDensity": {
+          "label": "Densité d'astéroïdes"
+        },
+        "shootingStars": {
+          "label": "Étoiles filantes",
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
+        },
+        "gravityStrength": {
+          "label": "Force de gravité"
+        },
+        "systemAttraction": {
+          "label": "Attraction du système"
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "winter": {
+      "name": "Chalet d'hiver et neige vivante",
+      "desc": "Monde paisible de crépuscule hivernal avec sommets enneigés, forêt de pins, fumée de chalet chaleureuse et congères berçant vos icônes de bureau",
+      "groups": [
+        "Neige et vent",
+        "Paysage et chalet",
+        "Icônes et performances"
+      ],
+      "params": {
+        "snowIntensity": {
+          "label": "Intensité de la neige"
+        },
+        "snowSpeed": {
+          "label": "Vitesse de la neige"
+        },
+        "windStrength": {
+          "label": "Force du vent"
+        },
+        "atmosphereDensity": {
+          "label": "Densité de l'atmosphère"
+        },
+        "mountainVisibility": {
+          "label": "Visibilité des montagnes"
+        },
+        "treeDensity": {
+          "label": "Densité d'arbres"
+        },
+        "smokeAmount": {
+          "label": "Quantité de fumée"
+        },
+        "iconSnowAmount": {
+          "label": "Neige sur les icônes"
+        },
+        "animSpeed": {
+          "label": "Vitesse d'animation"
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "neumorph": {
+      "name": "Surface tactile néomorphique",
+      "desc": "Surface d'interface douce et moulée avec dalles tactiles à physique de ressort, molettes subtiles, ondulations au clic et berceaux en relief autour des icônes du bureau",
+      "groups": [
+        "Surface et éclairage",
+        "Mouvement tactile",
+        "Icônes et performances"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette de surface",
+          "options": [
+            "Albâtre",
+            "Sable chaud",
+            "Ardoise de minuit",
+            "Brume de sauge"
+          ]
+        },
+        "accentColor": {
+          "label": "LED d'accent",
+          "options": [
+            "Cobalt",
+            "Corail",
+            "Émeraude",
+            "Ambre"
+          ]
+        },
+        "reliefDepth": {
+          "label": "Profondeur du relief"
+        },
+        "lightFollowCursor": {
+          "label": "Éclairage au curseur",
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
+        },
+        "waveSpeed": {
+          "label": "Vitesse de l'onde respiratoire"
+        },
+        "tileDensity": {
+          "label": "Densité des dalles"
+        },
+        "rippleStrength": {
+          "label": "Force de l'ondulation au clic"
+        },
+        "iconStyle": {
+          "label": "Style de moule d'icône",
+          "options": [
+            "Berceau en relief",
+            "Creux enfoncé",
+            "Anneau minimal"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "claymorph": {
+      "name": "Monde tactile claymorphique",
+      "desc": "Sphères et capsules d'argile pastel 3D gonflées avec une physique d'écrasement gélatineuse, une poussée de coussin au curseur et des berceaux moelleux sous les icônes du bureau",
+      "groups": [
+        "Argile et palette",
+        "Sculptures flottantes",
+        "Icônes et performances"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette d'argile",
+          "options": [
+            "Studio pastel",
+            "Baie et crème",
+            "Argile matcha",
+            "Argile crépusculaire"
+          ]
+        },
+        "puffiness": {
+          "label": "Gonflement"
+        },
+        "squishStrength": {
+          "label": "Écrasement et rebond"
+        },
+        "blobCount": {
+          "label": "Densité des sculptures"
+        },
+        "floatSpeed": {
+          "label": "Vitesse de dérive"
+        },
+        "cursorRepel": {
+          "label": "Poussée du coussin au curseur"
+        },
+        "iconCradle": {
+          "label": "Style de berceau d'icône",
+          "options": [
+            "Pastel gonflé",
+            "Coussin crème",
+            "Anneau d'argile"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "neobrutalism": {
+      "name": "Poster cinétique néo-brutaliste",
+      "desc": "Formes en blocs de couleur très contrastées aux bordures d'encre épaisses et nettes, ombres dures décalées sans flou, claquement mécanique au clic et cartes d'icônes encadrées",
+      "groups": [
+        "Palette et encre",
+        "Mouvement et interaction",
+        "Icônes et performances"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette du poster",
+          "options": [
+            "Pop Bauhaus",
+            "Poster acide",
+            "Fanzine rétro",
+            "Fanzine de minuit"
+          ]
+        },
+        "borderWeight": {
+          "label": "Épaisseur des bordures"
+        },
+        "shadowDepth": {
+          "label": "Décalage de l'ombre dure"
+        },
+        "halftonePattern": {
+          "label": "Trames de points",
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
+        },
+        "shapeCount": {
+          "label": "Densité des blocs"
+        },
+        "motionSpeed": {
+          "label": "Vitesse de dérive"
+        },
+        "cursorPush": {
+          "label": "Poussée du curseur"
+        },
+        "iconFrame": {
+          "label": "Style de cadre d'icône",
+          "options": [
+            "Carte colorée",
+            "Autocollant incliné",
+            "Ligne de plan"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "voxelcraft": {
+      "name": "Monde voxel craft",
+      "desc": "Écosystème voxel en pixel art avec biomes interchangeables, cycle jour-nuit cubique, torches chaleureuses, abeilles pixel, éclats d'XP à la casse de blocs et rebords voxel flottants sous les icônes du bureau",
+      "groups": [
+        "Monde et ciel",
+        "Vie et atmosphère",
+        "Icônes et performances"
+      ],
+      "params": {
+        "biome": {
+          "label": "Biome",
+          "options": [
+            "Plaines du monde normal",
+            "Bosquet de cerisiers",
+            "Taïga enneigée",
+            "Nether carmin"
+          ]
+        },
+        "timeOfDay": {
+          "label": "Moment de la journée",
+          "options": [
+            "Cycle auto",
+            "Jour",
+            "Coucher de soleil",
+            "Nuit étoilée"
+          ]
+        },
+        "blockSize": {
+          "label": "Échelle des blocs"
+        },
+        "cloudDensity": {
+          "label": "Nuages cubiques"
+        },
+        "weatherAmount": {
+          "label": "Particules et lucioles"
+        },
+        "critterAmount": {
+          "label": "Abeilles pixel"
+        },
+        "torchGlow": {
+          "label": "Lueur des torches"
+        },
+        "animSpeed": {
+          "label": "Vitesse du cycle"
+        },
+        "iconBlockStyle": {
+          "label": "Plateforme voxel d'icône",
+          "options": [
+            "Île flottante",
+            "Planches de bois",
+            "Cadre pixel"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "liquidglass": {
+      "name": "Surface réfractive en verre liquide",
+      "creditPrefix": "Crédit du shader optique :",
+      "desc": "Verre liquide Apple physique WebGL2 multi-passes : réfraction du biseau selon la loi de Snell, dispersion chromatique RVB, flou givré gaussien en 2 passes, Fresnel LCH et reflet bi-angle, fusion liquide douce (smin) et lentille de curseur à physique de ressort",
+      "groups": [
+        "Verre et lumière",
+        "Mouvement liquide",
+        "Icônes et performances"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette soie",
+          "options": [
+            "Azure Tahoe",
+            "Prisme aurore",
+            "Soie au coucher du soleil",
+            "Verre obsidienne",
+            "Soie classique"
+          ]
+        },
+        "refraction": {
+          "label": "Réfraction optique"
+        },
+        "frostAmount": {
+          "label": "Diffusion givrée"
+        },
+        "dispersion": {
+          "label": "Bordure chromatique"
+        },
+        "mergeRate": {
+          "label": "Fusion liquide",
+          "hint": "Fluidité avec laquelle les gouttelettes flottantes, la lentille du curseur et les berceaux en verre des icônes fusionnent lorsqu'ils s'approchent"
+        },
+        "dropletCount": {
+          "label": "Nombre de gouttelettes"
+        },
+        "flowSpeed": {
+          "label": "Vitesse d'écoulement"
+        },
+        "cursorLens": {
+          "label": "Lentille de verre du curseur",
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
+        },
+        "iconGlassStyle": {
+          "label": "Style de verre d'icône",
+          "options": [
+            "Capsule givrée",
+            "Goutte limpide",
+            "Bord de prisme"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "papercut": {
+      "name": "Jardin de papier — Lumière du Katı'",
+      "desc": "Jardin en boîte d'ombre de papier découpé en couches, avec tulipes, œillets, jacinthes, cyprès et platanes, et une silhouette lointaine du Bosphore. Les icônes du bureau deviennent des fenêtres en arche encastrées à triple anneau.",
+      "groups": [
+        "Lumière et temps",
+        "Papier",
+        "Jardin",
+        "Mouvement",
+        "Fenêtres d'icônes",
+        "Performances"
+      ],
+      "params": {
+        "time": {
+          "label": "Moment de la journée",
+          "hint": "Bascule automatiquement entre les palettes matin, midi, coucher de soleil et nuit selon l'horloge du système",
+          "options": ["Auto", "Matin", "Midi", "Coucher de soleil", "Nuit"]
+        },
+        "light": {
+          "label": "Angle de la lumière",
+          "hint": "Direction de la lumière entrante ; les ombres tombent à l'opposé (225° = en haut à gauche)"
+        },
+        "shadow": {
+          "label": "Profondeur des ombres",
+          "hint": "Obscurité des ombres projetées entre les couches de papier"
+        },
+        "palette": {
+          "label": "Palette",
+          "hint": "Famille de couleurs des couches de papier et des fleurs",
+          "options": ["Jardin de roses", "Turquoise-corail", "Bleu nuit-or", "Pastel"]
+        },
+        "grain": {
+          "label": "Grain du papier",
+          "hint": "Intensité des fibres et de la texture granuleuse du papier"
+        },
+        "gap": {
+          "label": "Espacement des couches",
+          "hint": "Distance entre les couches de papier ; des valeurs plus élevées creusent la boîte d'ombre"
+        },
+        "flowers": {
+          "label": "Densité de fleurs",
+          "hint": "Nombre de tulipes, œillets et jacinthes au premier plan"
+        },
+        "trees": {
+          "label": "Cyprès et platanes",
+          "hint": "Couche d'arbres latérale aux feuilles perforées",
+          "options": ["Masquer", "Afficher"]
+        },
+        "critters": {
+          "label": "Oiseaux et papillons",
+          "hint": "Oiseaux de papier volant au-dessus et papillons au-dessus des fleurs",
+          "options": ["Aucun", "Peu", "Beaucoup"]
+        },
+        "skyline": {
+          "label": "Silhouette de la ville",
+          "hint": "Dômes, minarets et silhouette de la tour de Galata",
+          "options": ["Masquer", "Afficher"]
+        },
+        "frame": {
+          "label": "Cadre de la boîte",
+          "hint": "Bordure de papier gaufré autour du bord de l'écran",
+          "options": ["Masquer", "Afficher"]
+        },
+        "sway": {
+          "label": "Brise",
+          "hint": "Ampleur du balancement des fleurs dans la brise"
+        },
+        "fw": {
+          "label": "Largeur du cadre",
+          "hint": "Largeur totale des trois anneaux de papier autour des icônes"
+        },
+        "fstyle": {
+          "label": "Forme du cadre",
+          "hint": "La niche en arche est arrondie en haut et plate en bas",
+          "options": ["Niche en arche", "Arrondi"]
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Échelle de résolution de rendu et budget de fleurs",
+          "options": ["Basse", "Équilibrée", "Élevée"]
+        }
+      }
+    },
+    "software-world": {
+      "name": "Monde logiciel",
+      "desc": "Écosystème logiciel vivant où les icônes du bureau deviennent des nœuds interactifs avec des flux de données, des paquets, des branches git et une subtile atmosphère de terminal.",
+      "groups": [
+        "Écosystème",
+        "Atmosphère",
+        "Performances"
+      ],
+      "params": {
+        "animSpeed": {
+          "label": "Vitesse d'animation",
+          "hint": "Vitesse globale des paquets, des pulsations des nœuds, des branches git et de la dérive ambiante"
+        },
+        "networkActivity": {
+          "label": "Activité réseau",
+          "hint": "Fréquence et débit des paquets de données le long des connexions"
+        },
+        "connectionIntensity": {
+          "label": "Intensité des connexions",
+          "hint": "Visibilité et portée des liens de dépendance et de flux de données entre les nœuds"
+        },
+        "particleDensity": {
+          "label": "Densité de particules",
+          "hint": "Densité des particules ambiantes du réseau et du système d'arrière-plan"
+        },
+        "codeParticleDensity": {
+          "label": "Densité de particules de code",
+          "hint": "Densité des subtiles particules de symboles de programmation en arrière-plan"
+        },
+        "envDetail": {
+          "label": "Détail de l'environnement",
+          "hint": "Niveau de détail des branches git, des journaux de terminal, des arcs de build et de la grille"
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Échelle de résolution de rendu et budget de l'écosystème",
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Élevée"
+          ]
+        }
+      }
+    },
+    "thinking-orbs": {
+      "name": "ThinkingOrbs 3D",
+      "desc": "Grand orbe en pointillés 3D volumétrique au centre de votre bureau avec les 9 modes ThinkingOrbs, inclinaison magnétique au survol du curseur et physique d'ondulation, et liens adaptatifs vers les icônes du bureau",
+      "groups": [
+        "Orbe et mode",
+        "Mouvement et interaction",
+        "Apparence et performances"
+      ],
+      "params": {
+        "orbDesign": {
+          "label": "Mode de l'orbe",
+          "hint": "Passez en direct entre les 9 designs ThinkingOrbs en pointillés 3D",
+          "options": [
+            "Travail",
+            "Recherche",
+            "Résolution",
+            "Écoute",
+            "Connexion",
+            "Tissage",
+            "Composition",
+            "Respiration",
+            "Modelage"
+          ]
+        },
+        "autoCycle": {
+          "label": "Cycle automatique des modes",
+          "hint": "Parcourt en douceur les 9 modes de l'orbe à intervalles réguliers",
+          "options": [
+            "Désactivé",
+            "Activé"
+          ]
+        },
+        "orbScale": {
+          "label": "Taille de l'orbe",
+          "hint": "Diamètre global de l'orbe central"
+        },
+        "dotDensity": {
+          "label": "Densité des points",
+          "hint": "Densité des particules et du maillage sur la surface de l'orbe"
+        },
+        "animSpeed": {
+          "label": "Vitesse d'animation",
+          "hint": "Rythme global de rotation, de méridien de balayage et d'ondes"
+        },
+        "hoverReaction": {
+          "label": "Réaction au survol et au toucher",
+          "hint": "Intensité de l'inclinaison parallaxe 3D, de la répulsion magnétique des points et de l'onde de choc au clic ou au toucher",
+          "options": [
+            "Désactivé",
+            "Doux",
+            "Fort"
+          ]
+        },
+        "dotGlow": {
+          "label": "Lueur du noyau",
+          "hint": "Halo ambiant du noyau et luminescence des points actifs"
+        },
+        "palette": {
+          "label": "Palette",
+          "options": [
+            "Mono obsidienne",
+            "Mono papier",
+            "Cobalt IA",
+            "Pulsation ambre",
+            "Grille émeraude"
+          ]
+        },
+        "iconLinks": {
+          "label": "Liens de télémétrie des icônes",
+          "hint": "Trace de subtils filaments pointillés entre les icônes du bureau et l'orbe central lorsque Adaptatif est activé",
+          "options": [
+            "Masquer",
+            "Afficher"
+          ]
+        },
+        "quality": {
+          "label": "Qualité",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Élevée"
+          ]
+        }
+      }
+    }
+  }
+}
