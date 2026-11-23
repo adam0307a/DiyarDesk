@@ -1,5 +1,6 @@
 /host/bin/
 /host/lib/
+/native/diyardesk-gl/target/
 /node_modules/
 /dist/
 /.vs/

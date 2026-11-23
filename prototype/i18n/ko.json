@@ -172,7 +172,9 @@
     "qualityProfileTitle": "렌더링 품질 및 FPS 프로필",
     "qualityEco": "품질: 에코 (15 FPS)",
     "qualityBalanced": "품질: 균형 (30 FPS)",
-    "qualityHigh": "품질: 높음 (60 FPS)"
+    "qualityHigh": "품질: 높음 (60 FPS)",
+    "rustOpenGl": "Rust OpenGL",
+    "rustOpenGlTitle": "모든 내장 테마를 WebView2 대신 네이티브 Rust OpenGL 3.3 엔진으로 실행합니다(끄면 WebView2 유지)"
   },
   "host": {
     "traySettings": "설정…",
@@ -1794,6 +1796,153 @@
           "options": [
             "낮음",
             "보통",
+            "높음"
+          ]
+        }
+      }
+    },
+    "material-impulse-gl": {
+      "name": "DiyarDesk Impulse · OpenGL (Rust)",
+      "creditPrefix": "영감 출처",
+      "desc": "네이티브 Rust OpenGL 3.3 Core 엔진(diyardesk_gl.dll): WebView2 배경 프로세스 없이 초저메모리로 쿠키 하이브리드 시계, 실시간 프로스트 글래스 카드, 웨이브 SMTC 음악 플레이어, 캘린더, 할 일 및 시스템 링을 렌더링합니다. (WebView2 버전 유지)",
+      "groups": [
+        "Material You 색상 및 배경",
+        "DiyarDesk 위젯",
+        "카드 스타일 및 아이콘",
+        "성능"
+      ],
+      "params": {
+        "palette": {
+          "label": "다이내믹 팔레트",
+          "hint": "Material You 표면 색상과 강조 톤을 즉시 전환합니다",
+          "options": [
+            "라벤더 더스크",
+            "세이지 포레스트",
+            "선셋 코랄",
+            "오션 시안",
+            "모노크롬 잉크"
+          ]
+        },
+        "colorMode": {
+          "label": "표면 모드",
+          "hint": "자동 모드는 현지 시각에 맞춰 라이트/다크 Material 표면으로 전환됩니다",
+          "options": [
+            "자동",
+            "다크",
+            "라이트"
+          ]
+        },
+        "backdrop": {
+          "label": "배경 스타일",
+          "hint": "부드러운 Material You 실크 블롭, 등고선 리본 또는 별빛 메시",
+          "options": [
+            "실크 블롭",
+            "지형 웨이브",
+            "별빛 메시"
+          ]
+        },
+        "motion": {
+          "label": "배경 움직임",
+          "hint": "배경 그라데이션과 빛의 흐름 속도"
+        },
+        "layout": {
+          "label": "위젯 레이아웃",
+          "hint": "프리셋 배치를 선택하세요 (또는 각 카드 상단을 드래그해 자유 이동)",
+          "options": [
+            "Impulse 분할",
+            "우측 사이드바",
+            "중앙 벤토",
+            "미니멀 시계"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk 시계",
+          "hint": "Material 3 쿠키 하이브리드 시계 또는 한눈에 보기 카드 표시",
+          "options": [
+            "숨기기",
+            "표시"
+          ]
+        },
+        "clockStyle": {
+          "label": "시계 스타일",
+          "hint": "12엽 물결 쿠키 하이브리드 시계와 한눈에 보기 카드 간 전환",
+          "options": [
+            "쿠키 하이브리드",
+            "한눈에 보기 카드"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk 음악",
+          "hint": "Windows 재생 중인 미디어(Spotify, YouTube 등)를 물결 탐색 막대로 실시간 연동하거나 커버를 눌러 로컬 오디오 재생",
+          "options": [
+            "숨기기",
+            "표시"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk 캘린더 (.ics)",
+          "hint": "월간 달력과 일정 목록, 100% 오프라인 .ics 파일 가져오기 지원",
+          "options": [
+            "숨기기",
+            "표시"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk 할 일",
+          "hint": "별표 및 필터 기능이 포함된 로컬 할 일 목록",
+          "options": [
+            "숨기기",
+            "표시"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk 도구",
+          "hint": "/todo 빠른 명령, 오프라인 계산기·단위 변환기, 메모 및 포모도로/시스템 링",
+          "options": [
+            "숨기기",
+            "표시"
+          ]
+        },
+        "clock24": {
+          "label": "시간 형식",
+          "hint": "24시간제 또는 12시간제(AM/PM) 전환",
+          "options": [
+            "12시간",
+            "24시간"
+          ]
+        },
+        "widgetScale": {
+          "label": "위젯 크기",
+          "hint": "모든 바탕화면 위젯 카드의 전체 크기 배율"
+        },
+        "cardOpacity": {
+          "label": "카드 불투명도",
+          "hint": "Material You 표면 컨테이너의 반투명 정도"
+        },
+        "glassBlur": {
+          "label": "프로스트 블러",
+          "hint": "카드 뒤 배경 블러 반경 (Eco 모드에서는 자동 비활성화)"
+        },
+        "cornerRadius": {
+          "label": "모서리 둥글기",
+          "hint": "Material 3 Expressive 카드와 아이콘 받침의 둥글기"
+        },
+        "iconStyle": {
+          "label": "아이콘 받침 스타일",
+          "hint": "적응형 모드에서 바탕화면 아이콘 아래에 그려지는 Material You 배경",
+          "options": [
+            "소프트 필",
+            "외곽선 칩",
+            "글로우 오라",
+            "끄기"
+          ]
+        },
+        "quality": {
+          "label": "품질",
+          "hint": "배경 캔버스 해상도 예산",
+          "options": [
+            "낮음",
+            "균형",
             "높음"
           ]
         }

@@ -185,7 +185,9 @@
     "qualityProfileTitle": "画质与帧率档位",
     "qualityEco": "画质：省电 (15 FPS)",
     "qualityBalanced": "画质：均衡 (30 FPS)",
-    "qualityHigh": "画质：高性能 (60 FPS)"
+    "qualityHigh": "画质：高性能 (60 FPS)",
+    "rustOpenGl": "Rust OpenGL",
+    "rustOpenGlTitle": "使用原生 Rust OpenGL 3.3 Core 引擎运行所有内置壁纸主题（关闭后仍保留 WebView2 渲染）"
   },
   "host": {
     "traySettings": "设置…",

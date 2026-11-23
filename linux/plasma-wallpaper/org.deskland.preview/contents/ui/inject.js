@@ -169,6 +169,7 @@
     quietsnow: 'quietsnow.html',
     'studio-glass': 'studio-glass.html',
     'material-impulse': 'material-impulse.html',
+    'material-impulse-gl': 'material-impulse-gl.html',
   };
 
   var CUSTOM_DIR = HOME + '/.config/deskland/themes';

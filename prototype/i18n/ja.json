@@ -172,7 +172,9 @@
     "qualityProfileTitle": "描画品質・FPS プロファイル",
     "qualityEco": "品質：エコ (15 FPS)",
     "qualityBalanced": "品質：バランス (30 FPS)",
-    "qualityHigh": "品質：高品質 (60 FPS)"
+    "qualityHigh": "品質：高品質 (60 FPS)",
+    "rustOpenGl": "Rust OpenGL",
+    "rustOpenGlTitle": "すべての内蔵テーマを WebView2 の代わりにネイティブ Rust OpenGL 3.3 エンジンで描画します（オフ時は WebView2 を維持）"
   },
   "host": {
     "traySettings": "設定…",
@@ -1794,6 +1796,153 @@
           "options": [
             "低",
             "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "material-impulse-gl": {
+      "name": "DiyarDesk Impulse · OpenGL (Rust)",
+      "creditPrefix": "インスピレーション元",
+      "desc": "ネイティブ Rust OpenGL 3.3 Core エンジン（diyardesk_gl.dll）：WebView2 プロセス不要・超省メモリでクッキーハイブリッド時計、リアルタイムすりガラスカード、ウェーブ音楽プレイヤー、カレンダー、タスク、システムリングを描画。（WebView2 版もそのまま保持）",
+      "groups": [
+        "Material You カラー＆背景",
+        "DiyarDesk ウィジェット",
+        "カード外観＆アイコン",
+        "パフォーマンス"
+      ],
+      "params": {
+        "palette": {
+          "label": "ダイナミックパレット",
+          "hint": "Material You のサーフェス色とアクセントを即座に切り替え",
+          "options": [
+            "ラベンダー",
+            "セージ森",
+            "サンセット珊瑚",
+            "オーシャン",
+            "モノクロ"
+          ]
+        },
+        "colorMode": {
+          "label": "カラーモード",
+          "hint": "自動モードはローカル時刻に応じてライト／ダークを切り替えます",
+          "options": [
+            "自動",
+            "ダーク",
+            "ライト"
+          ]
+        },
+        "backdrop": {
+          "label": "背景スタイル",
+          "hint": "滑らかな Material You ブロブ、等高線リボン、星屑ボケメッシュ",
+          "options": [
+            "シルクブロブ",
+            "等高線ウェーブ",
+            "星屑メッシュ"
+          ]
+        },
+        "motion": {
+          "label": "背景アニメーション",
+          "hint": "背景グラデーションと光の動きの速さ"
+        },
+        "layout": {
+          "label": "ウィジェット配置",
+          "hint": "プリセット配置を選択（各カードの見出しをドラッグして自由移動も可能）",
+          "options": [
+            "Impulse 分割",
+            "右サイドバー",
+            "中央ベントー",
+            "ミニマル時計"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk 時計",
+          "hint": "Material 3 クッキーハイブリッド時計または At a Glance カードを表示",
+          "options": [
+            "非表示",
+            "表示"
+          ]
+        },
+        "clockStyle": {
+          "label": "時計スタイル",
+          "hint": "12弁波形クッキーハイブリッド時計と At a Glance カードを切り替え",
+          "options": [
+            "クッキーハイブリッド",
+            "At a Glance カード"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk ミュージック",
+          "hint": "Windows 再生中メディア（Spotify / YouTube 等）を波形シークバーでリアルタイム同期、またはカバーをクリックしてローカル音声再生",
+          "options": [
+            "非表示",
+            "表示"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk カレンダー (.ics)",
+          "hint": "月間カレンダーと予定一覧。100% オフラインで .ics 読み込み対応",
+          "options": [
+            "非表示",
+            "表示"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk タスク",
+          "hint": "スター付き・フィルター対応のローカル ToDo リスト",
+          "options": [
+            "非表示",
+            "表示"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk ツール",
+          "hint": "/todo コマンド、オフライン電卓・単位変換、メモ、ポモドーロ＆システムリング",
+          "options": [
+            "非表示",
+            "表示"
+          ]
+        },
+        "clock24": {
+          "label": "時刻表記",
+          "hint": "24時間表記と12時間表記（AM/PM）を切り替え",
+          "options": [
+            "12時間",
+            "24時間"
+          ]
+        },
+        "widgetScale": {
+          "label": "ウィジェット倍率",
+          "hint": "すべてのデスクトップウィジェットの全体サイズ"
+        },
+        "cardOpacity": {
+          "label": "カード不透明度",
+          "hint": "Material You サーフェスカードの透過感"
+        },
+        "glassBlur": {
+          "label": "すりガラスぼかし",
+          "hint": "カード背面のぼかし半径（Eco モード時は自動オフ）"
+        },
+        "cornerRadius": {
+          "label": "角丸の強さ",
+          "hint": "Material 3 Expressive カードとアイコンベースの角丸半径"
+        },
+        "iconStyle": {
+          "label": "アイコンベース",
+          "hint": "アダプティブ時にデスクトップアイコン下へ描く Material You プレート",
+          "options": [
+            "ソフトピル",
+            "枠線チップ",
+            "グローオーラ",
+            "オフ"
+          ]
+        },
+        "quality": {
+          "label": "画質",
+          "hint": "背景キャンバスの解像度予算",
+          "options": [
+            "低",
+            "バランス",
             "高"
           ]
         }

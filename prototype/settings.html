@@ -350,6 +350,9 @@
     <label class="switch-row" data-i18n-title="systemBridgeTitle" title="Opt-in local CPU/RAM/battery & audio spectrum bridge for reactive themes">
       <span data-i18n="systemBridge">Audio/Sys bridge</span><input type="checkbox" id="systemBridge"><i class="switch"></i>
     </label>
+    <label class="switch-row" id="rustOpenGlRow" data-i18n-title="rustOpenGlTitle" title="Run all built-in wallpaper themes on the native Rust OpenGL 3.3 Core engine instead of WebView2 (keeps WebView2 intact when off)">
+      <span data-i18n="rustOpenGl">Rust OpenGL</span><input type="checkbox" id="rustOpenGl"><i class="switch"></i>
+    </label>
     <label class="switch-row" data-i18n-title="preferMpvTitle" title="Use hardware-accelerated mpv for imported video wallpapers when installed">
       <span data-i18n="preferMpv">mpv HW video</span><input type="checkbox" id="preferMpv"><i class="switch"></i>
     </label>
@@ -947,6 +950,10 @@ if ($('systemBridge')) {
   if (window.DiyarNative && $('systemBridge').parentElement) $('systemBridge').parentElement.hidden = true;
   $('systemBridge').addEventListener('change', e => send({ t: 'systemBridge', v: !!e.target.checked }));
 }
+if ($('rustOpenGl')) {
+  if (window.DiyarNative && $('rustOpenGlRow')) $('rustOpenGlRow').hidden = true;
+  $('rustOpenGl').addEventListener('change', e => send({ t: 'rustOpenGl', v: !!e.target.checked }));
+}
 if ($('preferMpv')) {
   if (window.DiyarNative && $('preferMpv').parentElement) $('preferMpv').parentElement.hidden = true;
   $('preferMpv').addEventListener('change', e => send({ t: 'preferMpv', v: !!e.target.checked }));
@@ -1315,6 +1322,8 @@ function onHost(m) {
       if ($('windowAware')) $('windowAware').checked = !!m.windowAware;
       if ($('systemBridge')) $('systemBridge').checked = !!m.systemBridge;
       if ($('preferMpv')) $('preferMpv').checked = !!m.preferMpv;
+      if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.rustOpenGl;
+      if ($('rustOpenGlRow') && m.rustGlAvailable === false) $('rustOpenGlRow').hidden = true;
       if ($('qualityProfile') && m.qualityProfile) $('qualityProfile').value = m.qualityProfile;
       if ($('playlistMode')) {
         const iv = m.playlistEnabled ? String(m.playlistIntervalMin || 30) : '0';
@@ -1374,6 +1383,8 @@ function onHost(m) {
     if ($('systemBridge')) $('systemBridge').checked = !!m.v;
   } else if (m.t === 'preferMpv') {
     if ($('preferMpv')) $('preferMpv').checked = !!m.v;
+  } else if (m.t === 'rustOpenGl') {
+    if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.v;
   } else if (m.t === 'qualityProfile') {
     if ($('qualityProfile') && typeof m.v === 'string') $('qualityProfile').value = m.v;
   } else if (m.t === 'lockscreenSynced') {

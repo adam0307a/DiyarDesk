@@ -1,0 +1,34 @@
+[package]
+name = "diyardesk_gl"
+version = "0.1.0"
+edition = "2021"
+description = "Native OpenGL 3.3 Core wallpaper & Material You widget renderer for DiyarDesk"
+license = "GPL-3.0-only"
+
+[lib]
+name = "diyardesk_gl"
+crate-type = ["cdylib"]
+
+[dependencies]
+fontdue = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+[dependencies.windows-sys]
+version = "0.59"
+features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_WindowsAndMessaging",
+]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

@@ -32,6 +32,11 @@ jobs:
             throw "Tag version ($tagVer) does not match tools/version.json ($jsonVer)"
           }
 
+      - name: Build Rust OpenGL engine (diyardesk_gl.dll)
+        shell: pwsh
+        run: |
+          cargo build --release --manifest-path native\diyardesk-gl\Cargo.toml
+
       - name: Build host and NSIS installer
         shell: pwsh
         run: |

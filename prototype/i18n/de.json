@@ -172,7 +172,9 @@
     "qualityProfileTitle": "Qualitäts- und FPS-Profil",
     "qualityEco": "Qualität: Eco (15 FPS)",
     "qualityBalanced": "Qualität: Ausgewogen (30 FPS)",
-    "qualityHigh": "Qualität: Hoch (60 FPS)"
+    "qualityHigh": "Qualität: Hoch (60 FPS)",
+    "rustOpenGl": "Rust OpenGL",
+    "rustOpenGlTitle": "Alle integrierten Themen über die native Rust-OpenGL-3.3-Engine statt WebView2 ausführen (WebView2 bleibt erhalten)"
   },
   "host": {
     "traySettings": "Einstellungen…",
@@ -1794,6 +1796,153 @@
           "options": [
             "Niedrig",
             "Mittel",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "material-impulse-gl": {
+      "name": "DiyarDesk Impulse · OpenGL (Rust)",
+      "creditPrefix": "Inspiriert von",
+      "desc": "Native Rust-OpenGL-3.3-Core-Engine (diyardesk_gl.dll): kein WebView2-Hintergrundprozess, extrem wenig RAM, 12-Lappen-Cookie-Uhr, echtes Milchglas, animierter Wellen-Musikplayer, Kalender, Aufgaben & Systemringe. (WebView2-Version bleibt erhalten.)",
+      "groups": [
+        "Material You Palette & Hintergrund",
+        "DiyarDesk-Widgets",
+        "Karten & Desktop-Symbole",
+        "Leistung"
+      ],
+      "params": {
+        "palette": {
+          "label": "Dynamische Palette",
+          "hint": "Material-You-Farbflächen und Akzente sofort wechseln",
+          "options": [
+            "Lavendel",
+            "Salbeiwald",
+            "Koralle",
+            "Ozean-Cyan",
+            "Monochrom"
+          ]
+        },
+        "colorMode": {
+          "label": "Oberflächenmodus",
+          "hint": "Automatisch wechselt anhand der Ortszeit zwischen hell und dunkel",
+          "options": [
+            "Automatisch",
+            "Dunkel",
+            "Hell"
+          ]
+        },
+        "backdrop": {
+          "label": "Hintergrundstil",
+          "hint": "Fließende Material-You-Formen, topografische Bänder oder Sternen-Bokeh",
+          "options": [
+            "Seidenformen",
+            "Topografie",
+            "Sternennetz"
+          ]
+        },
+        "motion": {
+          "label": "Hintergrundbewegung",
+          "hint": "Geschwindigkeit der sanften Farbverläufe"
+        },
+        "layout": {
+          "label": "Widget-Layout",
+          "hint": "Voreinstellung wählen (oder Karten per Kopfzeile frei verschieben)",
+          "options": [
+            "Impulse Split",
+            "Rechte Leiste",
+            "Bento-Mitte",
+            "Minimal-Uhr"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk Uhr",
+          "hint": "Material-3-Cookie-Hybriduhr oder At-a-Glance-Karte anzeigen",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "clockStyle": {
+          "label": "Uhrstil",
+          "hint": "Zwischen gewellter 12-Lappen-Cookie-Hybriduhr und At-a-Glance-Karte wechseln",
+          "options": [
+            "Cookie Hybrid",
+            "At-a-Glance-Karte"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk Musik",
+          "hint": "Zeigt laufende Windows-Medien (Spotify, YouTube usw.) mit animierter Wellenleiste oder spielt lokale Audiodateien ab",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk Kalender (.ics)",
+          "hint": "Interaktiver Monatskalender mit 100 % Offline-.ics-Import",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk Aufgaben",
+          "hint": "Lokale Checkliste mit Favoritenstern und Filter-Tabs",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk Werkzeuge",
+          "hint": "/todo-Befehl, Offline-Rechner & Einheitenumrechner, Notizen und Pomodoro/Systemringe",
+          "options": [
+            "Ausblenden",
+            "Anzeigen"
+          ]
+        },
+        "clock24": {
+          "label": "Zeitformat",
+          "hint": "Zwischen 24-Stunden- und 12-Stunden-Anzeige wechseln",
+          "options": [
+            "12-Std.",
+            "24-Std."
+          ]
+        },
+        "widgetScale": {
+          "label": "Widget-Größe",
+          "hint": "Gesamtskalierung aller Desktop-Widget-Karten"
+        },
+        "cardOpacity": {
+          "label": "Kartendeckkraft",
+          "hint": "Transparenz der Material-You-Kartenflächen"
+        },
+        "glassBlur": {
+          "label": "Milchglas-Unschärfe",
+          "hint": "Hintergrundunschärfe hinter Karten (im Eco-Modus deaktiviert)"
+        },
+        "cornerRadius": {
+          "label": "Eckenradius",
+          "hint": "Material-3-Expressive-Abrundung für Karten und Symbolrahmen"
+        },
+        "iconStyle": {
+          "label": "Symbolrahmen-Stil",
+          "hint": "Material-You-Unterlage unter Desktop-Symbolen im adaptiven Modus",
+          "options": [
+            "Weiche Pille",
+            "Kontur-Chip",
+            "Leuchtaura",
+            "Aus"
+          ]
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Auflösungsbudget für die Hintergrundgrafik",
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
             "Hoch"
           ]
         }

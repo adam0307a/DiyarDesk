@@ -2,11 +2,11 @@
   "version": 1,
   "themes": [
     {
-      "id": "material-impulse",
+      "id": "material-impulse-gl",
       "adaptive": true,
-      "name": "DiyarDesk Impulse · 桌面小组件",
-      "desc": "灵感源自 end-4/dots-hyprland (illogical-impulse) 的 DiyarDesk Material You 桌面组件壁纸：无需额外 Shell（无需 Quickshell/AGS/Eww），原生集成 12 瓣曲奇混合时钟、动态波浪音乐播放器、离线 DiyarDesk 日历与 .ics 导入、任务清单、/todo 命令栏、便签与番茄钟",
-      "page": "material-impulse.html",
+      "name": "DiyarDesk Impulse · OpenGL (Rust)",
+      "desc": "原生 Rust OpenGL 3.3 Core 硬件加速引擎（diyardesk_gl.dll）：无需 WebView2 渲染进程，超低内存实现 12 瓣曲奇混合时钟、实景模糊磨砂卡片、动态波浪音乐播放器、日历、任务清单与系统环（原 WebView 版本同时保留）。",
+      "page": "material-impulse-gl.html",
       "status": "ready",
       "product": "free",
       "credit": {
@@ -14,7 +14,7 @@
         "label": "end-4/dots-hyprland (illogical-impulse)",
         "url": "https://github.com/end-4/dots-hyprland"
       },
-      "thumb": "radial-gradient(circle at 24% 26%, rgba(50,197,184,0.62) 0%, transparent 46%), radial-gradient(circle at 78% 28%, rgba(245,201,122,0.48) 0%, transparent 44%), radial-gradient(circle at 64% 82%, rgba(224,139,73,0.46) 0%, transparent 48%), linear-gradient(145deg, #101924 0%, #17273b 55%, #1d2633 100%)",
+      "thumb": "radial-gradient(circle at 22% 28%, rgba(50,197,184,0.72) 0%, transparent 45%), radial-gradient(circle at 78% 26%, rgba(224,139,73,0.62) 0%, transparent 46%), radial-gradient(circle at 55% 84%, rgba(245,201,122,0.48) 0%, transparent 48%), linear-gradient(145deg, #0b1622 0%, #15283d 55%, #1d2030 100%)",
       "groups": [
         {
           "name": "Material You 配色与背景",
@@ -23,21 +23,35 @@
               "key": "palette",
               "label": "动态调色板",
               "hint": "切换 Material You 动态色调（薰衣草、鼠尾草、珊瑚、深海与极简墨色）",
-              "options": ["薰衣草夜色", "鼠尾草森系", "落日珊瑚", "深海青蓝", "极简墨色"],
+              "options": [
+                "薰衣草夜色",
+                "鼠尾草森系",
+                "落日珊瑚",
+                "深海青蓝",
+                "极简墨色"
+              ],
               "default": 0
             },
             {
               "key": "colorMode",
               "label": "明暗模式",
               "hint": "自动模式随本地时段在浅色与深色 Material 表面之间切换",
-              "options": ["自动时段", "深色", "浅色"],
+              "options": [
+                "自动时段",
+                "深色",
+                "浅色"
+              ],
               "default": 1
             },
             {
               "key": "backdrop",
               "label": "背景质感",
               "hint": "动态流体光晕、等高线丝带或星尘微光背景",
-              "options": ["流体光晕", "几何丝带", "星尘微光"],
+              "options": [
+                "流体光晕",
+                "几何丝带",
+                "星尘微光"
+              ],
               "default": 0
             },
             {
@@ -47,7 +61,7 @@
               "min": 0,
               "max": 2,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             }
           ]
@@ -59,56 +73,82 @@
               "key": "layout",
               "label": "组件布局",
               "hint": "选择预设桌面排布（也可直接在桌面按住标题栏自由拖动任意卡片）",
-              "options": ["Impulse 分栏", "右侧边栏", "居中便当格", "极简时钟"],
+              "options": [
+                "Impulse 分栏",
+                "右侧边栏",
+                "居中便当格",
+                "极简时钟"
+              ],
               "default": 0
             },
             {
               "key": "showClock",
               "label": "DiyarDesk 时钟",
               "hint": "显示 Material 3 曲奇混合时钟或 DiyarDesk 一瞥时钟卡片",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "clockStyle",
               "label": "时钟样式",
               "hint": "在 12 瓣波浪曲奇混合指针时钟与 DiyarDesk 一瞥卡片之间切换",
-              "options": ["曲奇混合", "一瞥卡片"],
+              "options": [
+                "曲奇混合",
+                "一瞥卡片"
+              ],
               "default": 0
             },
             {
               "key": "showMedia",
               "label": "DiyarDesk 波形音乐",
               "hint": "实时同步 Windows 正在播放的媒体（Spotify/YouTube 等）或点击封面播放本地音频，带动态波浪进度条",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "showCalendar",
               "label": "DiyarDesk 日历 (.ics)",
               "hint": "月历视图与日程清单，支持 100% 离线导入 .ics 日历文件",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "showTasks",
               "label": "DiyarDesk 任务",
               "hint": "交互式待办事项与星标筛选，数据全部安全保存在本地",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "showTools",
               "label": "DiyarDesk 工具栏",
               "hint": "支持 /todo 快捷指令、离线计算器与单位换算、便签及番茄钟/系统环",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "clock24",
               "label": "时间格式",
               "hint": "切换 24 小时制或 12 小时制（AM/PM）",
-              "options": ["12 小时", "24 小时"],
+              "options": [
+                "12 小时",
+                "24 小时"
+              ],
               "default": 1
             }
           ]
@@ -123,7 +163,7 @@
               "min": 0.75,
               "max": 1.2,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -160,7 +200,12 @@
               "key": "iconStyle",
               "label": "图标底座样式",
               "hint": "自适应模式下桌面图标下方的 Material You 托盘样式",
-              "options": ["柔和胶囊", "描边卡片", "柔光晕", "关闭"],
+              "options": [
+                "柔和胶囊",
+                "描边卡片",
+                "柔光晕",
+                "关闭"
+              ],
               "default": 0
             }
           ]
@@ -172,7 +217,238 @@
               "key": "quality",
               "label": "画质",
               "hint": "背景画布渲染分辨率预算",
-              "options": ["低", "平衡", "高"],
+              "options": [
+                "低",
+                "平衡",
+                "高"
+              ],
+              "default": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "material-impulse",
+      "adaptive": true,
+      "name": "DiyarDesk Impulse · 桌面小组件",
+      "desc": "灵感源自 end-4/dots-hyprland (illogical-impulse) 的 DiyarDesk Material You 桌面组件壁纸：无需额外 Shell（无需 Quickshell/AGS/Eww），原生集成 12 瓣曲奇混合时钟、动态波浪音乐播放器、离线 DiyarDesk 日历与 .ics 导入、任务清单、/todo 命令栏、便签与番茄钟",
+      "page": "material-impulse.html",
+      "status": "ready",
+      "product": "free",
+      "credit": {
+        "prefix": "灵感源自",
+        "label": "end-4/dots-hyprland (illogical-impulse)",
+        "url": "https://github.com/end-4/dots-hyprland"
+      },
+      "thumb": "radial-gradient(circle at 24% 26%, rgba(50,197,184,0.62) 0%, transparent 46%), radial-gradient(circle at 78% 28%, rgba(245,201,122,0.48) 0%, transparent 44%), radial-gradient(circle at 64% 82%, rgba(224,139,73,0.46) 0%, transparent 48%), linear-gradient(145deg, #101924 0%, #17273b 55%, #1d2633 100%)",
+      "groups": [
+        {
+          "name": "Material You 配色与背景",
+          "params": [
+            {
+              "key": "palette",
+              "label": "动态调色板",
+              "hint": "切换 Material You 动态色调（薰衣草、鼠尾草、珊瑚、深海与极简墨色）",
+              "options": [
+                "薰衣草夜色",
+                "鼠尾草森系",
+                "落日珊瑚",
+                "深海青蓝",
+                "极简墨色"
+              ],
+              "default": 0
+            },
+            {
+              "key": "colorMode",
+              "label": "明暗模式",
+              "hint": "自动模式随本地时段在浅色与深色 Material 表面之间切换",
+              "options": [
+                "自动时段",
+                "深色",
+                "浅色"
+              ],
+              "default": 1
+            },
+            {
+              "key": "backdrop",
+              "label": "背景质感",
+              "hint": "动态流体光晕、等高线丝带或星尘微光背景",
+              "options": [
+                "流体光晕",
+                "几何丝带",
+                "星尘微光"
+              ],
+              "default": 0
+            },
+            {
+              "key": "motion",
+              "label": "背景动效",
+              "hint": "背景流动渐变与微光的呼吸速度",
+              "min": 0,
+              "max": 2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "DiyarDesk 小组件",
+          "params": [
+            {
+              "key": "layout",
+              "label": "组件布局",
+              "hint": "选择预设桌面排布（也可直接在桌面按住标题栏自由拖动任意卡片）",
+              "options": [
+                "Impulse 分栏",
+                "右侧边栏",
+                "居中便当格",
+                "极简时钟"
+              ],
+              "default": 0
+            },
+            {
+              "key": "showClock",
+              "label": "DiyarDesk 时钟",
+              "hint": "显示 Material 3 曲奇混合时钟或 DiyarDesk 一瞥时钟卡片",
+              "options": [
+                "隐藏",
+                "显示"
+              ],
+              "default": 1
+            },
+            {
+              "key": "clockStyle",
+              "label": "时钟样式",
+              "hint": "在 12 瓣波浪曲奇混合指针时钟与 DiyarDesk 一瞥卡片之间切换",
+              "options": [
+                "曲奇混合",
+                "一瞥卡片"
+              ],
+              "default": 0
+            },
+            {
+              "key": "showMedia",
+              "label": "DiyarDesk 波形音乐",
+              "hint": "实时同步 Windows 正在播放的媒体（Spotify/YouTube 等）或点击封面播放本地音频，带动态波浪进度条",
+              "options": [
+                "隐藏",
+                "显示"
+              ],
+              "default": 1
+            },
+            {
+              "key": "showCalendar",
+              "label": "DiyarDesk 日历 (.ics)",
+              "hint": "月历视图与日程清单，支持 100% 离线导入 .ics 日历文件",
+              "options": [
+                "隐藏",
+                "显示"
+              ],
+              "default": 1
+            },
+            {
+              "key": "showTasks",
+              "label": "DiyarDesk 任务",
+              "hint": "交互式待办事项与星标筛选，数据全部安全保存在本地",
+              "options": [
+                "隐藏",
+                "显示"
+              ],
+              "default": 1
+            },
+            {
+              "key": "showTools",
+              "label": "DiyarDesk 工具栏",
+              "hint": "支持 /todo 快捷指令、离线计算器与单位换算、便签及番茄钟/系统环",
+              "options": [
+                "隐藏",
+                "显示"
+              ],
+              "default": 1
+            },
+            {
+              "key": "clock24",
+              "label": "时间格式",
+              "hint": "切换 24 小时制或 12 小时制（AM/PM）",
+              "options": [
+                "12 小时",
+                "24 小时"
+              ],
+              "default": 1
+            }
+          ]
+        },
+        {
+          "name": "卡片外观与图标",
+          "params": [
+            {
+              "key": "widgetScale",
+              "label": "组件缩放",
+              "hint": "整体缩放所有桌面小组件卡片尺寸",
+              "min": 0.75,
+              "max": 1.2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            },
+            {
+              "key": "cardOpacity",
+              "label": "卡片不透明度",
+              "hint": "调节 Material You 表面容器的半透明质感",
+              "min": 0.35,
+              "max": 0.96,
+              "step": 0.02,
+              "default": 0.78,
+              "format": "percent"
+            },
+            {
+              "key": "glassBlur",
+              "label": "磨砂模糊",
+              "hint": "卡片背后的高斯背景模糊半径（Eco 模式下自动关闭以省电）",
+              "min": 0,
+              "max": 32,
+              "step": 1,
+              "default": 18,
+              "unit": "px"
+            },
+            {
+              "key": "cornerRadius",
+              "label": "圆角弧度",
+              "hint": "Material 3 Expressive 卡片与图标底座的圆角大小",
+              "min": 12,
+              "max": 36,
+              "step": 1,
+              "default": 26,
+              "unit": "px"
+            },
+            {
+              "key": "iconStyle",
+              "label": "图标底座样式",
+              "hint": "自适应模式下桌面图标下方的 Material You 托盘样式",
+              "options": [
+                "柔和胶囊",
+                "描边卡片",
+                "柔光晕",
+                "关闭"
+              ],
+              "default": 0
+            }
+          ]
+        },
+        {
+          "name": "性能",
+          "params": [
+            {
+              "key": "quality",
+              "label": "画质",
+              "hint": "背景画布渲染分辨率预算",
+              "options": [
+                "低",
+                "平衡",
+                "高"
+              ],
               "default": 1
             }
           ]
@@ -201,7 +477,14 @@
               "key": "preset",
               "label": "光影预设",
               "hint": "在自动时段、清晨、雷雨、午后、日落与夜晚之间平滑切换",
-              "options": ["自动", "清晨", "雷雨", "午后", "日落", "夜晚"],
+              "options": [
+                "自动",
+                "清晨",
+                "雷雨",
+                "午后",
+                "日落",
+                "夜晚"
+              ],
               "default": 1
             },
             {
@@ -211,7 +494,7 @@
               "min": 0,
               "max": 1,
               "step": 0.02,
-              "default": 0.70,
+              "default": 0.7,
               "format": "percent"
             },
             {
@@ -221,7 +504,7 @@
               "min": 0,
               "max": 1,
               "step": 0.02,
-              "default": 0.80,
+              "default": 0.8,
               "format": "percent"
             },
             {
@@ -256,7 +539,7 @@
               "min": 0,
               "max": 1,
               "step": 0.05,
-              "default": 0.70,
+              "default": 0.7,
               "format": "percent"
             },
             {
@@ -278,7 +561,10 @@
               "key": "showHud",
               "label": "玻璃光控面板",
               "hint": "在画面上方显示可拖动的实时折射玻璃光影切换面板与亮度条",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
@@ -298,14 +584,18 @@
               "min": 0,
               "max": 1,
               "step": 0.05,
-              "default": 0.50,
+              "default": 0.5,
               "format": "percent"
             },
             {
               "key": "iconGlass",
               "label": "图标玻璃造型",
               "hint": "桌面图标下方的光学折射玻璃卡片样式",
-              "options": ["玻璃卡片", "切角棱镜", "关闭"],
+              "options": [
+                "玻璃卡片",
+                "切角棱镜",
+                "关闭"
+              ],
               "default": 0
             }
           ]
@@ -317,7 +607,11 @@
               "key": "quality",
               "label": "画质",
               "hint": "Three.js 3D 渲染与折射模糊分辨率预算",
-              "options": ["低", "平衡", "高"],
+              "options": [
+                "低",
+                "平衡",
+                "高"
+              ],
               "default": 1
             }
           ]
@@ -346,7 +640,12 @@
               "key": "mode",
               "label": "季节模式",
               "hint": "在真实飘雪、窗面雨滴、秋叶飘落与樱花花瓣之间实时切换",
-              "options": ["飘雪", "细雨", "秋叶", "樱花"],
+              "options": [
+                "飘雪",
+                "细雨",
+                "秋叶",
+                "樱花"
+              ],
               "default": 0
             },
             {
@@ -388,14 +687,21 @@
               "key": "accumulate",
               "label": "堆积位置",
               "hint": "控制积雪、落叶与雨珠是仅停留在屏幕底部还是同时落在桌面图标上",
-              "options": ["关闭", "仅地面", "地面与图标"],
+              "options": [
+                "关闭",
+                "仅地面",
+                "地面与图标"
+              ],
               "default": 2
             },
             {
               "key": "windows",
               "label": "窗口顶部堆积",
               "hint": "积雪、落叶与雨滴同样会在打开的应用程序窗口顶端堆积，移动或关闭窗口时自然滑落",
-              "options": ["关闭", "开启"],
+              "options": [
+                "关闭",
+                "开启"
+              ],
               "default": 1
             },
             {
@@ -412,7 +718,11 @@
               "key": "cursor",
               "label": "光标扫雪交互",
               "hint": "移动鼠标即可拨开积雪、卷起落叶花瓣或划开玻璃上的雨珠",
-              "options": ["关闭", "柔和", "强烈"],
+              "options": [
+                "关闭",
+                "柔和",
+                "强烈"
+              ],
               "default": 2
             },
             {
@@ -434,7 +744,12 @@
               "key": "atmosphere",
               "label": "背景氛围",
               "hint": "切换静谧冬夜、蓝色时刻、雾霭冬晨或路灯暖光背景",
-              "options": ["静谧夜色", "蓝色时刻", "雾霭冬晨", "路灯暖光"],
+              "options": [
+                "静谧夜色",
+                "蓝色时刻",
+                "雾霭冬晨",
+                "路灯暖光"
+              ],
               "default": 0
             },
             {
@@ -466,7 +781,11 @@
               "key": "quality",
               "label": "画质",
               "hint": "渲染分辨率与物理粒子数量预算",
-              "options": ["低", "平衡", "高"],
+              "options": [
+                "低",
+                "平衡",
+                "高"
+              ],
               "default": 1
             }
           ]
@@ -490,7 +809,13 @@
               "key": "time",
               "label": "时段",
               "hint": "自动模式按系统时间切换清晨、正午、日落或夜晚配色",
-              "options": ["自动", "清晨", "正午", "日落", "夜晚"],
+              "options": [
+                "自动",
+                "清晨",
+                "正午",
+                "日落",
+                "夜晚"
+              ],
               "default": 0
             },
             {
@@ -522,7 +847,12 @@
               "key": "palette",
               "label": "配色方案",
               "hint": "纸层与花卉的整体色系",
-              "options": ["玫瑰花园", "松石珊瑚", "靛蓝鎏金", "柔和粉彩"],
+              "options": [
+                "玫瑰花园",
+                "松石珊瑚",
+                "靛蓝鎏金",
+                "柔和粉彩"
+              ],
               "default": 0
             },
             {
@@ -564,28 +894,41 @@
               "key": "trees",
               "label": "柏树与梧桐",
               "hint": "画面两侧带镂空叶纹的树影纸层",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "critters",
               "label": "飞鸟与蝴蝶",
               "hint": "空中掠过的剪纸小鸟与花间飞舞的蝴蝶",
-              "options": ["无", "少", "多"],
+              "options": [
+                "无",
+                "少",
+                "多"
+              ],
               "default": 1
             },
             {
               "key": "skyline",
               "label": "城市天际线",
               "hint": "穹顶、宣礼塔与加拉塔塔剪影",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             },
             {
               "key": "frame",
               "label": "光影盒边框",
               "hint": "屏幕边缘的浮雕纸质外框",
-              "options": ["隐藏", "显示"],
+              "options": [
+                "隐藏",
+                "显示"
+              ],
               "default": 1
             }
           ]
@@ -622,7 +965,10 @@
               "key": "fstyle",
               "label": "视窗形状",
               "hint": "拱形壁龛上圆下方，圆形为全圆角",
-              "options": ["拱形壁龛", "圆角"],
+              "options": [
+                "拱形壁龛",
+                "圆角"
+              ],
               "default": 0
             }
           ]
@@ -634,7 +980,11 @@
               "key": "quality",
               "label": "画质",
               "hint": "绘制分辨率与花卉数量预算",
-              "options": ["低", "平衡", "高"],
+              "options": [
+                "低",
+                "平衡",
+                "高"
+              ],
               "default": 1
             }
           ]
@@ -662,15 +1012,15 @@
               "min": 0.25,
               "max": 2.5,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "networkActivity",
               "label": "网络活跃度",
               "hint": "沿节点连线穿梭的数据包频率与吞吐量",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.65,
               "format": "percent"
@@ -679,8 +1029,8 @@
               "key": "connectionIntensity",
               "label": "连线强度",
               "hint": "节点之间依赖与数据流连线的可见度与覆盖范围",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.55,
               "format": "percent"
@@ -694,8 +1044,8 @@
               "key": "particleDensity",
               "label": "粒子密度",
               "hint": "环境网络粒子与后台系统微粒的密度",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.55,
               "format": "percent"
@@ -704,8 +1054,8 @@
               "key": "codeParticleDensity",
               "label": "代码符号密度",
               "hint": "背景中漂浮编程符号粒子的密度",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.45,
               "format": "percent"
@@ -714,8 +1064,8 @@
               "key": "envDetail",
               "label": "环境细节",
               "hint": "Git 分支、终端日志、构建圆弧与网格的细节层级",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.7,
               "format": "percent"
@@ -2086,9 +2436,9 @@
               "key": "blackHoleSize",
               "label": "黑洞大小",
               "min": 0.5,
-              "max": 2.0,
+              "max": 2,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -2097,7 +2447,7 @@
               "min": 0.2,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -2116,7 +2466,7 @@
             {
               "key": "globalOrbitSpeed",
               "label": "图标公转速度",
-              "min": 0.0,
+              "min": 0,
               "max": 2.5,
               "step": 0.05,
               "default": 0.65,
@@ -2141,7 +2491,7 @@
               "min": 0.5,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -2150,7 +2500,7 @@
               "min": 0.2,
               "max": 2.5,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -2159,7 +2509,7 @@
               "min": 0.5,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             }
           ]
@@ -2171,15 +2521,15 @@
               "key": "starDensity",
               "label": "星辰密度",
               "min": 0.2,
-              "max": 2.0,
+              "max": 2,
               "step": 0.1,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "nebulaIntensity",
               "label": "星云浓度",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.65,
@@ -2188,8 +2538,8 @@
             {
               "key": "asteroidDensity",
               "label": "小行星密度",
-              "min": 0.0,
-              "max": 2.0,
+              "min": 0,
+              "max": 2,
               "step": 0.1,
               "default": 0.8,
               "format": "times"
@@ -2215,7 +2565,7 @@
             {
               "key": "gravityStrength",
               "label": "中心引力",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.6,
@@ -2224,7 +2574,7 @@
             {
               "key": "systemAttraction",
               "label": "星系潮汐",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.55,
@@ -2271,7 +2621,7 @@
             {
               "key": "snowIntensity",
               "label": "降雪量",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.75,
@@ -2281,7 +2631,7 @@
               "key": "snowSpeed",
               "label": "飘雪速度",
               "min": 0.2,
-              "max": 2.0,
+              "max": 2,
               "step": 0.05,
               "default": 0.85,
               "format": "times"
@@ -2289,15 +2639,15 @@
             {
               "key": "windStrength",
               "label": "微风风力",
-              "min": -1.0,
-              "max": 1.0,
+              "min": -1,
+              "max": 1,
               "step": 0.05,
               "default": 0.18
             },
             {
               "key": "atmosphereDensity",
               "label": "冬雾氛围",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.75,
@@ -2311,8 +2661,8 @@
             {
               "key": "mountainVisibility",
               "label": "雪山可见度",
-              "min": 0.0,
-              "max": 1.0,
+              "min": 0,
+              "max": 1,
               "step": 0.05,
               "default": 0.85,
               "format": "percent"
@@ -2320,16 +2670,16 @@
             {
               "key": "treeDensity",
               "label": "松林密度",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
-              "default": 0.80,
+              "default": 0.8,
               "format": "percent"
             },
             {
               "key": "smokeAmount",
               "label": "烟囱炊烟",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.85,
@@ -2343,19 +2693,19 @@
             {
               "key": "iconSnowAmount",
               "label": "图标积雪",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
-              "default": 0.90,
+              "default": 0.9,
               "format": "percent"
             },
             {
               "key": "animSpeed",
               "label": "动画速率",
               "min": 0.2,
-              "max": 2.0,
+              "max": 2,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -2431,7 +2781,7 @@
               "min": 0.3,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             },
             {
@@ -2455,8 +2805,8 @@
             {
               "key": "waveSpeed",
               "label": "呼吸波速",
-              "min": 0.0,
-              "max": 2.0,
+              "min": 0,
+              "max": 2,
               "step": 0.05,
               "default": 0.75,
               "format": "times"
@@ -2467,16 +2817,16 @@
               "min": 0.5,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "rippleStrength",
               "label": "点击压感波纹",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             }
           ]
@@ -2555,16 +2905,16 @@
               "min": 0.4,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             },
             {
               "key": "squishStrength",
               "label": "Q弹挤压感",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             }
           ]
@@ -2575,17 +2925,17 @@
             {
               "key": "blobCount",
               "label": "黏土球数量",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "floatSpeed",
               "label": "漂浮速率",
-              "min": 0.0,
-              "max": 2.0,
+              "min": 0,
+              "max": 2,
               "step": 0.05,
               "default": 0.8,
               "format": "times"
@@ -2593,10 +2943,10 @@
             {
               "key": "cursorRepel",
               "label": "指针推弹力",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             }
           ]
@@ -2675,15 +3025,15 @@
               "min": 1.5,
               "max": 5.5,
               "step": 0.5,
-              "default": 3.0
+              "default": 3
             },
             {
               "key": "shadowDepth",
               "label": "硬投影偏移",
-              "min": 2.0,
-              "max": 14.0,
+              "min": 2,
+              "max": 14,
               "step": 0.5,
-              "default": 7.0
+              "default": 7
             },
             {
               "key": "halftonePattern",
@@ -2706,17 +3056,17 @@
             {
               "key": "shapeCount",
               "label": "几何色块数量",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "motionSpeed",
               "label": "律动速率",
-              "min": 0.0,
-              "max": 2.0,
+              "min": 0,
+              "max": 2,
               "step": 0.05,
               "default": 0.85,
               "format": "times"
@@ -2724,10 +3074,10 @@
             {
               "key": "cursorPush",
               "label": "指针推弹力",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             }
           ]
@@ -2823,16 +3173,16 @@
               "min": 0.75,
               "max": 1.4,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "cloudDensity",
               "label": "方块云量",
-              "min": 0.0,
+              "min": 0,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             }
           ]
@@ -2843,37 +3193,37 @@
             {
               "key": "weatherAmount",
               "label": "落叶/萤火/雪花",
-              "min": 0.0,
+              "min": 0,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             },
             {
               "key": "critterAmount",
               "label": "像素蜜蜂",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.1,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "torchGlow",
               "label": "火把辉光",
-              "min": 0.0,
+              "min": 0,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             },
             {
               "key": "animSpeed",
               "label": "时间流速",
               "min": 0.2,
-              "max": 2.0,
+              "max": 2,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             }
           ]
@@ -2959,13 +3309,13 @@
               "min": 0.2,
               "max": 1.6,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "percent"
             },
             {
               "key": "frostAmount",
               "label": "磨砂雾度",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.65,
@@ -2974,7 +3324,7 @@
             {
               "key": "dispersion",
               "label": "边缘色散",
-              "min": 0.0,
+              "min": 0,
               "max": 1.6,
               "step": 0.05,
               "default": 0.95,
@@ -2984,7 +3334,7 @@
               "key": "mergeRate",
               "label": "液态融合度",
               "hint": "水滴、光标透镜与桌面图标玻璃靠近时像液态玻璃般融合的程度",
-              "min": 0.0,
+              "min": 0,
               "max": 1.2,
               "step": 0.05,
               "default": 0.55,
@@ -2998,17 +3348,17 @@
             {
               "key": "dropletCount",
               "label": "液态水滴数",
-              "min": 0.0,
+              "min": 0,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
               "key": "flowSpeed",
               "label": "流光流速",
-              "min": 0.0,
-              "max": 2.0,
+              "min": 0,
+              "max": 2,
               "step": 0.05,
               "default": 0.85,
               "format": "times"
@@ -3133,7 +3483,7 @@
               "min": 0.55,
               "max": 1.45,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -3143,7 +3493,7 @@
               "min": 0.4,
               "max": 1.8,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             }
           ]
@@ -3158,7 +3508,7 @@
               "min": 0.25,
               "max": 2.5,
               "step": 0.05,
-              "default": 1.0,
+              "default": 1,
               "format": "times"
             },
             {
@@ -3181,7 +3531,7 @@
               "key": "dotGlow",
               "label": "光晕强度",
               "hint": "核心环境光晕与高亮点的辉光亮度",
-              "min": 0.0,
+              "min": 0,
               "max": 1.5,
               "step": 0.05,
               "default": 0.65,

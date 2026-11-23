@@ -14,6 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build Rust OpenGL engine (diyardesk_gl.dll)
+        shell: pwsh
+        run: |
+          cargo build --release --manifest-path native\diyardesk-gl\Cargo.toml
+
       - name: Build host and NSIS installer
         shell: pwsh
         run: |

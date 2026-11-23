@@ -358,6 +358,7 @@ static class Settings
     public static int PlaylistIntervalMin = 30;
     public static bool SystemBridge = false;
     public static bool PreferMpv = false;
+    public static bool RustOpenGl = false;
 
     public static List<Dictionary<string, object>> SanitizeVirtualIcons(object raw)
     {
@@ -435,6 +436,7 @@ static class Settings
             }
             if (root.TryGetValue("systemBridge", out v) && v is bool) SystemBridge = (bool)v;
             if (root.TryGetValue("preferMpv", out v) && v is bool) PreferMpv = (bool)v;
+            if (root.TryGetValue("rustOpenGl", out v) && v is bool) RustOpenGl = (bool)v;
             Log.Write("已读取设置：主题 " + Theme);
         }
         catch (Exception ex) { Log.Write("读取设置失败（将使用默认值）：" + ex.Message); }
@@ -461,7 +463,8 @@ static class Settings
                 "playlistEnabled", PlaylistEnabled,
                 "playlistIntervalMin", PlaylistIntervalMin,
                 "systemBridge", SystemBridge,
-                "preferMpv", PreferMpv)), new UTF8Encoding(false));
+                "preferMpv", PreferMpv,
+                "rustOpenGl", RustOpenGl)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -779,6 +782,19 @@ class HostContext : ApplicationContext
         Log.Write(enabled ? "已启用 mpv 硬件视频后端" : "已切回 WebView2 视频播放");
     }
 
+    void SetRustOpenGl(bool enabled)
+    {
+        Settings.RustOpenGl = enabled;
+        SaveSoon();
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "rustOpenGl", "v", enabled)));
+        string page = Themes.PageFor(pageDir, Settings.Theme);
+        if (!string.IsNullOrEmpty(page) && Themes.PageExists(pageDir, page))
+        {
+            ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, Settings.Theme); });
+        }
+        Log.Write(enabled ? "已启用 Rust OpenGL 3.3 全局壁纸引擎" : "已切回 WebView2 壁纸引擎");
+    }
+
     void SyncLockscreen()
     {
         if (form == null)
@@ -1089,7 +1105,8 @@ class HostContext : ApplicationContext
                     "virtualBarMode", Settings.VirtualBarMode, "lowMode", Settings.LowMode, "disableAutoPause", Settings.DisableAutoPause,
                     "displayMode", Settings.DisplayMode, "solarSync", Settings.SolarSync, "windowAware", Settings.WindowAware,
                     "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin,
-                    "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv)));
+                    "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv,
+                    "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable())));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -1150,7 +1167,7 @@ class HostContext : ApplicationContext
                 if (id == Settings.Theme) return;
                 Settings.Theme = id;
                 SaveSoon();
-                ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page); });
+                ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, id); });
                 Log.Write("切换主题：" + id);
                 break;
             }
@@ -1278,6 +1295,12 @@ class HostContext : ApplicationContext
             {
                 object mpvv;
                 if (m.TryGetValue("v", out mpvv) && mpvv is bool) SetPreferMpv((bool)mpvv);
+                break;
+            }
+            case "rustOpenGl":
+            {
+                object glv;
+                if (m.TryGetValue("v", out glv) && glv is bool) SetRustOpenGl((bool)glv);
                 break;
             }
             case "syncLockscreen":
@@ -2118,6 +2141,7 @@ class WallpaperForm : Form
     public string WebViewVersion { get; private set; }
 
     string page;                                        // 当前主题的页面（themes.json 里的 page）
+    string themeId;                                     // 当前主题 ID（供 Rust OpenGL 引擎切换）
     public Func<string> SettingsJson;                   // 页面就绪时先发给它的设置消息
     public Func<string> VirtualStateJson;
     public event Action<bool> AudioPlayChanged;
@@ -2133,6 +2157,7 @@ class WallpaperForm : Form
     {
         this.pageDir = pageDir;
         this.page = page;
+        this.themeId = Settings.Theme ?? "";
         this.manualPause = manualPause;
         this.lowMode = lowMode;
         this.disableAutoPause = disableAutoPause;
@@ -2197,6 +2222,7 @@ class WallpaperForm : Form
         fgTimer.Interval = v ? 1000 : 500;
         winTimer.Interval = v ? 320 : 120;
         ApplyWebViewLowMode(v);
+        if (glHost != null) glHost.SetLowMode(v);
         Post(Json.Stringify(Json.Obj("t", "lowMode", "v", v)));
         lastPause = -1;
         PollForeground();
@@ -2267,6 +2293,12 @@ class WallpaperForm : Form
     public void Reload()
     {
         reader.ResetOrbitalPositions();
+        if (glHost != null && glHost.IsRunning)
+        {
+            if (SettingsJson != null) glHost.PostJson(SettingsJson());
+            lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
+            return;
+        }
         if (web.CoreWebView2 == null) return;
         try { web.CoreWebView2.Reload(); }
         catch (InvalidOperationException ex) { WebDead(ex); }
@@ -2274,10 +2306,99 @@ class WallpaperForm : Form
     }
     public void Post(string json)
     {
+        if (glHost != null && glHost.IsRunning)
+        {
+            glHost.PostJson(json);
+            return;
+        }
         if (web.CoreWebView2 == null) return;
         try { web.CoreWebView2.PostWebMessageAsString(json); }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
+    }
+
+    static bool IsNativeGlPage(string p)
+    {
+        return string.Equals(p, "material-impulse-gl.html", StringComparison.OrdinalIgnoreCase);
+    }
+
+    static readonly HashSet<string> NativeGlThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "material-impulse-gl", "material-impulse", "liquidglass", "thinking-orbs", "solar-system",
+        "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
+        "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
+        "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach"
+    };
+
+    static bool ShouldUseNativeGl(string pageName, string tid)
+    {
+        if (!NativeGlHost.IsAvailable()) return false;
+        if (IsNativeGlPage(pageName)) return true;
+        if (!Settings.RustOpenGl) return false;
+        return !string.IsNullOrEmpty(tid) && NativeGlThemes.Contains(tid);
+    }
+
+    static bool IsImpulseThemeId(string tid)
+    {
+        return string.Equals(tid, "material-impulse", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(tid, "material-impulse-gl", StringComparison.OrdinalIgnoreCase);
+    }
+
+    void SyncNativeGlThemeState()
+    {
+        if (glHost == null || !glHost.IsRunning) return;
+        string tid = !string.IsNullOrEmpty(themeId) ? themeId : (Settings.Theme ?? "material-impulse-gl");
+        glHost.SetLowMode(lowMode);
+        glHost.PostJson(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
+        glHost.PostJson(Json.Stringify(Json.Obj("t", "theme", "id", tid)));
+        glHost.PostJson(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
+        if (SettingsJson != null) glHost.PostJson(SettingsJson());
+        SetMediaSubscribed(IsImpulseThemeId(tid));
+        lastIcons = ""; lastWindows = ""; lastPause = -1;
+        PollIcons(); PollWindows(); PollForeground();
+    }
+
+    bool StartNativeGl()
+    {
+        if (shuttingDown || IsDisposed || !NativeGlHost.IsAvailable()) return false;
+        if (glHost != null && glHost.IsRunning)
+        {
+            SyncNativeGlThemeState();
+            return true;
+        }
+        RefreshUiScale();
+        StopNativeGl();
+        var host = new NativeGlHost();
+        host.EventReceived += delegate(string msg)
+        {
+            if (!shuttingDown && !IsDisposed && !string.IsNullOrEmpty(msg) && msg.StartsWith("{"))
+            {
+                try { OnWallJsonMessage(msg); } catch { }
+            }
+        };
+        if (!host.Start(this, (float)uiScale))
+        {
+            host.Dispose();
+            return false;
+        }
+        glHost = host;
+        web.Visible = false;
+        if (web.CoreWebView2 != null)
+        {
+            try { web.CoreWebView2.Navigate("about:blank"); } catch { }
+        }
+        SyncNativeGlThemeState();
+        return true;
+    }
+
+    void StopNativeGl()
+    {
+        if (glHost != null)
+        {
+            try { glHost.Dispose(); } catch { }
+            glHost = null;
+        }
+        if (web != null && !web.IsDisposed) web.Visible = true;
     }
 
     // WebView2 运行时后台更新 / 浏览器进程被杀后，CoreWebView2 不为 null 但已 disposed，任何调用都抛异常
@@ -2291,7 +2412,7 @@ class WallpaperForm : Form
     string PageUrl { get { return WebCustomHelper.PageUrl(page) + "?wallpaper=1" + (lowMode ? "&low=1" : ""); } }
 
     // 切换主题：换页面；新页面就绪后会重新收到设置和图标
-    public void LoadPage(string newPage)
+    public async void LoadPage(string newPage, string newThemeId = null)
     {
         allowMoveIcons = false;
         reader.ResetOrbitalPositions();
@@ -2299,7 +2420,19 @@ class WallpaperForm : Form
         SetUiTextFocus(false);
         uiMouseCaptured = false;
         page = newPage;
-        if (web.CoreWebView2 == null) return;
+        themeId = !string.IsNullOrEmpty(newThemeId) ? newThemeId : (Settings.Theme ?? "");
+
+        if (ShouldUseNativeGl(newPage, themeId) && StartNativeGl())
+        {
+            return;
+        }
+        StopNativeGl();
+        if (web.CoreWebView2 == null)
+        {
+            try { await InitWebViewAsync(); }
+            catch (Exception ex) { Log.Write("WebView2 geç başlatma hatası: " + ex.Message); }
+            return;
+        }
         try { web.CoreWebView2.Navigate(PageUrl); }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
@@ -2479,6 +2612,80 @@ class WallpaperForm : Form
         reader.QueueMoveIcons(targets, screen, Screen.PrimaryScreen.WorkingArea, reader.CurrentMoveEpoch);
     }
 
+    async System.Threading.Tasks.Task InitWebViewAsync()
+    {
+        if (webInitialized || shuttingDown || IsDisposed) return;
+        webInitialized = true;
+        await web.EnsureCoreWebView2Async(null);
+        if (shuttingDown || IsDisposed) return;
+        var core = web.CoreWebView2;
+        core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
+        string audioDir = Path.Combine(InstallProfile.DataDir, "audio");
+        Directory.CreateDirectory(audioDir);
+        core.SetVirtualHostNameToFolderMapping("audio.local", audioDir, CoreWebView2HostResourceAccessKind.Allow);
+        WebCustomHelper.Attach(core, pageDir);
+        WebViewSecurity.Harden(core, false);
+        try { await WebViewSecurity.InjectCspAsync(core); } catch { }
+        if (shuttingDown || IsDisposed) return;
+        ApplyWebViewLowMode(lowMode);
+        string lowJsPath = Path.Combine(pageDir, "low-mode.js");
+        if (File.Exists(lowJsPath))
+        {
+            try { await core.AddScriptToExecuteOnDocumentCreatedAsync(File.ReadAllText(lowJsPath, Encoding.UTF8)); }
+            catch { }
+        }
+        if (shuttingDown || IsDisposed) return;
+        core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
+        {
+            if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
+            string msg = null;
+            try { msg = a.TryGetWebMessageAsString(); } catch { }
+            if (msg == null) return;
+            if (msg.StartsWith("snapshot|")) { OnSnapshot(msg); return; }
+            if (msg.StartsWith("recprogress|")) { if (RecordProgress != null) RecordProgress(msg.Substring(12)); return; }
+            if (msg.StartsWith("record|")) { OnRecord(msg); return; }
+            if (msg == "ready")
+            {
+                allowMoveIcons = string.Equals(page, "solar-system.html", StringComparison.OrdinalIgnoreCase);
+                if (!allowMoveIcons) reader.ResetOrbitalPositions();
+                Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+                int wLeft = Math.Max(0, wa.Left - screen.Left);
+                int wTop = Math.Max(0, wa.Top - screen.Top);
+                int wRight = Math.Max(0, screen.Right - wa.Right);
+                int wBottom = Math.Max(0, screen.Bottom - wa.Bottom);
+                core.PostWebMessageAsString(Json.Stringify(Json.Obj(
+                    "t", "hostCaps",
+                    "moveIcons", true,
+                    "orbitUi", true,
+                    "lang", I18n.Code,
+                    "workInsets", new object[] { wLeft, wTop, wRight, wBottom }
+                )));
+                if (VirtualStateJson != null) core.PostWebMessageAsString(VirtualStateJson());
+                core.PostWebMessageAsString(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
+                SyncPowerPerf(true);
+                core.PostWebMessageAsString(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
+                if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
+                lastIcons = ""; lastWindows = ""; lastPause = -1; PollIcons(); PollWindows(); PollForeground();
+                return;
+            }
+            if (msg.StartsWith("{"))
+            {
+                try { OnWallJsonMessage(msg); } catch { }
+            }
+        };
+        core.NavigationStarting += delegate
+        {
+            allowMoveIcons = false;
+            reader.ResetOrbitalPositions();
+        };
+        if (glHost == null || !glHost.IsRunning)
+        {
+            core.Navigate(PageUrl);
+        }
+        WebViewVersion = core.Environment.BrowserVersionString;
+        Log.Write("WebView2 就绪：" + WebViewVersion);
+    }
+
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
@@ -2494,79 +2701,18 @@ class WallpaperForm : Form
                 Fail(I18n.T("errNoDesktop"));
                 return;
             }
-            await web.EnsureCoreWebView2Async(null);
-            if (shuttingDown || IsDisposed) return;
-            var core = web.CoreWebView2;
-            core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
-            string audioDir = Path.Combine(InstallProfile.DataDir, "audio");
-            Directory.CreateDirectory(audioDir);
-            core.SetVirtualHostNameToFolderMapping("audio.local", audioDir, CoreWebView2HostResourceAccessKind.Allow);
-            WebCustomHelper.Attach(core, pageDir);
-            WebViewSecurity.Harden(core, false);
-            try { await WebViewSecurity.InjectCspAsync(core); } catch { }
-            if (shuttingDown || IsDisposed) return;
-            ApplyWebViewLowMode(lowMode);
-            string lowJsPath = Path.Combine(pageDir, "low-mode.js");
-            if (File.Exists(lowJsPath))
+            bool usedGl = ShouldUseNativeGl(page, themeId) && StartNativeGl();
+            if (!usedGl)
             {
-                try { await core.AddScriptToExecuteOnDocumentCreatedAsync(File.ReadAllText(lowJsPath, Encoding.UTF8)); }
-                catch { }
+                await InitWebViewAsync();
             }
             if (shuttingDown || IsDisposed) return;
-            // 页面就绪（发来 "ready"）：先发设置，再发图标和暂停状态（岸线要按设置里的离岸距离来算）
-            // 一键分享：页面画好分享图后发来 "snapshot|缩略图|整张 PNG"（都是 data URL；整张图很大，不走 JSON）
-            core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
-            {
-                if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
-                string msg = null;
-                try { msg = a.TryGetWebMessageAsString(); } catch { }
-                if (msg == null) return;
-                if (msg.StartsWith("snapshot|")) { OnSnapshot(msg); return; }
-                if (msg.StartsWith("recprogress|")) { if (RecordProgress != null) RecordProgress(msg.Substring(12)); return; }
-                if (msg.StartsWith("record|")) { OnRecord(msg); return; }
-                if (msg == "ready")
-                {
-                    allowMoveIcons = string.Equals(page, "solar-system.html", StringComparison.OrdinalIgnoreCase);
-                    if (!allowMoveIcons) reader.ResetOrbitalPositions();
-                    Rectangle wa = Screen.PrimaryScreen.WorkingArea;
-                    int wLeft = Math.Max(0, wa.Left - screen.Left);
-                    int wTop = Math.Max(0, wa.Top - screen.Top);
-                    int wRight = Math.Max(0, screen.Right - wa.Right);
-                    int wBottom = Math.Max(0, screen.Bottom - wa.Bottom);
-                    core.PostWebMessageAsString(Json.Stringify(Json.Obj(
-                        "t", "hostCaps",
-                        "moveIcons", true,
-                        "orbitUi", true,
-                        "lang", I18n.Code,
-                        "workInsets", new object[] { wLeft, wTop, wRight, wBottom }
-                    )));
-                    if (VirtualStateJson != null) core.PostWebMessageAsString(VirtualStateJson());
-                    core.PostWebMessageAsString(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
-                    SyncPowerPerf(true);
-                    core.PostWebMessageAsString(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
-                    if (SettingsJson != null) core.PostWebMessageAsString(SettingsJson());
-                    lastIcons = ""; lastWindows = ""; lastPause = -1; PollIcons(); PollWindows(); PollForeground();
-                    return;
-                }
-                if (msg.StartsWith("{"))
-                {
-                    try { OnWallJsonMessage(msg); } catch { }
-                }
-            };
-            core.NavigationStarting += delegate
-            {
-                allowMoveIcons = false;
-                reader.ResetOrbitalPositions();
-            };
-            core.Navigate(PageUrl);
             EnsureWallpaperBounds();
             StartWindowTrackHooks();
             BindSystemEvents();
             iconTimer.Start();
             fgTimer.Start();
             winTimer.Start();
-            WebViewVersion = core.Environment.BrowserVersionString;
-            Log.Write("WebView2 就绪：" + WebViewVersion);
         }
         catch (Exception ex)
         {
@@ -2604,7 +2750,10 @@ class WallpaperForm : Form
     Native.LowLevelMouseProc mouseHookProc;
     Native.LowLevelKeyboardProc keyHookProc;
     volatile bool uiTextFocused;
+    IntPtr focusedFgHwnd;
     MediaBridge mediaBridge;
+    NativeGlHost glHost;
+    bool webInitialized;
     double uiScale = 1.0;
     bool uiMouseCaptured, desktopMouseDown;
     int lastDownTick = -1, lastClickCount = 1, lastHoverTick;
@@ -2648,7 +2797,14 @@ class WallpaperForm : Form
 
     void DispatchWebMouse(string type, int x, int y, string button, int clickCount, int buttons)
     {
-        if (shuttingDown || IsDisposed || web.CoreWebView2 == null) return;
+        if (shuttingDown || IsDisposed) return;
+        if (glHost != null && glHost.IsRunning)
+        {
+            int k = type == "mousePressed" ? 1 : (type == "mouseReleased" ? 2 : 0);
+            glHost.DispatchMouse(k, x, y);
+            return;
+        }
+        if (web.CoreWebView2 == null) return;
         try
         {
             string payload = Json.Stringify(Json.Obj(
@@ -2665,10 +2821,24 @@ class WallpaperForm : Form
 
     IntPtr OnMouseHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode < 0 || shuttingDown || IsDisposed || web.CoreWebView2 == null)
+        bool glActive = glHost != null && glHost.IsRunning;
+        if (nCode < 0 || shuttingDown || IsDisposed || (!glActive && web.CoreWebView2 == null))
             return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
+        if (msg == Native.WM_RBUTTONDOWN)
+        {
+            if (uiTextFocused)
+            {
+                var rhs = (Native.MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(Native.MSLLHOOKSTRUCT));
+                double rscale = uiScale > 0 ? uiScale : 1.0;
+                int rcx = (int)Math.Round((rhs.pt.X - screen.X) / rscale);
+                int rcy = (int)Math.Round((rhs.pt.Y - screen.Y) / rscale);
+                if (!HasAnyUiRect() || !IsPointInUi(rcx, rcy) || !IsDesktopHit(rhs.pt))
+                    BeginInvoke((Action)delegate { BlurUiText(); });
+            }
+            return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
+        }
         if (msg != Native.WM_LBUTTONDOWN && msg != Native.WM_LBUTTONUP && msg != Native.WM_MOUSEMOVE)
             return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
 
@@ -2706,6 +2876,10 @@ class WallpaperForm : Form
         else if (msg == Native.WM_MOUSEMOVE)
         {
             if (uiMouseCaptured)
+            {
+                BeginInvoke((Action)delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
+            }
+            else if (desktopMouseDown)
             {
                 BeginInvoke((Action)delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
             }
@@ -2784,6 +2958,13 @@ class WallpaperForm : Form
 
         if (focused)
         {
+            try
+            {
+                IntPtr desk = parentHwnd != IntPtr.Zero ? parentHwnd : Native.FindWindow("Progman", null);
+                if (desk != IntPtr.Zero) Native.SetForegroundWindow(desk);
+            }
+            catch { }
+            focusedFgHwnd = Native.GetForegroundWindow();
             if (keyHook == IntPtr.Zero)
             {
                 keyHookProc = OnKeyboardHook;
@@ -2792,6 +2973,7 @@ class WallpaperForm : Form
         }
         else
         {
+            focusedFgHwnd = IntPtr.Zero;
             StopKeyHook();
         }
     }
@@ -2815,7 +2997,13 @@ class WallpaperForm : Form
 
     void DispatchWebText(string text)
     {
-        if (shuttingDown || IsDisposed || web.CoreWebView2 == null || string.IsNullOrEmpty(text)) return;
+        if (shuttingDown || IsDisposed || string.IsNullOrEmpty(text)) return;
+        if (glHost != null && glHost.IsRunning)
+        {
+            glHost.DispatchKey(0, 0, text);
+            return;
+        }
+        if (web.CoreWebView2 == null) return;
         try
         {
             web.CoreWebView2.CallDevToolsProtocolMethodAsync(
@@ -2827,7 +3015,13 @@ class WallpaperForm : Form
 
     void DispatchWebKey(string key, string code, int vk, int modifiers, string text, string[] commands)
     {
-        if (shuttingDown || IsDisposed || web.CoreWebView2 == null) return;
+        if (shuttingDown || IsDisposed) return;
+        if (glHost != null && glHost.IsRunning)
+        {
+            glHost.DispatchKey(1, vk, null);
+            return;
+        }
+        if (web.CoreWebView2 == null) return;
         try
         {
             var down = Json.Obj(
@@ -2896,7 +3090,8 @@ class WallpaperForm : Form
 
     IntPtr OnKeyboardHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || web.CoreWebView2 == null || !HasAnyUiRect())
+        bool glActive = glHost != null && glHost.IsRunning;
+        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || (!glActive && web.CoreWebView2 == null) || !HasAnyUiRect())
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
@@ -2911,8 +3106,12 @@ class WallpaperForm : Form
         if (IsModifierVk(vk))
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
 
-        if (!IsDesktopForeground())
+        IntPtr fgNow = Native.GetForegroundWindow();
+        if (!IsDesktopForeground() && (focusedFgHwnd == IntPtr.Zero || fgNow != focusedFgHwnd))
+        {
+            BeginInvoke((Action)delegate { BlurUiText(); });
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
+        }
 
         bool ctrl = (Native.GetAsyncKeyState(0x11) & 0x8000) != 0;
         bool alt = (Native.GetAsyncKeyState(0x12) & 0x8000) != 0;
@@ -3100,6 +3299,7 @@ class WallpaperForm : Form
         desktopMouseDown = false;
         StopKeyHook();
         SetMediaSubscribed(false);
+        StopNativeGl();
         if (mouseHook != IntPtr.Zero)
         {
             Native.UnhookWindowsHookEx(mouseHook);
@@ -3310,7 +3510,8 @@ class WallpaperForm : Form
     {
         EnsureWallpaperBounds();
         EnsureZOrder();
-        if (web.CoreWebView2 == null) return;
+        bool glActive = glHost != null && glHost.IsRunning;
+        if (!glActive && web.CoreWebView2 == null) return;
         bool visible;
         List<DesktopIcon> items = reader.Read(out visible);
         if (items == null) return;
@@ -3379,7 +3580,8 @@ class WallpaperForm : Form
 
     void PollWindows()
     {
-        if (web.CoreWebView2 == null || lastPause == 1) return;
+        bool glActive = glHost != null && glHost.IsRunning;
+        if ((!glActive && web.CoreWebView2 == null) || lastPause == 1) return;
         var sb = new StringBuilder(512);
         sb.Append("{\"t\":\"windows\",\"r\":[");
         int count = 0;
@@ -3435,8 +3637,12 @@ class WallpaperForm : Form
     // ---------------------------------------------------------------- 最大化 / 全屏 / 锁屏 / 省电时暂停
     void PollForeground()
     {
-        if (web.CoreWebView2 == null) return;
+        bool glActive = glHost != null && glHost.IsRunning;
+        if (!glActive && web.CoreWebView2 == null) return;
         SyncPowerPerf(false);
+        IntPtr curFg = Native.GetForegroundWindow();
+        if (uiTextFocused && !IsDesktopForeground() && (focusedFgHwnd == IntPtr.Zero || curFg != focusedFgHwnd))
+            BlurUiText();
         bool pause = manualPause;
         string pauseBy = "";
         if (!pause && sessionLocked) { pause = true; pauseBy = "SessionLock"; }
@@ -3971,7 +4177,7 @@ static class Native
     public const int WS_CHILD = 0x40000000, WS_VISIBLE = 0x10000000, WS_POPUP = unchecked((int)0x80000000);
     public const int WS_CAPTION = 0x00C00000, WS_THICKFRAME = 0x00040000;
     public const uint SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020;
-    public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202;
+    public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202, WM_RBUTTONDOWN = 0x0204;
     public const int WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
     public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -4026,6 +4232,7 @@ static class Native
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr h, StringBuilder sb, int max);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);

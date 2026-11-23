@@ -75,8 +75,12 @@ if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $
     /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
     @winRtRefs `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
-    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$versionSource"
+    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$root\NativeGlHost.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force
+$rustDll = Join-Path $root '..\native\diyardesk-gl\target\release\diyardesk_gl.dll'
+if (Test-Path -LiteralPath $rustDll) {
+    Copy-Item -LiteralPath $rustDll -Destination (Join-Path $bin 'diyardesk_gl.dll') -Force
+}
 Write-Host "编译完成：$bin\Deskland.exe"
