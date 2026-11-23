@@ -14,6 +14,7 @@
     "autostartWarnSw": "這次開機時 DiyarDesk 沒有自動啟動，可能是被{sw}封鎖了。請開啟{sw}，在其啟動管理員中找到 DiyarDesk，並設為「允許」。",
     "autostartWarnGeneric": "這次開機時 DiyarDesk 沒有自動啟動，可能是被安全軟體或 Windows 的「啟動應用程式」設定封鎖了。請在安全軟體的啟動管理員中，或 Windows 設定 → 應用程式 → 啟動 中，將 DiyarDesk 開啟。",
     "gotIt": "知道了",
+    "close": "關閉",
     "updateAvailable": "有可用更新",
     "updateVersion": "DiyarDesk {version} 已就緒，更新後會保留目前的主題與設定。",
     "updateProgram": "立即更新",
@@ -1729,15 +1730,15 @@
           "label": "球體模式",
           "hint": "在 9 種 3D 點陣思考球體動畫之間即時切換",
           "options": [
-            "Working",
-            "Searching",
-            "Solving",
-            "Listening",
-            "Connecting",
-            "Weaving",
-            "Composing",
-            "Breathing",
-            "Shaping"
+            "工作中",
+            "搜尋中",
+            "解決中",
+            "聆聽中",
+            "連線中",
+            "編織中",
+            "創作中",
+            "呼吸中",
+            "塑形中"
           ]
         },
         "autoCycle": {

@@ -14,6 +14,7 @@
     "autostartWarnSw": "DiyarDesk wurde diesmal nicht automatisch gestartet — möglicherweise hat {sw} es blockiert. Öffne {sw}, suche DiyarDesk im Autostart-Manager und setze es auf Zulassen.",
     "autostartWarnGeneric": "DiyarDesk wurde diesmal nicht automatisch gestartet — möglicherweise hat deine Sicherheitssoftware oder die Windows-Einstellung „Start-Apps“ es blockiert. Aktiviere DiyarDesk im Autostart-Manager deiner Sicherheitssoftware oder unter Windows-Einstellungen → Apps → Start.",
     "gotIt": "Verstanden",
+    "close": "Schließen",
     "updateAvailable": "Update verfügbar",
     "updateVersion": "DiyarDesk {version} ist bereit. Dein aktuelles Design und deine Einstellungen bleiben erhalten.",
     "updateProgram": "Jetzt aktualisieren",
@@ -1729,15 +1730,15 @@
           "label": "Kugelmodus",
           "hint": "Wechsle live zwischen allen 9 punktierten 3D-ThinkingOrbs-Designs",
           "options": [
-            "Working",
-            "Searching",
-            "Solving",
-            "Listening",
-            "Connecting",
-            "Weaving",
-            "Composing",
-            "Breathing",
-            "Shaping"
+            "Arbeiten",
+            "Suchen",
+            "Lösen",
+            "Zuhören",
+            "Verbinden",
+            "Weben",
+            "Komponieren",
+            "Atmen",
+            "Formen"
           ]
         },
         "autoCycle": {

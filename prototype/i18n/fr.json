@@ -14,6 +14,7 @@
     "autostartWarnSw": "DiyarDesk ne s'est pas lancé automatiquement cette fois — {sw} l'a peut-être bloqué. Ouvrez {sw}, trouvez DiyarDesk dans son gestionnaire de démarrage et autorisez-le.",
     "autostartWarnGeneric": "DiyarDesk ne s'est pas lancé automatiquement cette fois — votre logiciel de sécurité ou le réglage Applications de démarrage de Windows l'a peut-être bloqué. Activez DiyarDesk dans le gestionnaire de démarrage de votre logiciel de sécurité, ou dans Paramètres Windows → Applications → Démarrage.",
     "gotIt": "Compris",
+    "close": "Fermer",
     "updateAvailable": "Mise à jour disponible",
     "updateVersion": "DiyarDesk {version} est prêt. Votre thème et vos réglages actuels seront conservés.",
     "updateProgram": "Mettre à jour",
