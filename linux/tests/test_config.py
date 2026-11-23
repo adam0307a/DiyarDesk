@@ -137,3 +137,39 @@ def test_turkish_system_detection_and_i18n(tmp_path, monkeypatch):
     i18n = I18n(tmp_path, "auto", DummyLog())
     assert i18n.code == "tr"
     assert i18n.t("traySettings") == "Ayarlar…"
+
+
+def test_all_available_system_languages(monkeypatch):
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        monkeypatch.delenv(var, raising=False)
+
+    cases = {
+        "en_US.UTF-8": "en",
+        "tr_TR.UTF-8": "tr",
+        "de_DE.UTF-8": "de",
+        "fr_FR.UTF-8": "fr",
+        "ja_JP.UTF-8": "ja",
+        "ko_KR.UTF-8": "ko",
+        "zh_CN.UTF-8": "zh-CN",
+        "zh_TW.UTF-8": "zh-TW",
+        "zh_Hant_HK": "zh-TW",
+        "pt_BR.UTF-8": "en",
+    }
+    for locale, expected in cases.items():
+        monkeypatch.setenv("LANGUAGE", locale)
+        assert I18n.detect_system() == expected
+
+
+def test_japanese_manual_selection(tmp_path, monkeypatch):
+    (tmp_path / "i18n").mkdir()
+    (tmp_path / "i18n" / "en.json").write_text(
+        json.dumps({"host": {"traySettings": "Settings…"}}), encoding="utf-8"
+    )
+    (tmp_path / "i18n" / "ja.json").write_text(
+        json.dumps({"host": {"traySettings": "設定…"}}), encoding="utf-8"
+    )
+    monkeypatch.setenv("LANGUAGE", "en_US.UTF-8")
+
+    i18n = I18n(tmp_path, "ja", DummyLog())
+    assert i18n.code == "ja"
+    assert i18n.t("traySettings") == "設定…"
