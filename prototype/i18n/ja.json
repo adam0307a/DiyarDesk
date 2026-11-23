@@ -14,6 +14,7 @@
     "autostartWarnSw": "DiyarDesk が今回自動で起動しませんでした — {sw} がブロックした可能性があります。{sw} を開き、スタートアップマネージャーで DiyarDesk を「許可」に設定してください。",
     "autostartWarnGeneric": "DiyarDesk が今回自動で起動しませんでした — セキュリティソフトまたは Windows の「スタートアップ アプリ」設定がブロックした可能性があります。セキュリティソフトのスタートアップマネージャー、または Windows の設定 → アプリ → スタートアップ で DiyarDesk をオンにしてください。",
     "gotIt": "了解",
+    "close": "閉じる",
     "updateAvailable": "アップデートがあります",
     "updateVersion": "DiyarDesk {version} の準備ができました。現在のテーマと設定は保持されます。",
     "updateProgram": "今すぐ更新",

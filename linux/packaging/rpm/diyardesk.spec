@@ -9,7 +9,7 @@
 
 Name:           diyardesk
 Version:        0.4.0
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        Adaptive animated wallpaper that follows desktop icons
 
 License:        GPL-3.0-only
@@ -118,5 +118,11 @@ install -m 755 linux/bin/diyardesk-ctl %{buildroot}%{_bindir}/diyardesk-ctl
 %{_prefix}/lib/deskland/prototype
 
 %changelog
+* Mon Nov 23 2026 KairikiFedora <13278297951@sina.cn> - 0.4.0-3
+- Fix not load translate
+
+* Mon Nov 23 2026 KairikiFedora <13278297951@sina.cn> - 0.4.0-2
+- Update Traslate
+
 * Sun Nov 22 2026 DiyarDesk contributors <adam0307a@users.noreply.github.com> - 0.2.12-1
 - Initial RPM package for DiyarDesk 0.2.12 (Linux host, themes, Plasma/GNOME integration).

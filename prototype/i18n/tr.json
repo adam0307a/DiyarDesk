@@ -14,6 +14,7 @@
     "autostartWarnSw": "DiyarDesk bu kez otomatik başlamadı — {sw} engellemiş olabilir. {sw} uygulamasını açıp başlangıç yöneticisinde DiyarDesk'i İzin Ver olarak ayarlayın.",
     "autostartWarnGeneric": "DiyarDesk bu kez otomatik başlamadı — güvenlik yazılımınız veya sistemin Başlangıç uygulamaları ayarı engellemiş olabilir. Güvenlik yazılımınızın başlangıç yöneticisinden veya Windows Ayarlar → Uygulamalar → Başlangıç üzerinden DiyarDesk'i açın.",
     "gotIt": "Anladım",
+    "close": "Kapat",
     "updateAvailable": "Güncelleme mevcut",
     "updateVersion": "DiyarDesk {version} hazır. Mevcut temanız ve ayarlarınız korunacak.",
     "updateProgram": "Şimdi güncelle",
@@ -642,7 +643,7 @@
       }
     },
     "software-world": {
-      "name": "Software World",
+      "name": "Yazılım Dünyası",
       "desc": "Masaüstü simgelerinin veri akışları, paketler, git dalları ve terminal atmosferiyle etkileşimli düğümlere dönüştüğü canlı yazılım ekosistemi.",
       "groups": [
         "Ekosistem",
@@ -1729,15 +1730,15 @@
           "label": "Küre modu",
           "hint": "9 farklı 3D noktasal ThinkingOrbs animasyonu arasında anında geçiş yapın",
           "options": [
-            "Working",
-            "Searching",
-            "Solving",
-            "Listening",
-            "Connecting",
-            "Weaving",
-            "Composing",
-            "Breathing",
-            "Shaping"
+            "Çalışıyor",
+            "Arıyor",
+            "Çözüyor",
+            "Dinliyor",
+            "Bağlanıyor",
+            "Örüyor",
+            "Oluşturuyor",
+            "Nefes alıyor",
+            "Şekillendiriyor"
           ]
         },
         "autoCycle": {
