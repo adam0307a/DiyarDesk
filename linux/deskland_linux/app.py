@@ -37,6 +37,7 @@ from .config import (
     prototype_dir,
     repo_root,
 )
+from .crash_sentinel import DEFAULT_STABLE_SECONDS, SAFE_FALLBACK_ORDER, StartupCrashSentinel
 from .diagnostics import export_diagnostics
 from .displays import MonitorInfo, compute_span_rect, detect_compositor_monitors
 from .importer import SUPPORTED_EXTS, custom_themes_dir, import_theme_file, remove_custom_theme
@@ -74,6 +75,13 @@ class DesklandHost:
         self.i18n = I18n(prototype_dir(), self.settings.lang, self.log)
         self.custom_themes_dir = custom_themes_dir()
         self.themes = ThemeRegistry(prototype_dir(), self.log, custom_dir=self.custom_themes_dir)
+        self.crash_sentinel = StartupCrashSentinel()
+        self._stable_timeout = 0
+        self.crash_sentinel.apply_to_settings(
+            self.settings,
+            safe_theme_resolver=self._resolve_safe_theme,
+            log=self.log,
+        )
         self.audio_dir = config_dir() / "audio"
         self.server = LocalServer(
             prototype_dir(),
@@ -124,6 +132,12 @@ class DesklandHost:
             "t": "settings",
             "v": dict(self.settings.for_theme(self.settings.theme)),
         }
+
+    def _resolve_safe_theme(self) -> str:
+        for theme_id in SAFE_FALLBACK_ORDER:
+            if self.themes.allowed(theme_id):
+                return theme_id
+        return "meadow"
 
     def choose_theme(self) -> None:
         if self.themes.allowed(self.settings.theme):
@@ -279,9 +293,17 @@ class DesklandHost:
         if self.ipc_server.start():
             self.log.write(f"IPC soketi dinleniyor: {self.ipc_server.socket_path}")
         self._playlist_timeout = GLib.timeout_add_seconds(30, self._tick_playlist)
+        self._stable_timeout = GLib.timeout_add_seconds(
+            DEFAULT_STABLE_SECONDS, self._mark_startup_stable
+        )
         self._welcome()
         if show_settings:
             self.open_settings()
+
+    def _mark_startup_stable(self) -> bool:
+        self._stable_timeout = 0
+        self.crash_sentinel.mark_stable()
+        return False
 
     def _welcome(self) -> None:
         flag = config_dir() / "welcome.shown"
@@ -1119,6 +1141,10 @@ class DesklandHost:
         if self._playlist_timeout:
             GLib.source_remove(self._playlist_timeout)
             self._playlist_timeout = 0
+        if self._stable_timeout:
+            GLib.source_remove(self._stable_timeout)
+            self._stable_timeout = 0
+        self.crash_sentinel.mark_stable()
         self.settings.save()
         if self.settings_window is not None:
             self.settings_window.destroy()
