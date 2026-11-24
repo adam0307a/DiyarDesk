@@ -175,7 +175,11 @@
     "qualityBalanced": "畫質：均衡 (30 FPS)",
     "qualityHigh": "畫質：高效能 (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "使用原生 Rust OpenGL 3.3 Core 引擎執行所有內建桌布主題（關閉後仍保留 WebView2 算繪）"
+    "rustOpenGlTitle": "使用原生 Rust OpenGL 3.3 Core 引擎執行所有內建桌布主題（關閉後仍保留 WebView2 算繪）",
+    "rustOpenGlHint": "此主題運行在本地原生引擎上，無需 WebView2，背景可能仍佔用約 {mb} MB。可點擊下方按鈕釋放。",
+    "webview2Release": "釋放 WebView2 記憶體",
+    "webview2Released": "WebView2 記憶體已釋放（釋放約 {mb} MB）。",
+    "webview2Nothing": "沒有可釋放的 WebView2 記憶體。"
   },
   "host": {
     "traySettings": "設定…",

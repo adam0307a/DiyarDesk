@@ -175,7 +175,11 @@
     "qualityBalanced": "Qualität: Ausgewogen (30 FPS)",
     "qualityHigh": "Qualität: Hoch (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "Alle integrierten Themen über die native Rust-OpenGL-3.3-Engine statt WebView2 ausführen (WebView2 bleibt erhalten)"
+    "rustOpenGlTitle": "Alle integrierten Themen über die native Rust-OpenGL-3.3-Engine statt WebView2 ausführen (WebView2 bleibt erhalten)",
+    "rustOpenGlHint": "Dieses Thema läuft auf der lokalen nativen Engine, WebView2 wird nicht benötigt und hält ggf. noch ~{mb} MB im Hintergrund. Zum Freigeben unten klicken.",
+    "webview2Release": "WebView2-Speicher freigeben",
+    "webview2Released": "WebView2-Speicher freigegeben (~{mb} MB freigegeben).",
+    "webview2Nothing": "Kein WebView2-Speicher zum Freigeben."
   },
   "host": {
     "traySettings": "Einstellungen…",

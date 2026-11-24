@@ -175,7 +175,11 @@
     "qualityBalanced": "品質：バランス (30 FPS)",
     "qualityHigh": "品質：高品質 (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "すべての内蔵テーマを WebView2 の代わりにネイティブ Rust OpenGL 3.3 エンジンで描画します（オフ時は WebView2 を維持）"
+    "rustOpenGlTitle": "すべての内蔵テーマを WebView2 の代わりにネイティブ Rust OpenGL 3.3 エンジンで描画します（オフ時は WebView2 を維持）",
+    "rustOpenGlHint": "このテーマはローカルネイティブエンジンで動作しており、WebView2は不要です。バックグラウンドで約{mb} MBが使用中かもしれません。下のボタンで解放できます。",
+    "webview2Release": "WebView2 メモリを解放",
+    "webview2Released": "WebView2 メモリを解放しました（約 {mb} MB 解放）。",
+    "webview2Nothing": "解放できる WebView2 メモリはありません。"
   },
   "host": {
     "traySettings": "設定…",

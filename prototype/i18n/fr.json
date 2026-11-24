@@ -175,7 +175,11 @@
     "qualityBalanced": "Qualité : Équilibré (30 FPS)",
     "qualityHigh": "Qualité : Élevée (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "Exécute tous les thèmes intégrés sur le moteur natif Rust OpenGL 3.3 au lieu de WebView2 (WebView2 reste intact)"
+    "rustOpenGlTitle": "Exécute tous les thèmes intégrés sur le moteur natif Rust OpenGL 3.3 au lieu de WebView2 (WebView2 reste intact)",
+    "rustOpenGlHint": "Ce thème fonctionne sur le moteur natif, WebView2 n'est donc pas nécessaire et peut encore occuper ~{mb} Mo en arrière-plan. Cliquez ci-dessous pour libérer.",
+    "webview2Release": "Libérer la mémoire WebView2",
+    "webview2Released": "Mémoire WebView2 libérée (~{mb} Mo libérés).",
+    "webview2Nothing": "Aucune mémoire WebView2 à libérer."
   },
   "host": {
     "traySettings": "Paramètres…",

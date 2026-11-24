@@ -175,7 +175,11 @@
     "qualityBalanced": "품질: 균형 (30 FPS)",
     "qualityHigh": "품질: 높음 (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "모든 내장 테마를 WebView2 대신 네이티브 Rust OpenGL 3.3 엔진으로 실행합니다(끄면 WebView2 유지)"
+    "rustOpenGlTitle": "모든 내장 테마를 WebView2 대신 네이티브 Rust OpenGL 3.3 엔진으로 실행합니다(끄면 WebView2 유지)",
+    "rustOpenGlHint": "이 테마는 로컬 네이티브 엔진으로 실행되므로 WebView2가 필요 없으며 백그라운드에서 약 {mb} MB가 사용 중일 수 있습니다. 아래 버튼을 눌러 해제하세요.",
+    "webview2Release": "WebView2 메모리 해제",
+    "webview2Released": "WebView2 메모리가 해제되었습니다(약 {mb} MB 해제).",
+    "webview2Nothing": "해제할 WebView2 메모리가 없습니다."
   },
   "host": {
     "traySettings": "설정…",

@@ -188,7 +188,11 @@
     "qualityBalanced": "画质：均衡 (30 FPS)",
     "qualityHigh": "画质：高性能 (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "使用原生 Rust OpenGL 3.3 Core 引擎运行所有内置壁纸主题（关闭后仍保留 WebView2 渲染）"
+    "rustOpenGlTitle": "使用原生 Rust OpenGL 3.3 Core 引擎运行所有内置壁纸主题（关闭后仍保留 WebView2 渲染）",
+    "rustOpenGlHint": "此主题运行在本地原生引擎上，不需要 WebView2，后台可能仍占用约 {mb} MB。点击下方按钮释放。",
+    "webview2Release": "释放 WebView2 内存",
+    "webview2Released": "WebView2 内存已释放（释放约 {mb} MB）。",
+    "webview2Nothing": "没有可释放的 WebView2 内存。"
   },
   "host": {
     "traySettings": "设置…",
