@@ -3065,6 +3065,7 @@ class WallpaperForm : Form
             var old = web;
             web = null;
             webInitialized = false;
+            hookWebReady = false;
             webBrowserPid = 0;
             try { old.Visible = false; } catch { }
             try { Controls.Remove(old); } catch { }
@@ -3311,6 +3312,7 @@ class WallpaperForm : Form
         allowMoveIcons = false;
         reader.ResetOrbitalPositions();
         uiRectGroups.Clear();
+        RebuildUiRectSnapshot();
         SetUiTextFocus(false);
         uiMouseCaptured = false;
         page = newPage;
@@ -3361,7 +3363,7 @@ class WallpaperForm : Form
         object srcObj;
         string src = data.TryGetValue("src", out srcObj) && srcObj is string ? (string)srcObj : "default";
         object raw;
-        if (!data.TryGetValue("r", out raw) || raw == null) { uiRectGroups.Remove(src); return; }
+        if (!data.TryGetValue("r", out raw) || raw == null) { uiRectGroups.Remove(src); RebuildUiRectSnapshot(); return; }
         var rects = new List<Rectangle>();
         if (kind == "uiRects")
         {
@@ -3387,6 +3389,7 @@ class WallpaperForm : Form
         }
         if (rects.Count > 0) uiRectGroups[src] = rects;
         else uiRectGroups.Remove(src);
+        RebuildUiRectSnapshot();
     }
 
     void OnWallJsonMessage(string msg)
@@ -3529,6 +3532,7 @@ class WallpaperForm : Form
             return;
         }
         var core = curWeb.CoreWebView2;
+        hookWebReady = core != null;
         try
         {
             webBrowserPid = core.BrowserProcessId;
@@ -3662,10 +3666,16 @@ class WallpaperForm : Form
     Native.WinEventDelegate winTrackProc;               // 实时跟踪顶层窗口移动/大小/开关
     int lastWinPollTick;
     readonly Dictionary<string, List<Rectangle>> uiRectGroups = new Dictionary<string, List<Rectangle>>();
+    volatile Rectangle[] uiRectSnapshot = new Rectangle[0];
+    readonly object hookLock = new object();
+    Thread hookThread;
+    uint hookThreadId;
+    IntPtr cachedFormHandle;
     IntPtr mouseHook, keyHook;
     Native.LowLevelMouseProc mouseHookProc;
     Native.LowLevelKeyboardProc keyHookProc;
     volatile bool uiTextFocused;
+    volatile bool hookWebReady;
     IntPtr focusedFgHwnd;
     MediaBridge mediaBridge;
     NativeGlHost glHost;
@@ -3674,34 +3684,60 @@ class WallpaperForm : Form
     bool uiMouseCaptured, desktopMouseDown;
     int lastDownTick = -1, lastClickCount = 1, lastHoverTick;
     Native.POINT lastDownPt;
+    System.Windows.Forms.Timer recoveryTimer;
+    bool recoveryForceGl;
+    string recoveryReason;
+
+    void RebuildUiRectSnapshot()
+    {
+        int total = 0;
+        foreach (var kv in uiRectGroups) total += kv.Value.Count;
+        if (total == 0) { uiRectSnapshot = new Rectangle[0]; return; }
+        var arr = new Rectangle[total];
+        int idx = 0;
+        foreach (var kv in uiRectGroups)
+        {
+            var list = kv.Value;
+            for (int i = 0; i < list.Count; i++) arr[idx++] = list[i];
+        }
+        uiRectSnapshot = arr;
+    }
+
+    void PostToUi(Action action)
+    {
+        if (shuttingDown || IsDisposed) return;
+        try
+        {
+            if (IsHandleCreated) BeginInvoke(action);
+        }
+        catch { }
+    }
 
     bool HasAnyUiRect()
     {
-        foreach (var kv in uiRectGroups)
-            if (kv.Value.Count > 0) return true;
-        return false;
+        Rectangle[] snap = uiRectSnapshot;
+        return snap != null && snap.Length > 0;
     }
 
     bool IsPointInUi(int cssX, int cssY)
     {
-        foreach (var kv in uiRectGroups)
+        Rectangle[] snap = uiRectSnapshot;
+        if (snap == null) return false;
+        for (int i = 0; i < snap.Length; i++)
         {
-            var list = kv.Value;
-            for (int i = 0; i < list.Count; i++)
-            {
-                Rectangle r = list[i];
-                if (cssX >= r.Left && cssX <= r.Right && cssY >= r.Top && cssY <= r.Bottom) return true;
-            }
+            Rectangle r = snap[i];
+            if (cssX >= r.Left && cssX <= r.Right && cssY >= r.Top && cssY <= r.Bottom) return true;
         }
         return false;
     }
 
     bool IsDesktopHit(Native.POINT pt)
     {
+        IntPtr formHwnd = cachedFormHandle;
         IntPtr h = Native.WindowFromPoint(pt);
         for (int depth = 0; depth < 5 && h != IntPtr.Zero; depth++)
         {
-            if (h == Handle || Native.IsChild(Handle, h)) return true;
+            if (formHwnd != IntPtr.Zero && (h == formHwnd || Native.IsChild(formHwnd, h))) return true;
             var sb = new StringBuilder(64);
             Native.GetClassName(h, sb, sb.Capacity);
             string cls = sb.ToString();
@@ -3737,8 +3773,9 @@ class WallpaperForm : Form
 
     IntPtr OnMouseHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        bool glActive = glHost != null && glHost.IsRunning;
-        if (nCode < 0 || shuttingDown || IsDisposed || (!glActive && (web == null || web.CoreWebView2 == null)))
+        var gh = glHost;
+        bool glActive = gh != null && gh.IsRunning;
+        if (nCode < 0 || shuttingDown || IsDisposed || (!glActive && !hookWebReady))
             return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
@@ -3751,7 +3788,7 @@ class WallpaperForm : Form
                 int rcx = (int)Math.Round((rhs.pt.X - screen.X) / rscale);
                 int rcy = (int)Math.Round((rhs.pt.Y - screen.Y) / rscale);
                 if (!HasAnyUiRect() || !IsPointInUi(rcx, rcy) || !IsDesktopHit(rhs.pt))
-                    BeginInvoke((Action)delegate { BlurUiText(); });
+                    PostToUi(delegate { BlurUiText(); });
             }
             return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
         }
@@ -3776,28 +3813,28 @@ class WallpaperForm : Form
                 lastDownPt = hs.pt;
                 uiMouseCaptured = true;
                 int cc = lastClickCount;
-                BeginInvoke((Action)delegate { DispatchWebMouse("mousePressed", cssX, cssY, "left", cc, 1); });
+                PostToUi(delegate { DispatchWebMouse("mousePressed", cssX, cssY, "left", cc, 1); });
                 return (IntPtr)1;
             }
             if (uiTextFocused)
             {
-                BeginInvoke((Action)delegate { BlurUiText(); });
+                PostToUi(delegate { BlurUiText(); });
             }
             if (lastPause != 1 && screen.Contains(hs.pt.X, hs.pt.Y) && IsDesktopHit(hs.pt))
             {
                 desktopMouseDown = true;
-                BeginInvoke((Action)delegate { DispatchWebMouse("mousePressed", cssX, cssY, "left", 1, 1); });
+                PostToUi(delegate { DispatchWebMouse("mousePressed", cssX, cssY, "left", 1, 1); });
             }
         }
         else if (msg == Native.WM_MOUSEMOVE)
         {
             if (uiMouseCaptured)
             {
-                BeginInvoke((Action)delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
+                PostToUi(delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
             }
             else if (desktopMouseDown)
             {
-                BeginInvoke((Action)delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
+                PostToUi(delegate { DispatchWebMouse("mouseMoved", cssX, cssY, "left", 0, 1); });
             }
             else if (lastPause != 1 && screen.Contains(hs.pt.X, hs.pt.Y))
             {
@@ -3809,7 +3846,7 @@ class WallpaperForm : Form
                 {
                     lastHoverTick = now;
                     bool down = desktopMouseDown;
-                    BeginInvoke((Action)delegate { DispatchWebMouse("mouseMoved", cssX, cssY, down ? "left" : "none", 0, down ? 1 : 0); });
+                    PostToUi(delegate { DispatchWebMouse("mouseMoved", cssX, cssY, down ? "left" : "none", 0, down ? 1 : 0); });
                 }
             }
         }
@@ -3819,13 +3856,13 @@ class WallpaperForm : Form
             {
                 uiMouseCaptured = false;
                 int cc = lastClickCount;
-                BeginInvoke((Action)delegate { DispatchWebMouse("mouseReleased", cssX, cssY, "left", cc, 0); });
+                PostToUi(delegate { DispatchWebMouse("mouseReleased", cssX, cssY, "left", cc, 0); });
                 return (IntPtr)1;
             }
             if (desktopMouseDown)
             {
                 desktopMouseDown = false;
-                BeginInvoke((Action)delegate { DispatchWebMouse("mouseReleased", cssX, cssY, "left", 1, 0); });
+                PostToUi(delegate { DispatchWebMouse("mouseReleased", cssX, cssY, "left", 1, 0); });
             }
         }
         return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
@@ -3841,18 +3878,80 @@ class WallpaperForm : Form
         if (uiScale <= 0.1) uiScale = 1.0;
     }
 
+    // Run WH_MOUSE_LL and WH_KEYBOARD_LL on a dedicated lightweight Win32 message-pump
+    // thread so heavy UI-thread transitions (OpenGL <-> WebView2 creation/teardown) never
+    // trigger Windows' 300ms LowLevelHooksTimeout and silently unhook desktop interactions.
     void StartMouseHook()
     {
-        if (mouseHook != IntPtr.Zero) return;
+        cachedFormHandle = IsHandleCreated ? Handle : IntPtr.Zero;
         RefreshUiScale();
+        lock (hookLock)
+        {
+            if (hookThread != null && hookThread.IsAlive) return;
+            var ready = new ManualResetEvent(false);
+            hookThread = new Thread(delegate() { HookThreadLoop(ready); });
+            hookThread.IsBackground = true;
+            hookThread.Name = "DesklandInputHook";
+            hookThread.Start();
+            try { ready.WaitOne(500); } catch { }
+            try { ready.Close(); } catch { }
+        }
+    }
+
+    void HookThreadLoop(ManualResetEvent ready)
+    {
+        Native.MSG msg;
+        Native.PeekMessage(out msg, IntPtr.Zero, 0, 0, Native.PM_NOREMOVE);
+        hookThreadId = Native.GetCurrentThreadId();
         mouseHookProc = OnMouseHook;
+        keyHookProc = OnKeyboardHook;
         mouseHook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, mouseHookProc, Native.GetModuleHandle(null), 0);
+        try { ready.Set(); } catch { }
+
+        try
+        {
+            while (Native.GetMessage(out msg, IntPtr.Zero, 0, 0) > 0)
+            {
+                if (msg.message == Native.WM_APP_SET_KEYHOOK)
+                {
+                    bool enable = msg.wParam != IntPtr.Zero;
+                    if (enable)
+                    {
+                        if (keyHook == IntPtr.Zero)
+                            keyHook = Native.SetWindowsHookEx(Native.WH_KEYBOARD_LL, keyHookProc, Native.GetModuleHandle(null), 0);
+                    }
+                    else
+                    {
+                        if (keyHook != IntPtr.Zero)
+                        {
+                            Native.UnhookWindowsHookEx(keyHook);
+                            keyHook = IntPtr.Zero;
+                        }
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (keyHook != IntPtr.Zero)
+            {
+                Native.UnhookWindowsHookEx(keyHook);
+                keyHook = IntPtr.Zero;
+            }
+            if (mouseHook != IntPtr.Zero)
+            {
+                Native.UnhookWindowsHookEx(mouseHook);
+                mouseHook = IntPtr.Zero;
+            }
+            hookThreadId = 0;
+        }
     }
 
     bool IsDesktopForeground()
     {
+        IntPtr formHwnd = cachedFormHandle;
         IntPtr fg = Native.GetForegroundWindow();
-        if (fg == IntPtr.Zero || fg == Handle || Native.IsChild(Handle, fg)) return true;
+        if (fg == IntPtr.Zero || (formHwnd != IntPtr.Zero && (fg == formHwnd || Native.IsChild(formHwnd, fg)))) return true;
         var sb = new StringBuilder(64);
         Native.GetClassName(fg, sb, sb.Capacity);
         string cls = sb.ToString();
@@ -3883,11 +3982,8 @@ class WallpaperForm : Form
             }
             catch { }
             focusedFgHwnd = Native.GetForegroundWindow();
-            if (keyHook == IntPtr.Zero)
-            {
-                keyHookProc = OnKeyboardHook;
-                keyHook = Native.SetWindowsHookEx(Native.WH_KEYBOARD_LL, keyHookProc, Native.GetModuleHandle(null), 0);
-            }
+            uint tid = hookThreadId;
+            if (tid != 0) Native.PostThreadMessage(tid, Native.WM_APP_SET_KEYHOOK, new IntPtr(1), IntPtr.Zero);
         }
         else
         {
@@ -3906,11 +4002,8 @@ class WallpaperForm : Form
     void StopKeyHook()
     {
         uiTextFocused = false;
-        if (keyHook != IntPtr.Zero)
-        {
-            Native.UnhookWindowsHookEx(keyHook);
-            keyHook = IntPtr.Zero;
-        }
+        uint tid = hookThreadId;
+        if (tid != 0) Native.PostThreadMessage(tid, Native.WM_APP_SET_KEYHOOK, IntPtr.Zero, IntPtr.Zero);
     }
 
     void DispatchWebText(string text)
@@ -4008,8 +4101,9 @@ class WallpaperForm : Form
 
     IntPtr OnKeyboardHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        bool glActive = glHost != null && glHost.IsRunning;
-        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || (!glActive && (web == null || web.CoreWebView2 == null)) || !HasAnyUiRect())
+        var gh = glHost;
+        bool glActive = gh != null && gh.IsRunning;
+        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || (!glActive && !hookWebReady) || !HasAnyUiRect())
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
@@ -4027,7 +4121,7 @@ class WallpaperForm : Form
         IntPtr fgNow = Native.GetForegroundWindow();
         if (!IsDesktopForeground() && (focusedFgHwnd == IntPtr.Zero || fgNow != focusedFgHwnd))
         {
-            BeginInvoke((Action)delegate { BlurUiText(); });
+            PostToUi(delegate { BlurUiText(); });
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
         }
 
@@ -4044,7 +4138,7 @@ class WallpaperForm : Form
 
         if (vk == 0x1B) // Escape
         {
-            BeginInvoke((Action)delegate { BlurUiText(); });
+            PostToUi(delegate { BlurUiText(); });
             return (IntPtr)1;
         }
 
@@ -4053,7 +4147,7 @@ class WallpaperForm : Form
         {
             if (vk == 0x56) // Ctrl+V
             {
-                BeginInvoke((Action)delegate
+                PostToUi(delegate
                 {
                     try
                     {
@@ -4063,10 +4157,10 @@ class WallpaperForm : Form
                 });
                 return (IntPtr)1;
             }
-            if (vk == 0x41) { BeginInvoke((Action)delegate { DispatchWebKey("a", "KeyA", 0x41, 2, null, new[] { "selectAll" }); }); return (IntPtr)1; }
-            if (vk == 0x43) { BeginInvoke((Action)delegate { DispatchWebKey("c", "KeyC", 0x43, 2, null, new[] { "copy" }); }); return (IntPtr)1; }
-            if (vk == 0x58) { BeginInvoke((Action)delegate { DispatchWebKey("x", "KeyX", 0x58, 2, null, new[] { "cut" }); }); return (IntPtr)1; }
-            if (vk == 0x5A) { BeginInvoke((Action)delegate { DispatchWebKey("z", "KeyZ", 0x5A, 2, null, new[] { "undo" }); }); return (IntPtr)1; }
+            if (vk == 0x41) { PostToUi(delegate { DispatchWebKey("a", "KeyA", 0x41, 2, null, new[] { "selectAll" }); }); return (IntPtr)1; }
+            if (vk == 0x43) { PostToUi(delegate { DispatchWebKey("c", "KeyC", 0x43, 2, null, new[] { "copy" }); }); return (IntPtr)1; }
+            if (vk == 0x58) { PostToUi(delegate { DispatchWebKey("x", "KeyX", 0x58, 2, null, new[] { "cut" }); }); return (IntPtr)1; }
+            if (vk == 0x5A) { PostToUi(delegate { DispatchWebKey("z", "KeyZ", 0x5A, 2, null, new[] { "undo" }); }); return (IntPtr)1; }
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
         }
 
@@ -4089,7 +4183,7 @@ class WallpaperForm : Form
         {
             string k = spKey, c = spCode, t = spText;
             int m = mods;
-            BeginInvoke((Action)delegate { DispatchWebKey(k, c, vk, m, t, null); });
+            PostToUi(delegate { DispatchWebKey(k, c, vk, m, t, null); });
             return (IntPtr)1;
         }
 
@@ -4098,7 +4192,7 @@ class WallpaperForm : Form
         if (!string.IsNullOrEmpty(ch))
         {
             string txt = ch;
-            BeginInvoke((Action)delegate { DispatchWebText(txt); });
+            PostToUi(delegate { DispatchWebText(txt); });
             return (IntPtr)1;
         }
 
@@ -4140,30 +4234,106 @@ class WallpaperForm : Form
         try { if (!shuttingDown && IsHandleCreated) BeginInvoke((Action)delegate { PollForeground(); }); } catch { }
     }
 
+    void ScheduleGraphicsRecovery(string reason, bool forceGlRestart, int delayMs)
+    {
+        if (shuttingDown || IsDisposed) return;
+        recoveryReason = reason;
+        if (forceGlRestart) recoveryForceGl = true;
+        if (recoveryTimer == null)
+        {
+            recoveryTimer = new System.Windows.Forms.Timer();
+            recoveryTimer.Tick += delegate
+            {
+                recoveryTimer.Stop();
+                RunGraphicsRecovery();
+            };
+        }
+        recoveryTimer.Stop();
+        recoveryTimer.Interval = Math.Max(200, delayMs);
+        recoveryTimer.Start();
+    }
+
+    void RunGraphicsRecovery()
+    {
+        if (shuttingDown || IsDisposed || !IsHandleCreated) return;
+        bool forceGl = recoveryForceGl;
+        string reason = recoveryReason ?? "SystemEvent";
+        recoveryForceGl = false;
+        recoveryReason = null;
+
+        RefreshUiScale();
+        EnsureWallpaperBounds();
+        EnsureZOrder();
+
+        if (ShouldUseNativeGl(page, themeId))
+        {
+            if (forceGl || glHost == null || !glHost.IsRunning)
+            {
+                Log.Write("Graphics recovery (" + reason + "): refreshing Native OpenGL 3.3 surface");
+                StopNativeGl();
+                StartNativeGl();
+            }
+            else
+            {
+                glHost.Resize((float)uiScale);
+                lastIcons = "";
+                lastPause = -1;
+                PollIcons();
+                PollForeground();
+            }
+            return;
+        }
+
+        if (web != null && !web.IsDisposed)
+        {
+            try { web.Invalidate(true); } catch { }
+            lastIcons = "";
+            lastPause = -1;
+            PollIcons();
+            PollForeground();
+        }
+    }
+
     void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
     {
         if (e.Mode == PowerModes.Suspend) sessionLocked = true;
         else if (e.Mode == PowerModes.Resume) sessionLocked = false;
-        try { if (!shuttingDown && IsHandleCreated) BeginInvoke((Action)delegate { SyncPowerPerf(false); PollForeground(); }); } catch { }
+        PostToUi(delegate
+        {
+            bool prevBattery = lastOnBattery;
+            bool hadPerf = hasPerfSent;
+            SyncPowerPerf(false);
+            PollForeground();
+            if (e.Mode == PowerModes.Resume)
+            {
+                // Re-establish OpenGL/WebView2 surface after sleep/hibernation GPU reset.
+                ScheduleGraphicsRecovery("PowerResume", true, 1200);
+            }
+            else if (e.Mode == PowerModes.StatusChange)
+            {
+                // Hybrid GPU laptops (iGPU <-> dGPU) may switch adapters on AC/battery change.
+                bool onBattery, batterySaver;
+                PowerHelper.QueryPower(out onBattery, out batterySaver);
+                if (!hadPerf || onBattery != prevBattery)
+                    ScheduleGraphicsRecovery(onBattery ? "BatteryMode" : "AcPowerMode", false, 800);
+            }
+        });
     }
 
     void OnDisplaySettingsChanged(object sender, EventArgs e)
     {
-        try
+        PostToUi(delegate
         {
-            if (!shuttingDown && IsHandleCreated)
-            {
-                BeginInvoke((Action)delegate
-                {
-                    RefreshUiScale();
-                    EnsureWallpaperBounds();
-                    EnsureZOrder();
-                    lastIcons = "";
-                    PollIcons();
-                });
-            }
-        }
-        catch { }
+            RefreshUiScale();
+            EnsureWallpaperBounds();
+            EnsureZOrder();
+            if (glHost != null && glHost.IsRunning)
+                glHost.Resize((float)uiScale);
+            else if (ShouldUseNativeGl(page, themeId))
+                ScheduleGraphicsRecovery("DisplayChanged", true, 500);
+            lastIcons = "";
+            PollIcons();
+        });
     }
 
     void SyncPowerPerf(bool force)
@@ -4215,14 +4385,31 @@ class WallpaperForm : Form
     {
         uiMouseCaptured = false;
         desktopMouseDown = false;
+        if (recoveryTimer != null)
+        {
+            try { recoveryTimer.Stop(); recoveryTimer.Dispose(); } catch { }
+            recoveryTimer = null;
+        }
         StopKeyHook();
         SetMediaSubscribed(false);
         StopNativeGl();
-        if (mouseHook != IntPtr.Zero)
+        Thread t;
+        uint tid;
+        lock (hookLock)
         {
-            Native.UnhookWindowsHookEx(mouseHook);
-            mouseHook = IntPtr.Zero;
+            t = hookThread;
+            tid = hookThreadId;
+            hookThread = null;
         }
+        if (tid != 0)
+        {
+            try { Native.PostThreadMessage(tid, Native.WM_QUIT, IntPtr.Zero, IntPtr.Zero); } catch { }
+        }
+        if (t != null && t.IsAlive && t != Thread.CurrentThread)
+        {
+            try { t.Join(500); } catch { }
+        }
+        cachedFormHandle = IntPtr.Zero;
     }
 
     static IntPtr FindClassicWorker()
@@ -4736,6 +4923,7 @@ class WallpaperForm : Form
             HashSet<uint> prePids = pid != 0 ? WebViewProcessGuard.CollectWebViewPidsUnder(new uint[] { pid }) : null;
             try { web.Dispose(); } catch { }
             web = null;
+            hookWebReady = false;
             webBrowserPid = 0;
             if (pid != 0 || (prePids != null && prePids.Count > 0))
                 WebViewProcessGuard.ScheduleTerminateBrowserTree(pid, prePids);
@@ -5230,6 +5418,12 @@ static class Native
     public const uint SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020;
     public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14, WM_MOUSEMOVE = 0x0200, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202, WM_RBUTTONDOWN = 0x0204;
     public const int WM_KEYDOWN = 0x0100, WM_KEYUP = 0x0101, WM_SYSKEYDOWN = 0x0104, WM_SYSKEYUP = 0x0105;
+    public const uint WM_QUIT = 0x0012, WM_APP_SET_KEYHOOK = 0x8001, PM_NOREMOVE = 0x0000;
+    [StructLayout(LayoutKind.Sequential)] public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public POINT pt; }
+    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] public static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+    [DllImport("user32.dll")] public static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+    [DllImport("user32.dll")] public static extern bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);
     public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
     [StructLayout(LayoutKind.Sequential)] public struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData, flags, time; public IntPtr dwExtraInfo; }
