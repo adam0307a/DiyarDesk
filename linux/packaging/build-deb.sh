@@ -6,7 +6,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LINUX=$(CDPATH= cd -- "$HERE/.." && pwd)
 ROOT=$(CDPATH= cd -- "$LINUX/.." && pwd)
-VERSION="0.4.0~linux1"
+VERSION="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'] + '~linux1')" "$ROOT/tools/version.json" 2>/dev/null || echo "0.5.0~linux1")"
 ARCH="all"
 PKG="diyardesk"
 STAGE=$(mktemp -d)
