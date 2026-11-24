@@ -4795,6 +4795,7 @@ class IconReader : IDisposable
     readonly object moveLock = new object();
     readonly AutoResetEvent moveSignal = new AutoResetEvent(false);
     readonly Dictionary<int, Native.POINT> lastMovedPts = new Dictionary<int, Native.POINT>();
+    readonly ShellIconReader shellReader = new ShellIconReader();
     IntPtr listView, proc, mem;
     bool orbitalActive, snapGridWasOn, snapGridDisabled, autoArrangeWasOn, autoArrangeDisabled;
     List<HomeIconInfo> homeIcons;
@@ -5101,6 +5102,16 @@ class IconReader : IDisposable
         lock (sync)
         {
             visible = false;
+            if (!orbitalActive)
+            {
+                IntPtr lv = (listView != IntPtr.Zero && Native.IsWindow(listView)) ? listView : FindListView();
+                if (lv == IntPtr.Zero) return null;
+                listView = lv;
+                visible = Native.IsWindowVisible(lv);
+                if (!visible) return new List<DesktopIcon>();
+                List<DesktopIcon> comIcons;
+                if (shellReader.TryRead(lv, out comIcons)) return comIcons;
+            }
             if (listView == IntPtr.Zero || mem == IntPtr.Zero || !Native.IsWindow(listView)) { if (!Open()) return null; }
             visible = Native.IsWindowVisible(listView);
             var result = new List<DesktopIcon>();
@@ -5176,7 +5187,7 @@ class IconReader : IDisposable
             try { worker.Join(300); } catch { }
         }
         ResetOrbitalPositions();
-        lock (sync) { Close(); }
+        lock (sync) { Close(); shellReader.Dispose(); }
         try { moveSignal.Close(); } catch { }
     }
 }
