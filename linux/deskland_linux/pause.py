@@ -16,6 +16,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .desktop_env import COSMIC_IGNORED_CLASSES, is_cosmic_desktop, parse_lswt_fullscreen
+
 IGNORED_CLASSES = (
     "diyardesk",
     "deskland",
@@ -32,7 +34,7 @@ IGNORED_CLASSES = (
     "polybar",
     "plasmashell",
     "ksmserver",
-)
+) + COSMIC_IGNORED_CLASSES
 
 
 def _run(cmd: list[str], timeout: float = 1.5) -> str | None:
@@ -84,6 +86,10 @@ class PauseMonitor:
                 return self._sway()
             if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
                 return self._hyprland()
+            if is_cosmic_desktop():
+                cosmic_state = self._cosmic()
+                if cosmic_state is not None:
+                    return cosmic_state
             gnome_state = self._gnome_extension()
             if gnome_state is not None:
                 return gnome_state
@@ -97,6 +103,18 @@ class PauseMonitor:
         if os.environ.get("DISPLAY"):
             return self._x11()
         return False
+
+    # ---------------------------------------------------------------- COSMIC (Wayland)
+    def _cosmic(self) -> bool | None:
+        lswt = shutil.which("lswt")
+        if not lswt:
+            return None
+        out = _run([lswt, "-j"])
+        if out is None:
+            out = _run([lswt])
+        if out is None:
+            return None
+        return parse_lswt_fullscreen(out, IGNORED_CLASSES, low_mode=self.low_mode)
 
     # ---------------------------------------------------------------- X11
     def _x11(self) -> bool:

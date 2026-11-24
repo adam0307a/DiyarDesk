@@ -22,6 +22,11 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from .audio import NativeAudioPlayer, resolve_theme_audio_path  # noqa: E402
 from .bridge import BridgeWebView  # noqa: E402
 from .config import config_dir  # noqa: E402
+from .desktop_env import (  # noqa: E402
+    COSMIC_PANEL_INSETS,
+    is_cosmic_desktop,
+    select_wallpaper_backend,
+)
 from .displays import MonitorInfo, detect_compositor_monitors  # noqa: E402
 from .icons import make_adapter  # noqa: E402
 from .mpv_player import MpvVideoBackend, find_theme_video_file  # noqa: E402
@@ -195,6 +200,10 @@ def detect_layer_shell_safe_insets(
     if backend == "gnome-shell":
         # GNOME Shell's top bar (~32px) sits above the wallpaper surface.
         return (36, 0, 0, 0)
+
+    if backend == "layer-shell" and is_cosmic_desktop():
+        # COSMIC's default top panel sits above the background layer.
+        return COSMIC_PANEL_INSETS
 
     if layers_data is None:
         if not os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
@@ -497,35 +506,13 @@ class Wallpaper:
 
     # ---------------------------------------------------------------- surface
     def _select_backend(self, requested: str) -> str:
-        if requested in ("layer-shell", "gnome-shell", "x11", "static", "plasma-plugin"):
-            return requested
-        wayland = bool(os.environ.get("WAYLAND_DISPLAY"))
-        desktop_env = (
-            os.environ.get("XDG_CURRENT_DESKTOP", "")
-            + " "
-            + os.environ.get("DESKTOP_SESSION", "")
-        ).lower()
-        if ("kde" in desktop_env or "plasma" in desktop_env) and _has_plasma_wallpaper_plugin():
-            return "plasma-plugin"
-        if wayland:
-            if "gnome" in desktop_env and has_gnome_wallpaper_extension():
-                return "gnome-shell"
-            # KWin and GNOME Shell (without our extension) keep their own
-            # desktop/containment surface above normal layers and Mutter has no
-            # wlr-layer-shell support. Fall back to static rather than XWayland.
-            if "kde" in desktop_env or "plasma" in desktop_env or "gnome" in desktop_env:
-                return "static"
-            if load_layer_shell() is not None:
-                return "layer-shell"
-            return "static"
-        if os.environ.get("DISPLAY"):
-            # xfdesktop renders both wallpaper and icons inside one opaque
-            # DESKTOP window, so an X11 window either covers icons or is
-            # hidden behind xfdesktop. Use the static xfconf backend instead.
-            if "xfce" in desktop_env:
-                return "static"
-            return "x11"
-        return "static"
+        return select_wallpaper_backend(
+            requested,
+            os.environ,
+            has_plasma_plugin=_has_plasma_wallpaper_plugin(),
+            has_gnome_extension=has_gnome_wallpaper_extension(),
+            has_layer_shell=load_layer_shell() is not None,
+        )
 
     def _ensure_plasma_plugin(self) -> None:
         dbus = "qdbus6" if shutil.which("qdbus6") else "qdbus"
