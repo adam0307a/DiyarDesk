@@ -12,7 +12,7 @@ from typing import Any
 
 APP_NAME = "DiyarDesk"
 APP_ID = "app.deskland.Preview"
-VERSION = "0.5.2-linux.1"
+VERSION = "0.5.3-linux.1"
 
 THEME_DEFAULT = "papercut"
 LANG_DEFAULT = "auto"

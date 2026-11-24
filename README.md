@@ -2,11 +2,11 @@
 
 **Adaptive desktop wallpaper that makes your desktop icons part of the scenery — now powered by a zero-WebView2 native Rust + OpenGL 3.3 Core engine.**
 
-DiyarDesk turns the space around your desktop icons into a living interactive landscape on **Windows**, **Linux** (KDE Plasma 6, GNOME, X11, wlroots Wayland), **macOS**, and **Android Tablets (`sw600dp+`)**. Move, add, or remove an icon and paper-cut arches, snowdrifts, dunes, clouds, aurora glow, AI mascots, or ocean waves reshape smoothly around it — locally in real time, without cloud accounts or telemetry.
+DiyarDesk turns the space around your desktop icons into a living interactive landscape on **Windows**, **Linux** (KDE Plasma 6, GNOME, COSMIC, X11, wlroots Wayland), **macOS**, and **Android Tablets (`sw600dp+`)**. Move, add, or remove an icon and paper-cut arches, snowdrifts, dunes, clouds, aurora glow, AI mascots, or ocean waves reshape smoothly around it — locally in real time, without cloud accounts or telemetry.
 
 > **Upstream attribution:** DiyarDesk is an independent community fork based on [Deskland](https://deskland.app) (`GPL-3.0`), using its own product name (**DiyarDesk**) and original icon, with no official affiliation or endorsement from upstream Deskland. See [NOTICE](NOTICE) and [TRADEMARKS.md](TRADEMARKS.md).
 
-**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.2)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [28 Themes](#included-themes-28-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
+**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.3)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [28 Themes](#included-themes-28-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
 
 <a href="https://www.buymeacoffee.com/adam0307a" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -199,7 +199,7 @@ If you enjoy DiyarDesk, you can support its development:
 
 ## Türkçe
 
-[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.2)](https://github.com/adam0307a/DiyarDesk/releases/latest)
+[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.3)](https://github.com/adam0307a/DiyarDesk/releases/latest)
 
 **Masaüstü simgelerinizi manzaranın bir parçasına dönüştüren uyarlanabilir duvar kağıdı — artık WebView2'siz yerel Rust + OpenGL 3.3 Core motoruyla.**
 

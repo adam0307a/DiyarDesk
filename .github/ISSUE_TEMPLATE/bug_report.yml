@@ -43,7 +43,7 @@ body:
     id: version
     attributes:
       label: DiyarDesk Version & Theme
-      placeholder: "e.g., v0.5.2 — Liquid Glass / Studio Glass / Meadow"
+      placeholder: "e.g., v0.5.3 — Liquid Glass / Studio Glass / Meadow"
     validations:
       required: true
 
