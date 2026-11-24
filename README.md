@@ -10,7 +10,11 @@ DiyarDesk turns the space around your desktop icons into a living interactive la
 
 <a href="https://www.buymeacoffee.com/adam0307a" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
+### Launch Video (v0.5.3)
 
+[![DiyarDesk v0.5.3 Launch Video](docs/images/launch-video-tr.webp)](https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-v0.5.3-Launch-TR.mp4)
+
+> **Watch 1080p Launch Film:** [Türkçe Tanıtım Videosu (1080p MP4)](https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-v0.5.3-Launch-TR.mp4) · [English Launch Video (1080p MP4)](https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-v0.5.3-Launch.mp4)
 
 
 https://github.com/user-attachments/assets/692ecb8c-af4a-4183-8e3e-d79dc563a832
@@ -203,7 +207,9 @@ If you enjoy DiyarDesk, you can support its development:
 
 **Masaüstü simgelerinizi manzaranın bir parçasına dönüştüren uyarlanabilir duvar kağıdı — artık WebView2'siz yerel Rust + OpenGL 3.3 Core motoruyla.**
 
-**DiyarDesk**; **Windows**, **Linux** (KDE Plasma 6, GNOME, X11, wlroots Wayland), **macOS** ve **Android Tabletler (`sw600dp+`)** üzerinde masaüstü simgelerinize ve açık pencerelerinize gerçek zamanlı tepki veren canlı duvar kağıtları sunar. Bir simgeyi taşıdığınızda, eklediğinizde veya sildiğinizde katı' kağıt kemerler, kar yığınları, kum tepeleri, bulutlar, aurora yansımaları, yapay zekâ maskotları ya da sahil dalgaları simgelerin etrafında pürüzsüzce şekillenir. Tamamen yerel çalışır; bulut hesabı veya telemetri içermez.
+**DiyarDesk**; **Windows**, **Linux** (KDE Plasma 6, GNOME, COSMIC, X11, wlroots Wayland), **macOS** ve **Android Tabletler (`sw600dp+`)** üzerinde masaüstü simgelerinize ve açık pencerelerinize gerçek zamanlı tepki veren canlı duvar kağıtları sunar. Bir simgeyi taşıdığınızda, eklediğinizde veya sildiğinizde katı' kağıt kemerler, kar yığınları, kum tepeleri, bulutlar, aurora yansımaları, yapay zekâ maskotları ya da sahil dalgaları simgelerin etrafında pürüzsüzce şekillenir. Tamamen yerel çalışır; bulut hesabı veya telemetri içermez.
+
+> **1080p Tanıtım Videosu (v0.5.3):** [Türkçe Tanıtım Videosunu İzle / İndir (MP4)](https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-v0.5.3-Launch-TR.mp4) · [English Launch Video (MP4)](https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-v0.5.3-Launch.mp4)
 
 > **Yukarı akış atfı:** DiyarDesk, [Deskland](https://deskland.app) (`GPL-3.0`) temel alınarak geliştirilen bağımsız bir topluluk çatalıdır; kendi adını (**DiyarDesk**) ve özgün logosunu kullanır, resmi Deskland sürümü veya onaylı ürünü değildir. Ayrıntılar için [NOTICE](NOTICE) ve [TRADEMARKS.md](TRADEMARKS.md) dosyalarına bakın.
 
