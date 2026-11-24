@@ -559,12 +559,15 @@ void main() {
 }
 "#;
 
-// Exact 1:1 port of Studio Glass Multi-Pass Optical Refractive Glass Shader!
+// Real Apple-grade Liquid Glass Optical Shader for Studio Glass 3D
+// Two-zone crease-free Snell liquid lip + convex dome + 5-band HDR spectral dispersion + dual-lobe sheen
+// Ported 1:1 with prototype/studio-glass-engine.js (inspired by @samasante/liquid-glass, MIT)
 pub const POST_GLASS_FRAG: &str = r#"#version 330 core
 in vec2 v_uv;
 out vec4 fragColor;
 
 #define MAX_GLASS 56
+#define PI 3.14159265359
 
 uniform sampler2D u_scene;
 uniform sampler2D u_blur;
@@ -591,6 +594,10 @@ vec3 acesFilm(vec3 x) {
 
 vec3 gradeScene(vec3 lin) {
     return pow(acesFilm(lin * u_exposure), vec3(1.0 / 2.2));
+}
+
+float safeAsin(float x) {
+    return asin(clamp(x, -1.0, 1.0));
 }
 
 float gHash(vec2 p) {
@@ -642,6 +649,43 @@ float evalOnly(vec2 px) {
     return evalField(px, a, b, idx);
 }
 
+// Smooth O(1) diagonal SDF gradient on the winning card (magnitude -> 0 cleanly on medial axis!)
+vec2 getSmoothGradOne(vec2 px, vec4 rc, vec4 mt, float e) {
+    vec2 e1 = vec2( 1.0,  1.0);
+    vec2 e2 = vec2(-1.0,  1.0);
+    vec2 e3 = vec2( 1.0, -1.0);
+    vec2 e4 = vec2(-1.0, -1.0);
+    return (e1 * evalOne(px + e * e1, rc, mt)
+          + e2 * evalOne(px + e * e2, rc, mt)
+          + e3 * evalOne(px + e * e3, rc, mt)
+          + e4 * evalOne(px + e * e4, rc, mt)) / (4.0 * e);
+}
+
+vec3 sampleLinearLayer(vec2 uv, float blurMix) {
+    vec2 suv = clamp(uv, vec2(0.0015), vec2(0.9985));
+    vec3 sharp = texture(u_scene, suv).rgb;
+    if (blurMix <= 0.005) return sharp;
+    vec3 soft = texture(u_blur, suv).rgb;
+    return mix(sharp, soft, blurMix);
+}
+
+// 5-band white-preserving HDR spectral chromatic dispersion (Red / Amber / Green / Cyan / Blue)
+vec3 sampleSpectralHDR(vec2 uv, vec2 uvOffset, float blurMix, float spread) {
+    if (spread <= 0.001) {
+        return sampleLinearLayer(uv + uvOffset, blurMix);
+    }
+    vec3 cR = sampleLinearLayer(uv + uvOffset * (1.0 - spread * 1.00), blurMix);
+    vec3 cY = sampleLinearLayer(uv + uvOffset * (1.0 - spread * 0.45), blurMix);
+    vec3 cG = sampleLinearLayer(uv + uvOffset,                        blurMix);
+    vec3 cC = sampleLinearLayer(uv + uvOffset * (1.0 + spread * 0.45), blurMix);
+    vec3 cB = sampleLinearLayer(uv + uvOffset * (1.0 + spread * 1.00), blurMix);
+
+    float r = cR.r * 0.62 + cY.r * 0.38;
+    float g = cY.g * 0.24 + cG.g * 0.52 + cC.g * 0.24;
+    float b = cC.b * 0.38 + cB.b * 0.62;
+    return vec3(r, g, b);
+}
+
 void main() {
     vec2 px = vec2(v_uv.x * u_res.x, (1.0 - v_uv.y) * u_res.y);
     vec3 baseCol = gradeScene(texture(u_scene, v_uv).rgb);
@@ -655,21 +699,33 @@ void main() {
     int bestIdx;
     float d = evalField(px, rc, mt, bestIdx);
 
-    // Soft ambient drop shadow behind glass cards
-    float shD = evalOnly(px - vec2(0.0, 8.0));
-    float shadow = exp(-max(shD, 0.0) * 0.055) * 0.36 * smoothstep(-2.0, 4.0, d);
-    vec3 outCol = baseCol * (1.0 - shadow);
+    // Soft glass drop shadow + subtle bright caustic focus rim ONLY outside glass footprint
+    float shD = evalOnly(px - vec2(0.0, 9.0));
+    float shadowMask = smoothstep(-1.5, 2.5, d);
+    float outerShadow = exp(-max(shD, 0.0) / 22.0) * 0.32;
+    float contactAO = exp(-max(shD, 0.0) / 5.5) * 0.20;
+    vec3 outCol = baseCol * (1.0 - clamp(outerShadow + contactAO, 0.0, 0.50) * shadowMask);
+    float causticBand = exp(-pow((shD - 3.5) / 8.0, 2.0)) * 0.075 * shadowMask * clamp(u_refraction, 0.0, 1.4);
+    outCol = min(vec3(1.0), outCol + mix(vec3(1.0), u_rim_tint, 0.55) * causticBand);
 
     if (d < 2.2) {
-        float eps = 1.6;
-        vec2 grad = vec2(
-            evalOnly(px + vec2(eps, 0.0)) - evalOnly(px - vec2(eps, 0.0)),
-            evalOnly(px + vec2(0.0, eps)) - evalOnly(px - vec2(0.0, eps))
-        );
-        float gLen = length(grad);
-        vec2 n2 = gLen > 1e-4 ? (grad / gLen) : vec2(0.0, -1.0);
-
+        float depthPx = max(0.0, -d);
         vec2 localN = (px - rc.xy) / max(vec2(12.0), rc.zw);
+
+        // Tight gradient for crisp specular bevel & directional sheen
+        vec2 gRim = getSmoothGradOne(px, rc, mt, 1.1);
+        float gRimLen = length(gRim);
+        vec2 rimNormalCSS = gRimLen > 1e-4 ? (gRim / gRimLen) : vec2(0.0, -1.0);
+        vec2 rimNormalUV = vec2(rimNormalCSS.x, -rimNormalCSS.y);
+
+        // Dual-kernel crease-free optical gradients (smoothly attenuate to 0 on medial axis!)
+        vec2 gLip = getSmoothGradOne(px, rc, mt, 2.3);
+        float gLipLen = length(gLip);
+        vec2 lipNormalUV = vec2(gLip.x, -gLip.y) * smoothstep(0.40, 0.96, gLipLen);
+
+        vec2 gDome = getSmoothGradOne(px, rc, mt, 7.2);
+        float gDomeLen = length(gDome);
+        vec2 domeNormalUV = vec2(gDome.x, -gDome.y) * smoothstep(0.48, 0.98, gDomeLen);
 
         // Prismatic click burst shockwave inside clicked card
         float pulseOn = (bestIdx == u_pulse_idx && u_pulse_age >= 0.0 && u_pulse_age < 1.75) ? 1.0 : 0.0;
@@ -684,63 +740,84 @@ void main() {
         float ringWave = exp(-pow((ovalR - waveR) / 0.14, 2.0)) * pEnv;
         float ringHalo = exp(-pow((ovalR - waveR) / 0.42, 2.0)) * pEnv;
 
-        // Curved optical glass bezel near card borders + click wave bend
-        float bevelW = min(22.0, min(rc.z, rc.w) * 0.55);
-        float edgeNorm = clamp(-d / max(6.0, bevelW), 0.0, 1.0);
-        float rimCurve = pow(1.0 - edgeNorm, 2.0);
+        // ---- @samasante/liquid-glass two-zone optical profile ----
+        // Zone 1: Tight Snell's Law "Liquid Lip" wrapping the 3D studio sharply around the glass border
+        float minHalf = min(rc.z, rc.w);
+        float lipWidth = min(9.5 + 6.5 * u_refraction, max(6.0, minHalf * 0.48));
+        float uLip = clamp(depthPx / lipWidth, 0.0, 1.0);
+        float sLip = 1.0 - uLip;
+        float lipEnvelope = sLip * sLip * (3.0 - 2.0 * sLip);
+        float ior = 1.38 + 0.42 * u_refraction;
+        float thetaI = safeAsin(pow(sLip, 1.25));
+        float thetaT = safeAsin(sin(thetaI) / ior);
+        float snellSlope = (depthPx >= lipWidth) ? 0.0 : max(0.0, -tan(thetaT - thetaI));
+        float lipBend = snellSlope * lipEnvelope * (1.0 + 1.40 * pow(sLip, 2.4));
 
+        // Zone 2: Silky convex crystal dome (vanishes smoothly toward card center with zero crease)
+        float domeFalloff = exp(-depthPx / (18.0 + 10.0 * u_refraction));
         vec2 waveDir = ovalR > 1e-3 ? normalize(ovalP) : vec2(0.0, 1.0);
-        float refrPx = (7.0 + 18.0 * u_refraction) * rimCurve;
-        vec2 refrUV = vec2(-n2.x * refrPx / u_res.x, n2.y * refrPx / u_res.y)
-                    + vec2(waveDir.x, -waveDir.y) * (ringWave * 16.0 / u_res);
-        float dispPx = (1.4 + 4.2 * u_refraction) * rimCurve + ringWave * 5.5;
-        vec2 dispUV = vec2(-n2.x * dispPx / u_res.x, n2.y * dispPx / u_res.y);
+        vec2 dispPxVec = (lipNormalUV * (lipBend * 48.0) + domeNormalUV * (domeFalloff * 8.5)) * u_refraction
+                       - vec2(waveDir.x, -waveDir.y) * (ringWave * 18.0);
+        vec2 refrUV = -dispPxVec / u_res;
 
-        vec2 uvR = clamp(v_uv + refrUV + dispUV, vec2(0.002), vec2(0.998));
-        vec2 uvG = clamp(v_uv + refrUV,          vec2(0.002), vec2(0.998));
-        vec2 uvB = clamp(v_uv + refrUV - dispUV, vec2(0.002), vec2(0.998));
+        // Crystal-clear unblurred liquid lip -> soft etched frost in interior (keeps 3D room crisp at rim!)
+        float interiorFrost = clamp(u_frost * 0.42, 0.0, 0.82);
+        float blurMix = mix(interiorFrost * 0.06, interiorFrost, smoothstep(0.18, 0.94, uLip));
 
-        vec3 sharpCol = gradeScene(vec3(
-            texture(u_scene, uvR).r,
-            texture(u_scene, uvG).g,
-            texture(u_scene, uvB).b
-        ));
-        vec3 blurCol = gradeScene(vec3(
-            texture(u_blur, uvR).r,
-            texture(u_blur, uvG).g,
-            texture(u_blur, uvB).b
-        ));
+        // 5-band white-preserving HDR chromatic dispersion concentrated cleanly in the bent liquid lip
+        bool isPrism = (mt.y > 0.5 && mt.y < 1.5);
+        float dispScale = (isPrism ? 0.25 : 0.19) * clamp(u_refraction, 0.0, 1.6);
+        float spread = dispScale * (0.05 + 1.48 * lipEnvelope) + ringWave * 0.24;
 
-        float frostAmt = clamp(u_frost * (0.62 + 0.34 * edgeNorm), 0.0, 0.90);
-        vec3 glassCol = mix(sharpCol, blurCol, frostAmt);
+        vec3 glassHdr = sampleSpectralHDR(v_uv, refrUV, blurMix, spread);
+        vec3 glassCol = gradeScene(glassHdr);
 
-        // Dark smoked glass body (Apple/Studio Glass aesthetic)
-        float smoke = mix(0.24, 0.14, mt.z);
-        glassCol = mix(glassCol, vec3(0.07, 0.09, 0.11), smoke);
+        // Delicate crystal glass clarity + subtle dark readability veil (much clearer than old heavy smoke!)
+        float smoke = mix(0.11, 0.05, mt.z);
+        glassCol = mix(glassCol, vec3(0.06, 0.08, 0.10), smoke);
+        // Slight luminous crystal contrast boost
+        float luma = dot(glassCol, vec3(0.2126, 0.7152, 0.0722));
+        glassCol = clamp(mix(vec3(luma), glassCol, 1.08) + vec3(0.018), 0.0, 1.0);
 
-        // Brightness pill fill (mt.y > 1.5)
+        // Brightness pill ivory fill (mt.y > 1.5)
         if (mt.y > 1.5) {
             float localY = clamp(((rc.y + rc.w) - px.y) / max(1.0, rc.w * 2.0), 0.0, 1.0);
             float filled = 1.0 - smoothstep(mt.w - 0.015, mt.w + 0.015, localY);
             vec3 ivory = vec3(0.93, 0.92, 0.88);
-            glassCol = mix(glassCol, ivory, filled * 0.92);
+            glassCol = mix(glassCol, ivory, filled * 0.90);
         }
 
-        // Studio window directional Fresnel & crisp caustic edge highlight
-        vec2 lDir = normalize(u_light_pos * u_res - px);
-        vec3 N3 = normalize(vec3(n2 * rimCurve * 0.9, 0.52));
-        vec3 L3 = normalize(vec3(lDir, 0.65));
-        vec3 V3 = vec3(0.0, 0.0, 1.0);
-        vec3 H3 = normalize(L3 + V3);
+        // Subtle internal total-internal-reflection (TIR) dark micro-contour right inside the outer rim
+        float innerDarkBand = exp(-pow((depthPx - 3.4) / 2.1, 2.0)) * 0.13 * clamp(u_refraction, 0.25, 1.4);
+        glassCol *= (1.0 - innerDarkBand);
 
-        float fresnel = pow(1.0 - max(dot(N3, V3), 0.0), 2.5);
-        float spec = pow(max(dot(N3, H3), 0.0), 28.0);
-        float rimLine = exp(-abs(d + 1.0) * 1.15);
-        float topLeftGlow = smoothstep(0.85, -0.95, localN.x * 0.65 + localN.y * 0.75);
+        // Soft inner rim glow tinted by the studio's real window/lamp light (u_rim_tint)
+        float activeBoost = 1.0 + mt.z * 0.65;
+        float innerGlow = exp(-depthPx / 11.5) * (0.13 + 0.09 * u_refraction) * activeBoost;
+        vec3 glowCol = mix(vec3(1.0), u_rim_tint, 0.45);
+        glassCol = mix(glassCol, max(glassCol, glowCol), clamp(innerGlow * 0.50, 0.0, 0.34));
 
-        float activeBoost = 1.0 + mt.z * 0.75;
-        glassCol += u_rim_tint * (fresnel * (0.24 + 0.24 * u_refraction) * activeBoost + rimLine * (0.26 + 0.34 * mt.z) * (0.55 + 0.65 * topLeftGlow));
-        glassCol += vec3(1.0) * (spec * 0.34 + topLeftGlow * (0.045 + 0.07 * mt.z));
+        // Dual-lobe directional specular sheen aligned dynamically with the 3D studio window light!
+        vec2 toLightCSS = u_light_pos * u_res - px;
+        vec2 lightUV = normalize(vec2(toLightCSS.x, -toLightCSS.y) + vec2(1e-4, 0.0));
+        float keyDir = dot(rimNormalUV, lightUV);
+        float oppDir = dot(rimNormalUV, -lightUV);
+        float primarySheen = pow(max(keyDir, 0.0), 2.4);
+        float secondarySheen = pow(max(oppDir, 0.0), 3.6) * 0.56;
+        float sheenDir = clamp(primarySheen + secondarySheen, 0.0, 1.0);
+
+        float sheenBand = clamp(pow(clamp(1.0 - depthPx / 12.5 + 0.04, 0.0, 1.0), 4.2), 0.0, 1.0);
+        vec3 sheenTint = mix(vec3(1.0), u_rim_tint, 0.26);
+        glassCol = mix(glassCol, min(vec3(1.0), glassCol * 0.55 + sheenTint * 0.82), clamp(sheenDir * sheenBand * (0.72 + 0.18 * mt.z), 0.0, 0.88));
+
+        // Delicate top-arc crystal surface sheen
+        float topArc = smoothstep(0.20, 0.95, keyDir) * exp(-depthPx / 19.0) * (0.08 + 0.06 * mt.z) * smoothstep(0.25, 0.95, gRimLen);
+        glassCol = min(vec3(1.0), glassCol + mix(vec3(1.0), u_rim_tint, 0.35) * topArc);
+
+        // Razor-sharp 1.5px polished crystal outer bevel rim
+        float rimLine = smoothstep(2.1, 0.35, depthPx);
+        float bevelStrength = rimLine * (0.30 + 0.70 * sheenDir) * (0.78 + 0.22 * mt.z);
+        glassCol = mix(glassCol, mix(vec3(1.0), u_rim_tint, 0.22), clamp(bevelStrength, 0.0, 0.92));
 
         // Iridescent prismatic luminous ring + sparkles + chromatic edge bloom on click!
         if (pEnv > 0.004) {
@@ -770,8 +847,8 @@ void main() {
             glassCol += washCol * (cornerWash + rimLine * pEnv * 0.65);
         }
 
-        float mask = 1.0 - smoothstep(-1.1, 1.1, d);
-        outCol = mix(outCol, glassCol, mask);
+        float mask = 1.0 - smoothstep(-1.0, 1.0, d);
+        outCol = mix(outCol, clamp(glassCol, 0.0, 1.0), mask);
     }
 
     fragColor = vec4(clamp(outCol, 0.0, 1.0), 1.0);

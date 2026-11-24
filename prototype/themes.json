@@ -468,7 +468,7 @@
         "label": "Studio Glass · ThreeUI (threeui.com/studio-glass)",
         "url": "https://threeui.com/studio-glass"
       },
-      "thumb": "url(thumbs/studio-glass.webp?v=1b0200a5a8) center / cover no-repeat, radial-gradient(ellipse 40% 62% at 15% 42%, rgba(168,205,188,0.62) 0%, rgba(74,118,104,0.28) 46%, transparent 74%), linear-gradient(124deg, transparent 16%, rgba(255,222,168,0.24) 30%, transparent 45%, rgba(255,212,152,0.18) 56%, transparent 70%), radial-gradient(circle at 84% 66%, rgba(255,196,120,0.52) 0%, transparent 32%), linear-gradient(180deg, #1b302a 0%, #142420 68%, #5b3720 69%, #2c1a0f 100%)",
+      "thumb": "url(thumbs/studio-glass.webp?v=4748e16679) center / cover no-repeat, radial-gradient(ellipse 40% 62% at 15% 42%, rgba(168,205,188,0.62) 0%, rgba(74,118,104,0.28) 46%, transparent 74%), linear-gradient(124deg, transparent 16%, rgba(255,222,168,0.24) 30%, transparent 45%, rgba(255,212,152,0.18) 56%, transparent 70%), radial-gradient(circle at 84% 66%, rgba(255,196,120,0.52) 0%, transparent 32%), linear-gradient(180deg, #1b302a 0%, #142420 68%, #5b3720 69%, #2c1a0f 100%)",
       "groups": [
         {
           "name": "光影与天气",
@@ -3275,10 +3275,10 @@
       "product": "free",
       "credit": {
         "prefix": "光学算法源自",
-        "label": "liquid-glass-studio (github.com/iyinchao/liquid-glass-studio)",
-        "url": "https://github.com/iyinchao/liquid-glass-studio"
+        "label": "@samasante/liquid-glass & liquid-glass-studio",
+        "url": "https://github.com/samasante/liquid-glass"
       },
-      "thumb": "url(thumbs/liquidglass.webp) center / cover no-repeat, linear-gradient(155deg, #0b2545 0%, #2dd4bf 55%, #38bdf8 100%)",
+      "thumb": "url(thumbs/liquidglass.webp?v=aca417fbbc) center / cover no-repeat, linear-gradient(155deg, #0b2545 0%, #2dd4bf 55%, #38bdf8 100%)",
       "thumbSource": "custom",
       "groups": [
         {

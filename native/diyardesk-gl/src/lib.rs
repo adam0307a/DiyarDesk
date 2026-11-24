@@ -1578,6 +1578,68 @@ mod tests {
     }
 
     #[test]
+    fn dump_studio_glass_frame() {
+        let out = std::env::var("DDGL_DUMP").ok();
+        unsafe {
+            let hinst = GetModuleHandleA(std::ptr::null());
+            let cls = b"DiyarGlStudioDump\0";
+            let wc = WNDCLASSA {
+                style: 0x0020,
+                lpfnWndProc: Some(DefWindowProcA),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: hinst,
+                hIcon: std::ptr::null_mut(),
+                hCursor: std::ptr::null_mut(),
+                hbrBackground: std::ptr::null_mut(),
+                lpszMenuName: std::ptr::null(),
+                lpszClassName: cls.as_ptr(),
+            };
+            RegisterClassA(&wc);
+            let w: i32 = std::env::var("DDGL_W").ok().and_then(|v| v.parse().ok()).unwrap_or(1280);
+            let h: i32 = std::env::var("DDGL_H").ok().and_then(|v| v.parse().ok()).unwrap_or(720);
+            let hwnd = CreateWindowExA(
+                0, cls.as_ptr(), b"t\0".as_ptr(), WS_POPUP,
+                0, 0, w, h, std::ptr::null_mut(), std::ptr::null_mut(), hinst, std::ptr::null(),
+            );
+            assert!(!hwnd.is_null());
+            let ctx = WglContext::create(hwnd).expect("WGL context failed");
+            assert!(ctx.make_current());
+            let gl = GlFns::load().expect("OpenGL load failed");
+
+            let mut st = AppState::new(w, h, 1.0);
+            let mut r = Renderer::new(&gl).expect("renderer");
+            st.handle_json(r#"{"t":"theme","id":"studio-glass"}"#);
+            st.handle_json(r#"{"t":"settings","theme":"studio-glass","params":{"showHud":1,"refraction":0.85,"frost":0.5,"iconGlass":0}}"#);
+            st.handle_json(r#"{"t":"icons","vis":true,"r":[[28,36,104,126],[28,144,104,234],[28,252,104,342],[28,360,104,450]]}"#);
+            for _ in 0..30 {
+                st.step(0.033);
+                r.render(&gl, &mut st);
+                (gl.Finish)();
+            }
+            if let Some(out) = out {
+                let mut buf = vec![0u8; (w * h * 4) as usize];
+                (gl.ReadPixels)(
+                    0, 0, w, h, gl::GL_RGBA, gl::GL_UNSIGNED_BYTE,
+                    buf.as_mut_ptr() as *mut std::ffi::c_void,
+                );
+                let mut flipped = vec![0u8; buf.len()];
+                let row = (w * 4) as usize;
+                for y in 0..h as usize {
+                    let src = (h as usize - 1 - y) * row;
+                    flipped[y * row..(y + 1) * row].copy_from_slice(&buf[src..src + row]);
+                }
+                image::save_buffer(
+                    &out, &flipped, w as u32, h as u32, image::ColorType::Rgba8,
+                )
+                .expect("save png");
+            }
+            r.destroy(&gl);
+            DestroyWindow(hwnd);
+        }
+    }
+
+    #[test]
     fn dump_zen_frame() {
         let out = std::env::var("DDGL_DUMP").ok();
         unsafe {
