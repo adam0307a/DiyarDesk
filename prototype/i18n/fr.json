@@ -1955,6 +1955,56 @@
           ]
         }
       }
+    },
+    "ai-mascots": {
+      "name": "Labo Mascottes IA · OpenGL (Rust)",
+      "desc": "Un campus nocturne futuriste de recherche en IA propulsé par Rust natif + OpenGL 3.3 : 8 mascottes IA originales vivent, travaillent et patrouillent autour de postes d'icônes adaptatifs tandis que les allées et les arbres contournent vos fichiers en douceur.",
+      "groups": [
+        "Atmosphère du campus",
+        "Mascottes IA & mouvement",
+        "Performance"
+      ],
+      "params": {
+        "timeMode": {
+          "label": "Heure ambiante",
+          "hint": "Choisir nuit calme, crépuscule, jour doux ou cycle jour/nuit lent",
+          "options": [
+            "Nuit",
+            "Soir",
+            "Jour",
+            "Cycle lent"
+          ]
+        },
+        "lightingGlow": {
+          "label": "Éclairage du campus",
+          "hint": "Intensité douce des fenêtres de laboratoire, terminaux et lampadaires"
+        },
+        "iconHalo": {
+          "label": "Halo des postes",
+          "hint": "Éclairage de contour et lueur des sentiers autour des stations d'icônes adaptatives"
+        },
+        "mascotActivity": {
+          "label": "Activité des mascottes",
+          "hint": "Rythme autonome des 8 mascottes IA qui marchent, travaillent, se rechargent et inspectent les icônes"
+        },
+        "particleDensity": {
+          "label": "Particules & drones",
+          "hint": "Densité des particules de données flottantes et des mini-drones de patrouille"
+        },
+        "parallax": {
+          "label": "Parallaxe subtile",
+          "hint": "Légère parallaxe de profondeur à caméra fixe suivant le curseur"
+        },
+        "quality": {
+          "label": "Qualité",
+          "hint": "Budget de rendu des particules et effets",
+          "options": [
+            "Basse",
+            "Moyenne",
+            "Haute"
+          ]
+        }
+      }
     }
   }
 }

@@ -1955,6 +1955,56 @@
           ]
         }
       }
+    },
+    "ai-mascots": {
+      "name": "KI-Maskottchen-Labor · OpenGL (Rust)",
+      "desc": "Ein ruhiger, futuristischer KI-Forschungscampus bei Nacht, angetrieben von nativem Rust + OpenGL 3.3: 8 originelle KI-Maskottchen leben, arbeiten und patrouillieren rund um adaptive Desktop-Symbol-Arbeitsplätze, während Wege und Bäume sich sanft um deine Dateien schmiegen.",
+      "groups": [
+        "Campus-Atmosphäre",
+        "KI-Maskottchen & Bewegung",
+        "Leistung"
+      ],
+      "params": {
+        "timeMode": {
+          "label": "Tageszeit",
+          "hint": "Ruhige Nacht, Abenddämmerung, gedämpftes Tageslicht oder langsamer Tag-/Nachtzyklus",
+          "options": [
+            "Nacht",
+            "Abend",
+            "Tag",
+            "Langsamer Zyklus"
+          ]
+        },
+        "lightingGlow": {
+          "label": "Campus-Beleuchtung",
+          "hint": "Sanfte Leuchtstärke von Laborfenstern, Terminals und Hoflampen"
+        },
+        "iconHalo": {
+          "label": "Arbeitsplatz-Leuchten",
+          "hint": "Konturlicht und verbundener Pfadschein rund um adaptive Desktop-Symbolstationen"
+        },
+        "mascotActivity": {
+          "label": "Maskottchen-Aktivität",
+          "hint": "Autonomes Tempo der 8 KI-Maskottchen beim Gehen, Arbeiten, Laden und Prüfen der Symbole"
+        },
+        "particleDensity": {
+          "label": "Datenpartikel & Drohnen",
+          "hint": "Dichte schwebender Datenpartikel und kleiner Patrouillendrohnen"
+        },
+        "parallax": {
+          "label": "Sanfte Parallaxe",
+          "hint": "Dezente Tiefenparallaxe der festen Kamera, die dem Mauszeiger folgt"
+        },
+        "quality": {
+          "label": "Qualität",
+          "hint": "Rechenbudget für Partikel und Lichteffekte",
+          "options": [
+            "Niedrig",
+            "Mittel",
+            "Hoch"
+          ]
+        }
+      }
     }
   }
 }

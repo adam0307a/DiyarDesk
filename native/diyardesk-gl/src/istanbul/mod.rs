@@ -150,6 +150,7 @@ impl IstanbulParams {
         p
     }
 
+    #[cfg(test)]
     pub fn from_json_map(map: &serde_json::Map<String, Value>) -> Self {
         let mut p = Self::default();
         for (k, v) in map {

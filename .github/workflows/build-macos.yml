@@ -12,13 +12,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Swift unit tests & build DiyarDesk.app + DMG
         run: bash macos/build-app.sh
 
       - name: Upload macOS DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: diyardesk-macos-arm64
           path: |
