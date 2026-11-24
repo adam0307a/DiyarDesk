@@ -175,7 +175,11 @@
     "qualityBalanced": "Kalite: Dengeli (30 FPS)",
     "qualityHigh": "Kalite: Yüksek (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "Tüm yerleşik duvar kağıdı temalarını WebView2 yerine yerel Rust OpenGL 3.3 Core motorunda çalıştırır (kapatıldığında WebView2 sürümü aynen çalışır)"
+    "rustOpenGlTitle": "Tüm yerleşik duvar kağıdı temalarını WebView2 yerine yerel Rust OpenGL 3.3 Core motorunda çalıştırır (kapatıldığında WebView2 sürümü aynen çalışır)",
+    "rustOpenGlHint": "Bu tema yerel motorda çalışıyor; WebView2'ye gerek yok ve arka planda ~{mb} MB boşta tutuluyor olabilir. Boşaltmak için aşağıdaki düğmeye basın.",
+    "webview2Release": "WebView2 belleğini boşalt",
+    "webview2Released": "WebView2 belleği boşaltıldı (~{mb} MB kazanıldı).",
+    "webview2Nothing": "Boşaltılacak WebView2 belleği yok."
   },
   "host": {
     "traySettings": "Ayarlar…",

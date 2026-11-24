@@ -175,7 +175,11 @@
     "qualityBalanced": "Quality: Balanced (30 FPS)",
     "qualityHigh": "Quality: High (60 FPS)",
     "rustOpenGl": "Rust OpenGL",
-    "rustOpenGlTitle": "Run all built-in wallpaper themes on the native Rust OpenGL 3.3 Core engine instead of WebView2 (keeps WebView2 intact when off)"
+    "rustOpenGlTitle": "Run all built-in wallpaper themes on the native Rust OpenGL 3.3 Core engine instead of WebView2 (keeps WebView2 intact when off)",
+    "rustOpenGlHint": "This theme runs on the native engine, so WebView2 is not needed and may still hold ~{mb} MB in the background. Click below to release it.",
+    "webview2Release": "Release WebView2 memory",
+    "webview2Released": "WebView2 memory released (~{mb} MB freed).",
+    "webview2Nothing": "No WebView2 memory to release."
   },
   "host": {
     "traySettings": "Settings…",

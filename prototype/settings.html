@@ -353,6 +353,10 @@
     <label class="switch-row" id="rustOpenGlRow" data-i18n-title="rustOpenGlTitle" title="Run all built-in wallpaper themes on the native Rust OpenGL 3.3 Core engine instead of WebView2 (keeps WebView2 intact when off)">
       <span data-i18n="rustOpenGl">Rust OpenGL</span><input type="checkbox" id="rustOpenGl"><i class="switch"></i>
     </label>
+    <div class="hint" id="rustOpenGlHint" hidden style="margin:2px 0 10px;padding:8px 10px;border-radius:10px;background:rgba(127,127,127,.12);font-size:12px;line-height:1.5;color:inherit;opacity:.9">
+      <span id="rustOpenGlHintText"></span>
+      <button type="button" class="ghost-btn" id="releaseWebView2Btn" style="margin-left:8px;padding:2px 8px;font-size:12px" data-i18n="webview2Release">WebView2 belleğini boşalt</button>
+    </div>
     <label class="switch-row" data-i18n-title="preferMpvTitle" title="Use hardware-accelerated mpv for imported video wallpapers when installed">
       <span data-i18n="preferMpv">mpv HW video</span><input type="checkbox" id="preferMpv"><i class="switch"></i>
     </label>
@@ -950,9 +954,29 @@ if ($('systemBridge')) {
   if (window.DiyarNative && $('systemBridge').parentElement) $('systemBridge').parentElement.hidden = true;
   $('systemBridge').addEventListener('change', e => send({ t: 'systemBridge', v: !!e.target.checked }));
 }
+function updateRustGlHint(nativeActive, memMb) {
+  const hint = $('rustOpenGlHint');
+  if (!hint) return;
+  if (nativeActive) {
+    const mb = (typeof memMb === 'number' && isFinite(memMb)) ? memMb : 0;
+    hint.hidden = false;
+    const txt = $('rustOpenGlHintText');
+    if (txt) txt.textContent = t('rustOpenGlHint', { mb: mb });
+  } else {
+    hint.hidden = true;
+  }
+}
 if ($('rustOpenGl')) {
   if (window.DiyarNative && $('rustOpenGlRow')) $('rustOpenGlRow').hidden = true;
   $('rustOpenGl').addEventListener('change', e => send({ t: 'rustOpenGl', v: !!e.target.checked }));
+}
+if ($('releaseWebView2Btn')) {
+  $('releaseWebView2Btn').addEventListener('click', () => {
+    const btn = $('releaseWebView2Btn');
+    if (btn) btn.disabled = true;
+    send({ t: 'releaseWebView2' });
+    setTimeout(() => { if (btn) btn.disabled = false; }, 2500);
+  });
 }
 if ($('preferMpv')) {
   if (window.DiyarNative && $('preferMpv').parentElement) $('preferMpv').parentElement.hidden = true;
@@ -1324,6 +1348,7 @@ function onHost(m) {
       if ($('preferMpv')) $('preferMpv').checked = !!m.preferMpv;
       if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.rustOpenGl;
       if ($('rustOpenGlRow') && m.rustGlAvailable === false) $('rustOpenGlRow').hidden = true;
+      updateRustGlHint(!!m.nativeActive, m.webview2MemMb);
       if ($('qualityProfile') && m.qualityProfile) $('qualityProfile').value = m.qualityProfile;
       if ($('playlistMode')) {
         const iv = m.playlistEnabled ? String(m.playlistIntervalMin || 30) : '0';
@@ -1385,6 +1410,11 @@ function onHost(m) {
     if ($('preferMpv')) $('preferMpv').checked = !!m.v;
   } else if (m.t === 'rustOpenGl') {
     if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.v;
+    updateRustGlHint(!!m.nativeActive, m.webview2MemMb);
+  } else if (m.t === 'webview2Released') {
+    const freed = (typeof m.freedMb === 'number') ? m.freedMb : 0;
+    const txt = $('rustOpenGlHintText');
+    if (txt) txt.textContent = freed > 0.1 ? t('webview2Released', { mb: freed }) : t('webview2Nothing');
   } else if (m.t === 'qualityProfile') {
     if ($('qualityProfile') && typeof m.v === 'string') $('qualityProfile').value = m.v;
   } else if (m.t === 'lockscreenSynced') {

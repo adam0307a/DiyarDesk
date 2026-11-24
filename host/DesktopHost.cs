@@ -659,6 +659,55 @@ class HostContext : ApplicationContext
             if (extraForms[i] != null && !extraForms[i].IsDisposed) act(extraForms[i]);
     }
 
+    // 当前所有 WebView2 浏览器进程占用的物理内存（字节）。用于设置界面提示“可回收 ~X MB”。
+    static long WebView2MemBytes()
+    {
+        long total = 0;
+        Process[] procs = null;
+        try { procs = Process.GetProcessesByName("msedgewebview2"); } catch { }
+        if (procs != null)
+        {
+            for (int i = 0; i < procs.Length; i++)
+            {
+                try { total += procs[i].WorkingSet64; } catch { }
+                finally { try { procs[i].Dispose(); } catch { } }
+            }
+        }
+        return total;
+    }
+
+    // 释放壁纸 WebView2 后其浏览器进程异步退出，最多等 ~2 秒让内存真正回落，返回回落后的字节数。
+    static long WaitWebView2Drop(long before, int timeoutMs)
+    {
+        int waited = 0;
+        const int step = 100;
+        long now = before;
+        while (waited < timeoutMs)
+        {
+            now = WebView2MemBytes();
+            if (now < before) break;
+            System.Threading.Thread.Sleep(step);
+            waited += step;
+        }
+        return now;
+    }
+
+    // 设置界面“立即释放 WebView2 内存”按钮：释放壁纸 WebView2（仅在 Rust OpenGL 激活时），
+    // 测量前后内存差并回报给设置窗口展示。
+    void ReleaseWebView2Memory()
+    {
+        long before = WebView2MemBytes();
+        ForEachWallpaper(delegate(WallpaperForm w) { w.ReleaseWallpaperWebView(); });
+        long after = WaitWebView2Drop(before, 2000);
+        long freed = before - after;
+        if (freed < 0) freed = 0;
+        if (settingsWin != null)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "webview2Released",
+                "freedMb", Math.Round(freed / 1048576.0, 1),
+                "afterMb", Math.Round(after / 1048576.0, 1))));
+        Log.Write("WebView2 bellek boşaltma: ~" + Math.Round(freed / 1048576.0, 1) + " MB boşaldı");
+    }
+
     void ShutdownExtraForms()
     {
         for (int i = 0; i < extraForms.Count; i++)
@@ -786,12 +835,15 @@ class HostContext : ApplicationContext
     {
         Settings.RustOpenGl = enabled;
         SaveSoon();
-        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "rustOpenGl", "v", enabled)));
         string page = Themes.PageFor(pageDir, Settings.Theme);
         if (!string.IsNullOrEmpty(page) && Themes.PageExists(pageDir, page))
         {
             ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, Settings.Theme); });
         }
+        bool nativeActive = form != null && form.NativeGlActive;
+        double wvMemMb = Math.Round(WebView2MemBytes() / 1048576.0, 1);
+        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "rustOpenGl", "v", enabled,
+            "nativeActive", nativeActive, "webview2MemMb", wvMemMb)));
         Log.Write(enabled ? "已启用 Rust OpenGL 3.3 全局壁纸引擎" : "已切回 WebView2 壁纸引擎");
     }
 
@@ -1097,6 +1149,8 @@ class HostContext : ApplicationContext
         {
             case "hello":
                 Rectangle scr = Screen.PrimaryScreen.Bounds;
+                bool nativeActive = form != null && form.NativeGlActive;
+                double wvMemMb = Math.Round(WebView2MemBytes() / 1048576.0, 1);
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "init", "theme", Settings.Theme, "params", Settings.Params,
                     "screen", Json.Obj("w", scr.Width, "h", scr.Height), "autostart", IsAutoStart(),
                     "autostartWarn", autoStartSw != null, "autostartSw", autoStartSw ?? "",
@@ -1106,7 +1160,8 @@ class HostContext : ApplicationContext
                     "displayMode", Settings.DisplayMode, "solarSync", Settings.SolarSync, "windowAware", Settings.WindowAware,
                     "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin,
                     "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv,
-                    "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable())));
+                    "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable(),
+                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb)));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -1303,6 +1358,9 @@ class HostContext : ApplicationContext
                 if (m.TryGetValue("v", out glv) && glv is bool) SetRustOpenGl((bool)glv);
                 break;
             }
+            case "releaseWebView2":
+                ReleaseWebView2Memory();
+                break;
             case "syncLockscreen":
                 SyncLockscreen();
                 break;
@@ -1888,13 +1946,23 @@ static class WebViewConfig
         + " --disable-renderer-backgrounding"
         + " --disable-backgrounding-occluded-windows";
 
-    public static CoreWebView2CreationProperties CreateProperties()
-    {
-        var props = new CoreWebView2CreationProperties();
-        props.UserDataFolder = Path.Combine(Log.DataDir, "WebView2");
-        props.AdditionalBrowserArguments = BrowserArguments;
-        return props;
-    }
+        public static CoreWebView2CreationProperties CreateProperties()
+        {
+            var props = new CoreWebView2CreationProperties();
+            props.UserDataFolder = Path.Combine(Log.DataDir, "WebView2");
+            props.AdditionalBrowserArguments = BrowserArguments;
+            return props;
+        }
+
+        // 壁纸用独立的缓存/进程目录：这样进入 Rust OpenGL 模式释放壁纸 WebView2 时，
+        //  its 浏览器进程能独立退出（不受设置窗口共享进程影响），真正把内存还给系统。
+        public static CoreWebView2CreationProperties CreateWallpaperProperties()
+        {
+            var props = new CoreWebView2CreationProperties();
+            props.UserDataFolder = Path.Combine(Log.DataDir, "WebView2-Wall");
+            props.AdditionalBrowserArguments = BrowserArguments;
+            return props;
+        }
 }
 
 static class WebViewSecurity
@@ -2118,7 +2186,7 @@ class SettingsForm : Form
 
 class WallpaperForm : Form
 {
-    readonly WebView2 web;
+    WebView2 web;
     readonly System.Windows.Forms.Timer iconTimer, fgTimer, winTimer;
     readonly string pageDir;
     readonly IconReader reader = new IconReader();
@@ -2173,11 +2241,7 @@ class WallpaperForm : Form
         BackColor = Color.FromArgb(26, 163, 196);
         Text = "DesklandWindow";
 
-        web = new WebView2();
-        web.Bounds = new Rectangle(0, 0, screen.Width, screen.Height);
-        web.Dock = DockStyle.Fill;
-        web.DefaultBackgroundColor = BackColor;
-        web.CreationProperties = WebViewConfig.CreateProperties();
+        web = CreateWebViewControl();
         Controls.Add(web);
 
         iconTimer = new System.Windows.Forms.Timer();
@@ -2189,6 +2253,37 @@ class WallpaperForm : Form
         winTimer = new System.Windows.Forms.Timer();
         winTimer.Interval = lowMode ? 320 : 120;
         winTimer.Tick += delegate { PollWindows(); };
+    }
+
+    WebView2 CreateWebViewControl()
+    {
+        var c = new WebView2();
+        c.Bounds = new Rectangle(0, 0, screen.Width, screen.Height);
+        c.Dock = DockStyle.Fill;
+        c.DefaultBackgroundColor = BackColor;
+        c.CreationProperties = WebViewConfig.CreateWallpaperProperties();
+        return c;
+    }
+
+    public bool NativeGlActive { get { return glHost != null && glHost.IsRunning; } }
+
+    // 进入 Rust OpenGL 模式时调用：隐藏并彻底释放壁纸 WebView2，让其浏览器进程退出、把内存还给系统。
+    // 若当前不在 native 模式（glHost 未运行）则不动，避免破坏 WebView 主题。
+    public void ReleaseWallpaperWebView()
+    {
+        if (shuttingDown || IsDisposed) return;
+        if (glHost == null || !glHost.IsRunning) return;
+        try { if (web != null) web.Visible = false; } catch { }
+        bool hadCore = false;
+        try { hadCore = web != null && web.CoreWebView2 != null; } catch { }
+        if (!hadCore) return;
+        try { Controls.Remove(web); } catch { }
+        try { web.Dispose(); } catch { }
+        web = CreateWebViewControl();
+        web.Visible = false;
+        Controls.Add(web);
+        webInitialized = false;
+        Log.Write("壁纸 WebView2 已释放（Rust OpenGL 模式），其浏览器进程可退出以回收内存");
     }
 
     public uint BrowserProcessId
@@ -2384,11 +2479,7 @@ class WallpaperForm : Form
             return false;
         }
         glHost = host;
-        web.Visible = false;
-        if (web.CoreWebView2 != null)
-        {
-            try { web.CoreWebView2.Navigate("about:blank"); } catch { }
-        }
+        ReleaseWallpaperWebView();
         SyncNativeGlThemeState();
         return true;
     }
