@@ -293,6 +293,63 @@
     background: var(--card); cursor: pointer;
   }
   .color-hex { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .engine-pill {
+    font-size: 10.5px; font-weight: 700; line-height: 1.2; padding: 3px 8px; border-radius: 999px;
+    background: rgba(34, 197, 94, .16); color: #15803d; border: 1px solid rgba(34, 197, 94, .34);
+    white-space: nowrap;
+  }
+  .ram-pill {
+    font-size: 10.5px; font-weight: 700; line-height: 1.2; padding: 3px 8px; border-radius: 999px;
+    background: rgba(14, 165, 233, .14); color: #0369a1; border: 1px solid rgba(14, 165, 233, .32);
+    white-space: nowrap;
+  }
+  .rust-gl-card {
+    display: flex; align-items: center; gap: 14px; margin: 0 0 18px; padding: 14px 18px;
+    border-radius: 16px; cursor: pointer; user-select: none;
+    background: linear-gradient(135deg, rgba(16, 185, 129, .10) 0%, rgba(14, 165, 233, .08) 100%);
+    border: 1.5px solid rgba(16, 185, 129, .36);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, .08);
+    transition: border-color .16s ease, box-shadow .16s ease, transform .14s ease, background .16s ease;
+  }
+  .rust-gl-card[hidden] { display: none; }
+  .rust-gl-card:hover {
+    border-color: rgba(16, 185, 129, .62);
+    box-shadow: 0 8px 26px rgba(16, 185, 129, .15);
+    transform: translateY(-1px);
+  }
+  .rust-gl-icon {
+    flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+    background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+    color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, .28);
+  }
+  .rust-gl-icon svg { width: 20px; height: 20px; display: block; }
+  .rust-gl-copy { flex: 1; min-width: 0; }
+  .rust-gl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .rust-gl-head strong { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; color: var(--text); }
+  .rust-gl-copy p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+  .rust-gl-toggle { flex: none; display: inline-flex; align-items: center; }
+  .rust-gl-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .rust-gl-card .switch {
+    position: relative; width: 44px; height: 24px; border-radius: 999px;
+    background: var(--track); transition: background .16s ease;
+  }
+  .rust-gl-card .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: transform .16s ease;
+  }
+  .rust-gl-card input:checked + .switch { background: linear-gradient(135deg, #10b981, #0ea5e9); }
+  .rust-gl-card input:checked + .switch::after { transform: translateX(20px); }
+  .rust-gl-card input:focus-visible + .switch { box-shadow: 0 0 0 3px rgba(16, 185, 129, .35); }
+  @media (prefers-color-scheme: dark) {
+    .engine-pill { background: rgba(74, 222, 128, .15); color: #86efac; border-color: rgba(74, 222, 128, .32); }
+    .ram-pill { background: rgba(56, 189, 248, .15); color: #7dd3fc; border-color: rgba(56, 189, 248, .32); }
+    .rust-gl-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, .14) 0%, rgba(14, 165, 233, .11) 100%);
+      border-color: rgba(52, 211, 153, .42);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+    }
+    .rust-gl-card:hover { border-color: rgba(52, 211, 153, .72); }
+  }
 </style>
 </head>
 <body>
@@ -350,13 +407,6 @@
     <label class="switch-row" data-i18n-title="systemBridgeTitle" title="Opt-in local CPU/RAM/battery & audio spectrum bridge for reactive themes">
       <span data-i18n="systemBridge">Audio/Sys bridge</span><input type="checkbox" id="systemBridge"><i class="switch"></i>
     </label>
-    <label class="switch-row" id="rustOpenGlRow" data-i18n-title="rustOpenGlTitle" title="Run all built-in wallpaper themes on the native Rust OpenGL 3.3 Core engine instead of WebView2 (keeps WebView2 intact when off)">
-      <span data-i18n="rustOpenGl">Rust OpenGL</span><input type="checkbox" id="rustOpenGl"><i class="switch"></i>
-    </label>
-    <div class="hint" id="rustOpenGlHint" hidden style="margin:2px 0 10px;padding:8px 10px;border-radius:10px;background:rgba(127,127,127,.12);font-size:12px;line-height:1.5;color:inherit;opacity:.9">
-      <span id="rustOpenGlHintText"></span>
-      <button type="button" class="ghost-btn" id="releaseWebView2Btn" style="margin-left:8px;padding:2px 8px;font-size:12px" data-i18n="webview2Release">WebView2 belleğini boşalt</button>
-    </div>
     <label class="switch-row" data-i18n-title="preferMpvTitle" title="Use hardware-accelerated mpv for imported video wallpapers when installed">
       <span data-i18n="preferMpv">mpv HW video</span><input type="checkbox" id="preferMpv"><i class="switch"></i>
     </label>
@@ -386,6 +436,24 @@
         </button>
         <button class="ghost-btn import-help-btn" id="importHelpOpen" data-i18n-title="importHelpBtnTitle" title="查看支持的导入格式与说明" aria-label="Import guide">?</button>
       </div>
+    </div>
+    <label class="rust-gl-card" id="rustOpenGlRow" data-i18n-title="rustOpenGlTitle" title="Fast &amp; lightweight: saves up to 900 MB RAM by switching wallpapers and settings to native Rust OpenGL 3.3 with zero WebView2 processes">
+      <span class="rust-gl-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </span>
+      <div class="rust-gl-copy">
+        <div class="rust-gl-head">
+          <strong data-i18n="rustOpenGl">Rust OpenGL</strong>
+          <span class="engine-pill" data-i18n="rustOpenGlFast">Fast &amp; light</span>
+          <span class="ram-pill" data-i18n="rustOpenGlRam">Up to 900 MB less RAM</span>
+        </div>
+        <p data-i18n="rustOpenGlBannerDesc">Shuts down all WebView2 processes and runs natively on Rust OpenGL 3.3 — saves up to 900 MB RAM with smoother performance.</p>
+      </div>
+      <span class="rust-gl-toggle"><input type="checkbox" id="rustOpenGl"><i class="switch"></i></span>
+    </label>
+    <div class="hint" id="rustOpenGlHint" hidden style="margin:-10px 0 16px;padding:9px 14px;border-radius:12px;background:rgba(127,127,127,.12);font-size:12px;line-height:1.5;color:inherit;opacity:.92">
+      <span id="rustOpenGlHintText"></span>
+      <button type="button" class="ghost-btn" id="releaseWebView2Btn" style="margin-left:8px;padding:3px 10px;font-size:12px" data-i18n="webview2Release">WebView2 belleğini boşalt</button>
     </div>
     <div class="update-notice" id="updateNotice" hidden role="status" aria-live="polite">
       <span class="update-symbol" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V3m0 0L6.5 6.5M10 3l3.5 3.5"/><path d="M4 12v3.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5V12"/></svg></span>

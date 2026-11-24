@@ -193,7 +193,7 @@ static class IpcControlClient
             req["value"] = ParseValue(positional[2]);
             if (positional.Count >= 4) req["theme"] = positional[3];
         }
-        else if ((cmd == "lowmode" || cmd == "solar" || cmd == "window-aware" || cmd == "system-bridge" || cmd == "mpv"))
+        else if ((cmd == "lowmode" || cmd == "solar" || cmd == "window-aware" || cmd == "system-bridge" || cmd == "mpv" || cmd == "rust-gl"))
         {
             req["state"] = positional.Count >= 2 ? positional[1].ToLowerInvariant() : "toggle";
         }

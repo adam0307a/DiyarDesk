@@ -458,6 +458,42 @@ mod tests {
                 (gl.DeleteTextures)(1, &tex);
                 (gl.DeleteFramebuffers)(1, &fbo);
             }
+            if let Ok(out_png) = std::env::var("DIYARDESK_DUMP_QUIETSNOW_PNG") {
+                let dw = 1280i32;
+                let dh = 720i32;
+                let mut st2 = AppState::new(dw, dh, 1.0);
+                st2.set_theme("quietsnow");
+                st2.handle_json(r#"{"t":"settings","v":{"mode":0,"atmosphere":0,"accumulate":2,"windows":1,"cursor":2}}"#);
+                st2.handle_json(r#"{"t":"icons","vis":true,"r":[[51,43,127,133],[51,144,127,234],[51,245,127,335],[192,43,268,133],[192,144,268,234]]}"#);
+                for _ in 0..90 {
+                    st2.step(0.033);
+                }
+                let hwnd2 = CreateWindowExA(
+                    0, cls.as_ptr(), b"dump_qs\0".as_ptr(), WS_POPUP,
+                    0, 0, dw, dh, std::ptr::null_mut(), std::ptr::null_mut(), hinst, std::ptr::null(),
+                );
+                let ctx2 = WglContext::create(hwnd2).expect("WGL ctx2 failed");
+                assert!(ctx2.make_current());
+                let gl2 = GlFns::load().expect("gl2 load");
+                let mut r2 = Renderer::new(&gl2).expect("r2 new");
+                r2.render(&gl2, &mut st2);
+                (gl2.Finish)();
+                let mut pixels = vec![0u8; (dw * dh * 4) as usize];
+                (gl2.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+                (gl2.ReadPixels)(0, 0, dw, dh, gl::GL_RGBA, gl::GL_UNSIGNED_BYTE, pixels.as_mut_ptr() as *mut std::ffi::c_void);
+                let mut flipped = vec![0u8; pixels.len()];
+                let row_bytes = (dw * 4) as usize;
+                for y in 0..(dh as usize) {
+                    let src_off = (dh as usize - 1 - y) * row_bytes;
+                    let dst_off = y * row_bytes;
+                    flipped[dst_off..dst_off + row_bytes].copy_from_slice(&pixels[src_off..src_off + row_bytes]);
+                }
+                image::save_buffer(&out_png, &flipped, dw as u32, dh as u32, image::ColorType::Rgba8).expect("save png");
+                r2.destroy(&gl2);
+                drop(ctx2);
+                DestroyWindow(hwnd2);
+                assert!(ctx.make_current());
+            }
             // Verify 1:1 Claymorph (Q Harfi 3D Claymorphism) GPU rendering across palettes, cradles & qualities
             st.set_theme("claymorph");
             st.handle_json(r#"{"t":"icons","vis":true,"r":[[60,80,136,170],[60,210,136,300],[180,80,256,170],[320,430,400,520]]}"#);

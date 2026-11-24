@@ -53,6 +53,16 @@ using System.Reflection;
 "@
 [IO.File]::WriteAllText($versionSource, $versionText, (New-Object Text.UTF8Encoding($false)))
 $rtDir = [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+$wpfDir = Join-Path $rtDir 'WPF'
+$wpfRefs = @()
+if ((Test-Path -LiteralPath (Join-Path $wpfDir 'PresentationCore.dll')) -and (Test-Path -LiteralPath (Join-Path $wpfDir 'WindowsBase.dll'))) {
+    $wpfRefs = @(
+        '/define:HAS_WIC_WEBP',
+        '/r:System.Xaml.dll',
+        "/r:$(Join-Path $wpfDir 'PresentationCore.dll')",
+        "/r:$(Join-Path $wpfDir 'WindowsBase.dll')"
+    )
+}
 $winRtRefs = @()
 $winRtDll = Join-Path $rtDir 'System.Runtime.WindowsRuntime.dll'
 $winMeta = Join-Path $env:WINDIR 'System32\WinMetadata'
@@ -73,9 +83,10 @@ if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $
     /out:"$bin\Deskland.exe" `
     /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
     /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
+    @wpfRefs `
     @winRtRefs `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
-    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$root\NativeGlHost.cs" "$versionSource"
+    "$root\DesktopHost.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$root\NativeGlHost.cs" "$root\NativeSettingsForm.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force

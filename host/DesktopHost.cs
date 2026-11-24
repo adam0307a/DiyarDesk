@@ -484,7 +484,11 @@ static class I18n
     // 增加语言时同步设置页 LANGS 与体验版导出的语言列表。
     public static readonly string[] Supported = { "zh-CN", "zh-TW", "en", "tr", "de", "fr", "ja", "ko" };
     public static string Code = "zh-CN", Sys = "en";     // 现在用的语言；"跟随系统"时会用的语言
+    static Dictionary<string, object> curRoot, enRoot, zhRoot;
     static Dictionary<string, object> cur, en, zh;
+    static Dictionary<string, object> curUi, enUi, zhUi;
+    static Dictionary<string, object> curThemes, enThemes;
+    static string lastPageDir;
 
     public static string FromCulture(System.Globalization.CultureInfo c)
     {
@@ -495,35 +499,167 @@ static class I18n
         return n.StartsWith("zh") ? "zh-CN" : "en";       // 繁体中文还没做：先用简体
     }
 
+    static Dictionary<string, object> Sub(Dictionary<string, object> root, string key)
+    {
+        object o;
+        return root != null && root.TryGetValue(key, out o) ? o as Dictionary<string, object> : null;
+    }
+
     public static void Load(string pageDir, string setting)
     {
+        lastPageDir = pageDir;
         Sys = FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
         Code = Array.IndexOf(Supported, setting) >= 0 ? setting : Sys;
-        zh = Read(pageDir, "zh-CN");
-        en = Read(pageDir, "en");
-        cur = Code == "zh-CN" ? zh : Code == "en" ? en : Read(pageDir, Code);
+        zhRoot = ReadRoot(pageDir, "zh-CN");
+        enRoot = ReadRoot(pageDir, "en");
+        curRoot = Code == "zh-CN" ? zhRoot : Code == "en" ? enRoot : ReadRoot(pageDir, Code);
+        zh = Sub(zhRoot, "host"); en = Sub(enRoot, "host"); cur = Sub(curRoot, "host");
+        zhUi = Sub(zhRoot, "ui"); enUi = Sub(enRoot, "ui"); curUi = Sub(curRoot, "ui");
+        enThemes = Sub(enRoot, "themes"); curThemes = Sub(curRoot, "themes");
         Log.Write("界面语言：" + Code + "（设置：" + setting + "，系统：" + Sys + "）");
     }
 
-    static Dictionary<string, object> Read(string pageDir, string code)
+    static Dictionary<string, object> ReadRoot(string pageDir, string code)
     {
         try
         {
-            var root = Json.Parse(File.ReadAllText(Path.Combine(Path.Combine(pageDir, "i18n"), code + ".json"), Encoding.UTF8)) as Dictionary<string, object>;
-            object h;
-            return root != null && root.TryGetValue("host", out h) ? h as Dictionary<string, object> : null;
+            return Json.Parse(File.ReadAllText(Path.Combine(Path.Combine(pageDir, "i18n"), code + ".json"), Encoding.UTF8)) as Dictionary<string, object>;
         }
         catch (Exception ex) { Log.Write("读取语言文件失败（" + code + "）：" + ex.Message); return null; }
     }
 
-    // 取一句话：当前语言 → 英文 → 简体中文；{名字} 换成后面成对给的值
+    public static string LangDisplayName(string code)
+    {
+        if (string.IsNullOrEmpty(code) || code == "auto")
+        {
+            string sysName = LangDisplayName(Sys);
+            return Ui("langAutoWith", "name", sysName);
+        }
+        if (!string.IsNullOrEmpty(lastPageDir))
+        {
+            var r = code == "zh-CN" ? zhRoot : (code == "en" ? enRoot : (code == Code ? curRoot : ReadRoot(lastPageDir, code)));
+            object n;
+            if (r != null && r.TryGetValue("name", out n) && n is string && !string.IsNullOrEmpty((string)n))
+                return (string)n;
+        }
+        return code;
+    }
+
+    static string FormatTemplate(string str, string[] kv)
+    {
+        for (int i = 0; i + 1 < kv.Length; i += 2) str = str.Replace("{" + kv[i] + "}", kv[i + 1]);
+        return str;
+    }
+
+    // 取一句话（host 表）：当前语言 → 英文 → 简体中文；{名字} 换成后面成对给的值
     public static string T(string key, params string[] kv)
     {
         object v = null;
         bool found = (cur != null && cur.TryGetValue(key, out v)) || (en != null && en.TryGetValue(key, out v)) || (zh != null && zh.TryGetValue(key, out v));
-        string str = found ? (v as string ?? key) : key;
-        for (int i = 0; i + 1 < kv.Length; i += 2) str = str.Replace("{" + kv[i] + "}", kv[i + 1]);
-        return str;
+        return FormatTemplate(found ? (v as string ?? key) : key, kv);
+    }
+
+    // 取界面文本（ui 表）：当前语言 → 英文 → 简体中文
+    public static string Ui(string key, params string[] kv)
+    {
+        object v = null;
+        bool found = (curUi != null && curUi.TryGetValue(key, out v)) || (enUi != null && enUi.TryGetValue(key, out v)) || (zhUi != null && zhUi.TryGetValue(key, out v));
+        return FormatTemplate(found ? (v as string ?? key) : key, kv);
+    }
+
+    static Dictionary<string, object> ThemeEntry(Dictionary<string, object> map, string id)
+    {
+        object o;
+        return map != null && !string.IsNullOrEmpty(id) && map.TryGetValue(id, out o) ? o as Dictionary<string, object> : null;
+    }
+
+    static string ThemeStr(string id, string field, string fallback)
+    {
+        if (Code == "zh-CN") return fallback ?? "";
+        object v;
+        var ce = ThemeEntry(curThemes, id);
+        if (ce != null && ce.TryGetValue(field, out v) && v is string && !string.IsNullOrEmpty((string)v)) return (string)v;
+        var ee = ThemeEntry(enThemes, id);
+        if (ee != null && ee.TryGetValue(field, out v) && v is string && !string.IsNullOrEmpty((string)v)) return (string)v;
+        return fallback ?? "";
+    }
+
+    public static string ThemeName(string id, string fallback) { return ThemeStr(id, "name", fallback); }
+    public static string ThemeDesc(string id, string fallback) { return ThemeStr(id, "desc", fallback); }
+
+    static object[] AsArray(object raw)
+    {
+        var arr = raw as object[];
+        if (arr != null) return arr;
+        var al = raw as System.Collections.ArrayList;
+        return al != null ? al.ToArray() : null;
+    }
+
+    public static string ThemeGroup(string id, int idx, string fallback)
+    {
+        if (Code == "zh-CN" || idx < 0) return fallback ?? "";
+        object raw;
+        var ce = ThemeEntry(curThemes, id);
+        if (ce != null && ce.TryGetValue("groups", out raw))
+        {
+            var arr = AsArray(raw);
+            if (arr != null && idx < arr.Length && arr[idx] is string && !string.IsNullOrEmpty((string)arr[idx]))
+                return (string)arr[idx];
+        }
+        var ee = ThemeEntry(enThemes, id);
+        if (ee != null && ee.TryGetValue("groups", out raw))
+        {
+            var arr = AsArray(raw);
+            if (arr != null && idx < arr.Length && arr[idx] is string && !string.IsNullOrEmpty((string)arr[idx]))
+                return (string)arr[idx];
+        }
+        return fallback ?? "";
+    }
+
+    static Dictionary<string, object> ParamEntry(Dictionary<string, object> map, string id, string key)
+    {
+        var te = ThemeEntry(map, id);
+        if (te == null) return null;
+        object po;
+        if (!te.TryGetValue("params", out po)) return null;
+        var pd = po as Dictionary<string, object>;
+        object ko;
+        return pd != null && pd.TryGetValue(key, out ko) ? ko as Dictionary<string, object> : null;
+    }
+
+    static string ParamStr(string id, string key, string field, string fallback)
+    {
+        if (Code == "zh-CN") return fallback ?? "";
+        object v;
+        var cp = ParamEntry(curThemes, id, key);
+        if (cp != null && cp.TryGetValue(field, out v) && v is string && !string.IsNullOrEmpty((string)v)) return (string)v;
+        var ep = ParamEntry(enThemes, id, key);
+        if (ep != null && ep.TryGetValue(field, out v) && v is string && !string.IsNullOrEmpty((string)v)) return (string)v;
+        return fallback ?? "";
+    }
+
+    public static string ThemeParamLabel(string id, string key, string fallback) { return ParamStr(id, key, "label", fallback); }
+    public static string ThemeParamHint(string id, string key, string fallback) { return ParamStr(id, key, "hint", fallback); }
+
+    public static string ThemeParamOption(string id, string key, int idx, string fallback)
+    {
+        if (Code == "zh-CN" || idx < 0) return fallback ?? "";
+        object raw;
+        var cp = ParamEntry(curThemes, id, key);
+        if (cp != null && cp.TryGetValue("options", out raw))
+        {
+            var arr = AsArray(raw);
+            if (arr != null && idx < arr.Length && arr[idx] is string && !string.IsNullOrEmpty((string)arr[idx]))
+                return (string)arr[idx];
+        }
+        var ep = ParamEntry(enThemes, id, key);
+        if (ep != null && ep.TryGetValue("options", out raw))
+        {
+            var arr = AsArray(raw);
+            if (arr != null && idx < arr.Length && arr[idx] is string && !string.IsNullOrEmpty((string)arr[idx]))
+                return (string)arr[idx];
+        }
+        return fallback ?? "";
     }
 }
 
@@ -538,7 +674,7 @@ class HostContext : ApplicationContext
 
     readonly string pageDir;
     readonly NotifyIcon tray;
-    readonly MenuItem pauseItem, lowModeItem, autoStartItem, settingsItem, reloadItem, exitItem;
+    readonly MenuItem pauseItem, lowModeItem, rustGlItem, autoStartItem, settingsItem, reloadItem, exitItem;
     readonly System.Windows.Forms.Timer watch;
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
@@ -553,6 +689,7 @@ class HostContext : ApplicationContext
     readonly Control uiInvoker = new Control();
     IpcControlServer ipcServer;
     SettingsForm settingsWin;
+    NativeSettingsForm nativeSettingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
     DateTime lastPlaylistSwitch = DateTime.UtcNow, lastEnvPush = DateTime.MinValue;
     string lastEnvJson = "";
@@ -587,6 +724,9 @@ class HostContext : ApplicationContext
         });
         lowModeItem = new MenuItem(I18n.T("trayLowMode"), delegate { SetLowMode(!Settings.LowMode); });
         lowModeItem.Checked = Settings.LowMode;
+        rustGlItem = new MenuItem(I18n.Ui("rustOpenGl"), delegate { SetRustOpenGl(!Settings.RustOpenGl); });
+        rustGlItem.Checked = Settings.RustOpenGl && NativeGlHost.IsAvailable();
+        rustGlItem.Enabled = NativeGlHost.IsAvailable();
         autoStartItem = new MenuItem(I18n.T("trayAutostart"), delegate { SetAutoStart(!autoStartItem.Checked); });
         autoStartItem.Checked = IsAutoStart();
         if (autoStartItem.Checked && AutoStartValue() != "")
@@ -614,6 +754,7 @@ class HostContext : ApplicationContext
             settingsItem,
             pauseItem,
             lowModeItem,
+            rustGlItem,
             reloadItem = new MenuItem(I18n.T("trayReload"), delegate { if (form != null) form.Reload(); }),
             autoStartItem,
             new MenuItem("-"),
@@ -641,6 +782,7 @@ class HostContext : ApplicationContext
         settingsItem.Text = I18n.T("traySettings");
         pauseItem.Text = I18n.T("trayPause");
         lowModeItem.Text = I18n.T("trayLowMode");
+        if (rustGlItem != null) rustGlItem.Text = I18n.Ui("rustOpenGl");
         reloadItem.Text = I18n.T("trayReload");
         autoStartItem.Text = I18n.T("trayAutostart");
         exitItem.Text = I18n.T("trayExit");
@@ -659,21 +801,10 @@ class HostContext : ApplicationContext
             if (extraForms[i] != null && !extraForms[i].IsDisposed) act(extraForms[i]);
     }
 
-    // 当前所有 WebView2 浏览器进程占用的物理内存（字节）。用于设置界面提示“可回收 ~X MB”。
+    // 仅统计 DiyarDesk 自身拥有的 WebView2 进程树占用的物理内存（不计入系统其他应用）。
     static long WebView2MemBytes()
     {
-        long total = 0;
-        Process[] procs = null;
-        try { procs = Process.GetProcessesByName("msedgewebview2"); } catch { }
-        if (procs != null)
-        {
-            for (int i = 0; i < procs.Length; i++)
-            {
-                try { total += procs[i].WorkingSet64; } catch { }
-                finally { try { procs[i].Dispose(); } catch { } }
-            }
-        }
-        return total;
+        return WebViewProcessGuard.OwnWebView2MemBytes();
     }
 
     // 释放壁纸 WebView2 后其浏览器进程异步退出，最多等 ~2 秒让内存真正回落，返回回落后的字节数。
@@ -718,6 +849,12 @@ class HostContext : ApplicationContext
         extraForms.Clear();
     }
 
+    void SyncNativeSettingsGlobals()
+    {
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.SyncGlobalControlsFromSettings();
+    }
+
     void SetLowMode(bool enabled)
     {
         Settings.LowMode = enabled;
@@ -726,6 +863,7 @@ class HostContext : ApplicationContext
         SaveSoon();
         ForEachWallpaper(delegate(WallpaperForm w) { w.SetLowMode(enabled); });
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "lowMode", "v", enabled)));
+        SyncNativeSettingsGlobals();
         Log.Write(enabled ? "已开启低功耗模式（Low Mode）" : "已关闭低功耗模式");
     }
 
@@ -735,6 +873,7 @@ class HostContext : ApplicationContext
         SaveSoon();
         ForEachWallpaper(delegate(WallpaperForm w) { w.SetDisableAutoPause(enabled); });
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "disableAutoPause", "v", enabled)));
+        SyncNativeSettingsGlobals();
         Log.Write(enabled ? "已关闭自动暂停（最大化/全屏保持运行）" : "已开启自动暂停");
     }
 
@@ -755,6 +894,7 @@ class HostContext : ApplicationContext
         }
         StartForm();
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "displayMode", "v", mode)));
+        SyncNativeSettingsGlobals();
         Log.Write("多屏显示模式已切换为：" + mode);
     }
 
@@ -774,6 +914,7 @@ class HostContext : ApplicationContext
         SaveSoon();
         PushEnvironment(true);
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "solarSync", "v", enabled)));
+        SyncNativeSettingsGlobals();
         Log.Write(enabled ? "已开启昼夜节律同步（Solar Sync）" : "已关闭昼夜节律同步");
     }
 
@@ -782,6 +923,7 @@ class HostContext : ApplicationContext
         Settings.WindowAware = enabled;
         SaveSoon();
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "windowAware", "v", enabled)));
+        SyncNativeSettingsGlobals();
         Log.Write(enabled ? "已开启窗口感知场景（Window-Aware）" : "已关闭窗口感知场景");
     }
 
@@ -798,6 +940,7 @@ class HostContext : ApplicationContext
         SaveSoon();
         if (settingsWin != null)
             settingsWin.Post(Json.Stringify(Json.Obj("t", "playlistState", "enabled", Settings.PlaylistEnabled, "intervalMin", Settings.PlaylistIntervalMin)));
+        SyncNativeSettingsGlobals();
     }
 
     void SyncMpvVideo()
@@ -833,18 +976,83 @@ class HostContext : ApplicationContext
 
     void SetRustOpenGl(bool enabled)
     {
+        bool glAvailable = NativeGlHost.IsAvailable();
+        if (enabled && !glAvailable) enabled = false;
         Settings.RustOpenGl = enabled;
+        if (rustGlItem != null) rustGlItem.Checked = enabled;
+
+        if (enabled && !WallpaperForm.IsNativeGlTheme(Settings.Theme))
+        {
+            string fallback = Themes.FirstReadyBuiltIn(pageDir);
+            if (!WallpaperForm.IsNativeGlTheme(fallback)) fallback = "papercut";
+            Log.Write("Rust OpenGL aktif: özel WebView temasından yerleşik OpenGL temasına geçildi (" + Settings.Theme + " -> " + fallback + ")");
+            Settings.Theme = fallback;
+        }
         SaveSoon();
+
         string page = Themes.PageFor(pageDir, Settings.Theme);
         if (!string.IsNullOrEmpty(page) && Themes.PageExists(pageDir, page))
         {
             ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, Settings.Theme); });
         }
-        bool nativeActive = form != null && form.NativeGlActive;
-        double wvMemMb = Math.Round(WebView2MemBytes() / 1048576.0, 1);
-        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "rustOpenGl", "v", enabled,
-            "nativeActive", nativeActive, "webview2MemMb", wvMemMb)));
-        Log.Write(enabled ? "已启用 Rust OpenGL 3.3 全局壁纸引擎" : "已切回 WebView2 壁纸引擎");
+
+        if (enabled)
+        {
+            // Defer switching SettingsForm -> NativeSettingsForm to the next message-loop tick
+            // so WebView2's WebMessageReceived callback unwinds cleanly before disposing itself.
+            bool reopenNative = (settingsWin != null && !settingsWin.IsDisposed)
+                || (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed);
+            uiInvoker.BeginInvoke((MethodInvoker)delegate
+            {
+                if (exiting || !Settings.RustOpenGl) return;
+                Rectangle? prevBounds = null;
+                if (settingsWin != null && !settingsWin.IsDisposed)
+                {
+                    if (settingsWin.WindowState == FormWindowState.Normal) prevBounds = settingsWin.Bounds;
+                    var oldWeb = settingsWin;
+                    settingsWin = null;
+                    try { oldWeb.DisposeWebViewTree(); } catch { }
+                    try { oldWeb.Close(); } catch { }
+                    try { oldWeb.Dispose(); } catch { }
+                }
+                // Guarantee ALL DiyarDesk WebView2 processes (wallpaper + settings) terminate.
+                WebViewProcessGuard.ScheduleTerminateAllOwn("Rust OpenGL etkinleştirildi");
+                if (reopenNative)
+                {
+                    OpenNativeSettings(prevBounds);
+                }
+            });
+            Log.Write("Rust OpenGL 3.3 modu etkinleştirildi: tüm DiyarDesk WebView2 süreçleri sonlandırılıyor");
+        }
+        else
+        {
+            bool reopenWeb = (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed);
+            if (reopenWeb)
+            {
+                uiInvoker.BeginInvoke((MethodInvoker)delegate
+                {
+                    if (exiting || Settings.RustOpenGl) return;
+                    Rectangle? prevBounds = null;
+                    if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                    {
+                        if (nativeSettingsWin.WindowState == FormWindowState.Normal) prevBounds = nativeSettingsWin.Bounds;
+                        var oldNat = nativeSettingsWin;
+                        nativeSettingsWin = null;
+                        try { oldNat.Close(); } catch { }
+                        try { oldNat.Dispose(); } catch { }
+                    }
+                    OpenWebSettings(prevBounds);
+                });
+            }
+            else if (settingsWin != null && !settingsWin.IsDisposed)
+            {
+                bool nativeActive = form != null && form.NativeGlActive;
+                double wvMemMb = Math.Round(WebView2MemBytes() / 1048576.0, 1);
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "rustOpenGl", "v", false,
+                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb)));
+            }
+            Log.Write("WebView2 duvar kağıdı motoruna geri dönüldü");
+        }
     }
 
     void SyncLockscreen()
@@ -911,9 +1119,10 @@ class HostContext : ApplicationContext
         Settings.Theme = id;
         lastPlaylistSwitch = DateTime.UtcNow;
         SaveSoon();
-        ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page); });
+        ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, id); });
         SyncMpvVideo();
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "themeChanged", "id", id)));
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed) nativeSettingsWin.SelectThemeUi(id);
         Log.Write("切换主题：" + id);
         return true;
     }
@@ -946,17 +1155,22 @@ class HostContext : ApplicationContext
         string cmd = (req.TryGetValue("cmd", out cmdObj) && cmdObj is string) ? ((string)cmdObj).Trim().ToLowerInvariant() : "";
         if (cmd == "status")
         {
+            int wvCount = WebViewProcessGuard.OwnWebView2ProcessCount();
             return Json.Obj(
                 "ok", true,
                 "theme", Settings.Theme,
                 "paused", manualPause,
                 "lowMode", Settings.LowMode,
+                "rustOpenGl", Settings.RustOpenGl,
+                "ownWebView2Count", wvCount,
+                "nativeSettingsOpen", nativeSettingsWin != null && !nativeSettingsWin.IsDisposed,
+                "webSettingsOpen", settingsWin != null && !settingsWin.IsDisposed,
                 "displayMode", Settings.DisplayMode,
                 "solarSync", Settings.SolarSync,
                 "windowAware", Settings.WindowAware,
                 "playlistEnabled", Settings.PlaylistEnabled,
                 "playlistIntervalMin", Settings.PlaylistIntervalMin,
-                "message", "theme=" + Settings.Theme + " paused=" + manualPause + " lowMode=" + Settings.LowMode + " displayMode=" + Settings.DisplayMode);
+                "message", "theme=" + Settings.Theme + " rustOpenGl=" + Settings.RustOpenGl + " ownWebView2=" + wvCount + " nativeSettings=" + (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed));
         }
         if (cmd == "setwp")
         {
@@ -1060,6 +1274,13 @@ class HostContext : ApplicationContext
             SetPreferMpv(target);
             return Json.Obj("ok", true, "preferMpv", target, "message", "preferMpv=" + target);
         }
+        if (cmd == "rust-gl")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            bool target = st == "toggle" ? !Settings.RustOpenGl : st == "on";
+            SetRustOpenGl(target);
+            return Json.Obj("ok", true, "rustOpenGl", Settings.RustOpenGl, "message", "rustOpenGl=" + Settings.RustOpenGl);
+        }
         if (cmd == "lockscreen-sync")
         {
             SyncLockscreen();
@@ -1077,10 +1298,57 @@ class HostContext : ApplicationContext
     public void OpenSettings()
     {
         if (exiting) return;
+        if (Settings.RustOpenGl && NativeGlHost.IsAvailable())
+            OpenNativeSettings(null);
+        else
+            OpenWebSettings(null);
+    }
+
+    void OpenNativeSettings(Rectangle? bounds)
+    {
+        if (exiting) return;
+        if (settingsWin != null && !settingsWin.IsDisposed)
+        {
+            var old = settingsWin;
+            settingsWin = null;
+            try { old.DisposeWebViewTree(); } catch { }
+            try { old.Close(); } catch { }
+        }
+        if (nativeSettingsWin == null || nativeSettingsWin.IsDisposed)
+        {
+            nativeSettingsWin = new NativeSettingsForm(pageDir, this);
+            nativeSettingsWin.FormClosed += delegate { nativeSettingsWin = null; };
+            if (bounds.HasValue)
+            {
+                nativeSettingsWin.StartPosition = FormStartPosition.Manual;
+                nativeSettingsWin.Bounds = bounds.Value;
+            }
+            Log.Write("Yerel (0 WebView2) ayar penceresi açıldı");
+        }
+        if (nativeSettingsWin.WindowState == FormWindowState.Minimized) nativeSettingsWin.WindowState = FormWindowState.Normal;
+        nativeSettingsWin.Show();
+        Native.ShowWindow(nativeSettingsWin.Handle, Native.SW_RESTORE);
+        nativeSettingsWin.Activate();
+    }
+
+    void OpenWebSettings(Rectangle? bounds)
+    {
+        if (exiting) return;
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+        {
+            var old = nativeSettingsWin;
+            nativeSettingsWin = null;
+            try { old.Close(); } catch { }
+        }
         if (settingsWin == null || settingsWin.IsDisposed)
         {
             settingsWin = new SettingsForm(pageDir, this);
             settingsWin.FormClosed += delegate { settingsWin = null; };
+            if (bounds.HasValue)
+            {
+                settingsWin.StartPosition = FormStartPosition.Manual;
+                settingsWin.Bounds = bounds.Value;
+            }
             Log.Write("打开设置窗口");
         }
         if (settingsWin.WindowState == FormWindowState.Minimized) settingsWin.WindowState = FormWindowState.Normal;
@@ -1090,6 +1358,92 @@ class HostContext : ApplicationContext
         // SW_RESTORE 同时处理隐藏和最小化，SW_SHOW 不会展开已最小化的窗口。
         Native.ShowWindow(settingsWin.Handle, Native.SW_RESTORE);
         settingsWin.Activate();
+    }
+
+    // NativeSettingsForm public hooks (zero WebView2 path)
+    public void SetRustOpenGlFromUi(bool enabled) { SetRustOpenGl(enabled); }
+    public void SetLowModeFromUi(bool enabled) { SetLowMode(enabled); }
+    public void SetDisableAutoPauseFromUi(bool enabled) { SetDisableAutoPause(enabled); }
+    public void SetDisplayModeFromUi(string mode) { SetDisplayMode(mode); }
+    public void SetSolarSyncFromUi(bool enabled) { SetSolarSync(enabled); }
+    public void SetWindowAwareFromUi(bool enabled) { SetWindowAware(enabled); }
+    public void SetPlaylistFromUi(bool enabled, int intervalMin) { SetPlaylist(enabled, intervalMin); }
+    public void SetAutoStartFromUi(bool on) { SetAutoStart(on); SyncNativeSettingsGlobals(); }
+    public bool IsAutoStartEnabled() { return IsAutoStart(); }
+    public string GetLastIconsJson() { return form != null ? (form.LastIcons ?? "") : ""; }
+
+    public void SetLangFromUi(string lang)
+    {
+        if (string.IsNullOrEmpty(lang)) return;
+        Settings.Lang = lang;
+        SaveSoon();
+        I18n.Load(pageDir, Settings.Lang);
+        ApplyTrayTexts();
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "lang", "v", Settings.Lang, "eff", I18n.Code, "sys", I18n.Sys)));
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.ApplyLocalizedTexts();
+    }
+
+    public void SwitchThemeFromNative(string id)
+    {
+        if (string.IsNullOrEmpty(id) || !ThemeAllowed(id)) return;
+        string page = Themes.PageFor(pageDir, id);
+        if (string.IsNullOrEmpty(page) || !Themes.PageExists(pageDir, page)) return;
+        if (id == Settings.Theme) return;
+        Settings.Theme = id;
+        lastPlaylistSwitch = DateTime.UtcNow;
+        SaveSoon();
+        ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, id); });
+        Log.Write("切换主题（Native UI）：" + id);
+    }
+
+    public void SetParamFromNative(string theme, string key, object val)
+    {
+        if (string.IsNullOrEmpty(theme) || string.IsNullOrEmpty(key)) return;
+        var p = Settings.For(theme);
+        if (key == "audioFile" && string.IsNullOrEmpty(val as string))
+        {
+            object oldVal;
+            if (p.TryGetValue("audioFile", out oldVal)) CleanupAudioFile(oldVal as string);
+        }
+        p[key] = val;
+        if (theme == Settings.Theme)
+        {
+            string msg = Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj(key, val)));
+            ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+        }
+        SaveSoon();
+    }
+
+    public void ResetThemeFromNative(string theme)
+    {
+        if (string.IsNullOrEmpty(theme)) return;
+        Settings.Params.Remove(theme);
+        if (theme == Settings.Theme)
+            ForEachWallpaper(delegate(WallpaperForm w) { w.Post("{\"t\":\"reset\"}"); });
+        SaveSoon();
+        Log.Write("恢复默认设置（Native UI）：" + theme);
+    }
+
+    public void PickAudioFromNative(string theme, Form owner)
+    {
+        PickAudioWithOwner(theme, owner);
+    }
+
+    public void ExportDiagnosticsFromNative(Form owner)
+    {
+        try
+        {
+            lastDiagnostics = Diagnostics.Export(form);
+            Log.Write("诊断日志已导出：" + lastDiagnostics);
+            try { Process.Start("explorer.exe", "/select,\"" + lastDiagnostics + "\""); } catch { }
+        }
+        catch (Exception ex)
+        {
+            Log.Write("导出诊断日志失败：" + ex.Message);
+            MessageBox.Show(owner, ex.Message, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     string SettingsMessage()
@@ -1387,13 +1741,18 @@ class HostContext : ApplicationContext
 
     void PickAudio(string theme)
     {
+        PickAudioWithOwner(theme, settingsWin);
+    }
+
+    void PickAudioWithOwner(string theme, IWin32Window owner)
+    {
         if (string.IsNullOrEmpty(theme) || !ThemeAllowed(theme)) return;
         string chosen = null;
         using (var dlg = new OpenFileDialog())
         {
             dlg.Filter = "Audio (*.mp3;*.wav;*.ogg;*.opus;*.flac;*.m4a;*.aac;*.webm)|*.mp3;*.wav;*.ogg;*.opus;*.flac;*.m4a;*.aac;*.webm|All Files (*.*)|*.*";
             dlg.RestoreDirectory = true;
-            if (dlg.ShowDialog(settingsWin) != DialogResult.OK) return;
+            if (dlg.ShowDialog(owner) != DialogResult.OK) return;
             chosen = dlg.FileName;
         }
         if (string.IsNullOrEmpty(chosen) || !File.Exists(chosen)) return;
@@ -1419,7 +1778,10 @@ class HostContext : ApplicationContext
         p["audioName"] = origName;
         p["audioPlay"] = 1;
         SaveSoon();
-        settingsWin.Post(Json.Stringify(Json.Obj("t", "audioPicked", "theme", theme, "file", safeName, "name", origName, "play", 1)));
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "audioPicked", "theme", theme, "file", safeName, "name", origName, "play", 1)));
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.NotifyAudioPicked(origName, 1);
         if (theme == Settings.Theme && form != null)
             form.Post(Json.Stringify(Json.Obj("t", "settings", "v", Json.Obj("audioFile", safeName, "audioName", origName, "audioPlay", 1))));
     }
@@ -1679,6 +2041,7 @@ class HostContext : ApplicationContext
         }
         catch (Exception ex) { Log.Write("设置开机自动启动失败：" + ex.Message); }
         autoStartItem.Checked = IsAutoStart();
+        SyncNativeSettingsGlobals();
     }
 
     void StartForm()
@@ -1719,6 +2082,8 @@ class HostContext : ApplicationContext
             SaveSoon();
             if (settingsWin != null)
                 settingsWin.Post(Json.Stringify(Json.Obj("t", "audioPlay", "theme", theme, "play", val)));
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                nativeSettingsWin.NotifyAudioPlayChanged(val);
         };
         form.VirtualIconsSaved += delegate(object raw)
         {
@@ -1733,7 +2098,11 @@ class HostContext : ApplicationContext
                 SaveSoon();
             }
         };
-        form.IconsChanged += delegate(string json) { if (settingsWin != null) settingsWin.Post(json); };
+        form.IconsChanged += delegate(string json)
+        {
+            if (settingsWin != null) settingsWin.Post(json);
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed) nativeSettingsWin.OnIconsChanged(json);
+        };
         form.PauseChanged += delegate(bool paused)
         {
             wallpaperPaused = paused;
@@ -1833,7 +2202,8 @@ class HostContext : ApplicationContext
         exiting = true;
         watch.Stop();
         if (saveDue != DateTime.MaxValue) Settings.Save();
-        if (settingsWin != null) { try { settingsWin.Close(); } catch { } }
+        if (nativeSettingsWin != null) { try { nativeSettingsWin.Close(); } catch { } }
+        if (settingsWin != null) { try { settingsWin.DisposeWebViewTree(); settingsWin.Close(); } catch { } }
         hotkey.Dispose();
         tray.Visible = false;
         if (ipcServer != null) ipcServer.Stop();
@@ -1842,6 +2212,7 @@ class HostContext : ApplicationContext
         lanSync.Stop();
         ShutdownExtraForms();
         if (form != null) form.Shutdown();
+        WebViewProcessGuard.ScheduleTerminateAllOwn("Uygulama çıkışı");
         Log.Write("退出");
         ExitThread();
     }
@@ -1965,6 +2336,277 @@ static class WebViewConfig
         }
 }
 
+// Tracks and deterministically terminates ONLY DiyarDesk's own WebView2 process trees
+// (never touching other Windows apps' msedgewebview2.exe processes such as Widgets/Teams).
+static class WebViewProcessGuard
+{
+    static readonly object Sync = new object();
+    static readonly HashSet<uint> TrackedBrowserPids = new HashSet<uint>();
+    static int Generation;
+
+    public static void RegisterBrowserPid(uint pid)
+    {
+        if (pid == 0) return;
+        lock (Sync)
+        {
+            TrackedBrowserPids.Add(pid);
+            Generation++;
+        }
+    }
+
+    public static void UnregisterBrowserPid(uint pid)
+    {
+        if (pid == 0) return;
+        lock (Sync)
+        {
+            TrackedBrowserPids.Remove(pid);
+        }
+    }
+
+    public static int CurrentGeneration
+    {
+        get { lock (Sync) return Generation; }
+    }
+
+    struct ProcInfo
+    {
+        public uint Pid;
+        public uint ParentPid;
+        public string ExeName;
+    }
+
+    static List<ProcInfo> SnapshotProcesses()
+    {
+        var list = new List<ProcInfo>(256);
+        IntPtr snap = Native.CreateToolhelp32Snapshot(Native.TH32CS_SNAPPROCESS, 0);
+        if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return list;
+        try
+        {
+            var pe = new Native.PROCESSENTRY32W();
+            pe.dwSize = (uint)Marshal.SizeOf(typeof(Native.PROCESSENTRY32W));
+            if (Native.Process32FirstW(snap, ref pe))
+            {
+                do
+                {
+                    list.Add(new ProcInfo { Pid = pe.th32ProcessID, ParentPid = pe.th32ParentProcessID, ExeName = pe.szExeFile ?? "" });
+                } while (Native.Process32NextW(snap, ref pe));
+            }
+        }
+        catch { }
+        finally { Native.CloseHandle(snap); }
+        return list;
+    }
+
+    static bool IsWebView2Exe(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        return string.Equals(name, "msedgewebview2.exe", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "msedgewebview2", StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Collects all msedgewebview2.exe PIDs whose ancestor chain reaches any PID in rootPids.
+    public static HashSet<uint> CollectWebViewPidsUnder(IEnumerable<uint> rootPids)
+    {
+        var roots = new HashSet<uint>();
+        if (rootPids != null)
+        {
+            foreach (uint r in rootPids) if (r != 0) roots.Add(r);
+        }
+        var result = new HashSet<uint>();
+        if (roots.Count == 0) return result;
+
+        var procs = SnapshotProcesses();
+        var children = new Dictionary<uint, List<ProcInfo>>();
+        var byPid = new Dictionary<uint, ProcInfo>();
+        for (int i = 0; i < procs.Count; i++)
+        {
+            var p = procs[i];
+            byPid[p.Pid] = p;
+            List<ProcInfo> list;
+            if (!children.TryGetValue(p.ParentPid, out list))
+            {
+                list = new List<ProcInfo>();
+                children[p.ParentPid] = list;
+            }
+            list.Add(p);
+        }
+
+        var visited = new HashSet<uint>();
+        var queue = new Queue<uint>();
+        foreach (uint r in roots)
+        {
+            if (visited.Add(r)) queue.Enqueue(r);
+            ProcInfo info;
+            if (byPid.TryGetValue(r, out info) && IsWebView2Exe(info.ExeName))
+                result.Add(r);
+        }
+
+        while (queue.Count > 0)
+        {
+            uint cur = queue.Dequeue();
+            List<ProcInfo> kids;
+            if (!children.TryGetValue(cur, out kids)) continue;
+            for (int i = 0; i < kids.Count; i++)
+            {
+                var k = kids[i];
+                if (IsWebView2Exe(k.ExeName))
+                {
+                    result.Add(k.Pid);
+                    if (visited.Add(k.Pid)) queue.Enqueue(k.Pid);
+                }
+            }
+        }
+        return result;
+    }
+
+    public static HashSet<uint> CollectAllOwnWebViewPids()
+    {
+        var roots = new List<uint>();
+        try { roots.Add((uint)Process.GetCurrentProcess().Id); } catch { }
+        lock (Sync)
+        {
+            foreach (uint pid in TrackedBrowserPids) roots.Add(pid);
+        }
+        return CollectWebViewPidsUnder(roots);
+    }
+
+    public static long OwnWebView2MemBytes()
+    {
+        var pids = CollectAllOwnWebViewPids();
+        long total = 0;
+        foreach (uint pid in pids)
+        {
+            try
+            {
+                using (Process p = Process.GetProcessById((int)pid))
+                {
+                    if (!p.HasExited && IsWebView2Exe(p.ProcessName))
+                        total += p.WorkingSet64;
+                }
+            }
+            catch { }
+        }
+        return total;
+    }
+
+    public static int OwnWebView2ProcessCount()
+    {
+        return CollectAllOwnWebViewPids().Count;
+    }
+
+    static bool AnyAlive(HashSet<uint> pids)
+    {
+        foreach (uint pid in pids)
+        {
+            try
+            {
+                using (Process p = Process.GetProcessById((int)pid))
+                {
+                    if (!p.HasExited && IsWebView2Exe(p.ProcessName)) return true;
+                }
+            }
+            catch { }
+        }
+        return false;
+    }
+
+    static int KillPids(HashSet<uint> pids)
+    {
+        int killed = 0;
+        foreach (uint pid in pids)
+        {
+            try
+            {
+                using (Process p = Process.GetProcessById((int)pid))
+                {
+                    if (!p.HasExited && IsWebView2Exe(p.ProcessName))
+                    {
+                        p.Kill();
+                        killed++;
+                    }
+                }
+            }
+            catch { }
+        }
+        return killed;
+    }
+
+    // Disposes one specific WebView2 browser tree (wait briefly for graceful exit, then kill leftovers).
+    public static void ScheduleTerminateBrowserTree(uint browserPid, HashSet<uint> preCapturedPids)
+    {
+        UnregisterBrowserPid(browserPid);
+        var targets = new HashSet<uint>();
+        if (preCapturedPids != null)
+            foreach (uint p in preCapturedPids) targets.Add(p);
+        if (browserPid != 0)
+        {
+            targets.Add(browserPid);
+            foreach (uint p in CollectWebViewPidsUnder(new uint[] { browserPid }))
+                targets.Add(p);
+        }
+        if (targets.Count == 0) return;
+
+        ThreadPool.QueueUserWorkItem(delegate
+        {
+            try
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                for (int i = 0; i < 8; i++)
+                {
+                    if (!AnyAlive(targets)) break;
+                    Thread.Sleep(50);
+                }
+                if (browserPid != 0)
+                {
+                    foreach (uint p in CollectWebViewPidsUnder(new uint[] { browserPid }))
+                        targets.Add(p);
+                }
+                int killed = KillPids(targets);
+                if (killed > 0) Log.Write("WebView2 artık süreçleri sonlandırıldı: " + killed + " adet (root PID=" + browserPid + ")");
+            }
+            catch { }
+        });
+    }
+
+    // Terminates ALL DiyarDesk-owned msedgewebview2.exe processes (both wallpaper & settings).
+    // Only kills newly-discovered children if no new WebView2 session started in the meantime.
+    public static void ScheduleTerminateAllOwn(string reason)
+    {
+        int gen;
+        var initial = CollectAllOwnWebViewPids();
+        lock (Sync)
+        {
+            gen = Generation;
+            TrackedBrowserPids.Clear();
+        }
+
+        ThreadPool.QueueUserWorkItem(delegate
+        {
+            try
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                for (int i = 0; i < 9; i++)
+                {
+                    if (CurrentGeneration != gen) return;
+                    var now = CollectAllOwnWebViewPids();
+                    foreach (uint p in now) initial.Add(p);
+                    if (!AnyAlive(initial)) break;
+                    Thread.Sleep(50);
+                }
+                if (CurrentGeneration != gen) return;
+                foreach (uint p in CollectAllOwnWebViewPids()) initial.Add(p);
+                int killed = KillPids(initial);
+                Thread.Sleep(80);
+                int remaining = (CurrentGeneration == gen) ? OwnWebView2ProcessCount() : -1;
+                Log.Write("Tüm DiyarDesk WebView2 süreçleri temizlendi (" + (reason ?? "") + "): zorla sonlandırılan=" + killed + ", kalan=" + remaining);
+            }
+            catch { }
+        });
+    }
+}
+
 static class WebViewSecurity
 {
     static readonly HashSet<string> AllowedHosts = new HashSet<string>(
@@ -2074,9 +2716,11 @@ static class WebViewSecurity
 
 class SettingsForm : Form
 {
-    readonly WebView2 web;
+    WebView2 web;
     readonly HostContext host;
     readonly string pageDir;
+    uint browserPid;
+    bool webDisposed;
 
     public SettingsForm(string pageDir, HostContext host)
     {
@@ -2138,9 +2782,20 @@ class SettingsForm : Form
         base.OnShown(e);
         try
         {
+            if (web == null || webDisposed || IsDisposed) return;
             await web.EnsureCoreWebView2Async(null);
-            if (IsDisposed) return;
+            if (IsDisposed || webDisposed || web == null)
+            {
+                DisposeWebViewTree();
+                return;
+            }
             var core = web.CoreWebView2;
+            try
+            {
+                browserPid = core.BrowserProcessId;
+                WebViewProcessGuard.RegisterBrowserPid(browserPid);
+            }
+            catch { }
             core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
             string audioDir = Path.Combine(InstallProfile.DataDir, "audio");
             Directory.CreateDirectory(audioDir);
@@ -2148,7 +2803,11 @@ class SettingsForm : Form
             WebCustomHelper.Attach(core, pageDir);
             WebViewSecurity.Harden(core, true);
             try { await WebViewSecurity.InjectCspAsync(core); } catch { }
-            if (IsDisposed) return;
+            if (IsDisposed || webDisposed || web == null)
+            {
+                DisposeWebViewTree();
+                return;
+            }
             core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
             {
                 if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
@@ -2161,16 +2820,41 @@ class SettingsForm : Form
         }
         catch (Exception ex)
         {
+            if (IsDisposed || webDisposed) return;
             Log.Write("设置窗口启动失败：" + ex);
             MessageBox.Show(I18n.T("errSettings", "msg", ex.Message), "DiyarDesk");
             Close();
         }
     }
 
+    public void DisposeWebViewTree()
+    {
+        if (webDisposed) return;
+        webDisposed = true;
+        uint pid = browserPid;
+        try { if (pid == 0 && web != null && web.CoreWebView2 != null) pid = web.CoreWebView2.BrowserProcessId; } catch { }
+        HashSet<uint> prePids = pid != 0 ? WebViewProcessGuard.CollectWebViewPidsUnder(new uint[] { pid }) : null;
+        if (web != null)
+        {
+            var w = web;
+            web = null;
+            try { Controls.Remove(w); } catch { }
+            try { w.Dispose(); } catch { }
+        }
+        browserPid = 0;
+        WebViewProcessGuard.ScheduleTerminateBrowserTree(pid, prePids);
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        DisposeWebViewTree();
+        base.OnFormClosed(e);
+    }
+
     public void Post(string json)
     {
         // 设置窗口是临时窗口：它的 WebView2 失效就先不发（关掉重开即恢复），别把异常抛回壁纸的轮询
-        try { if (!IsDisposed && web.CoreWebView2 != null) web.CoreWebView2.PostWebMessageAsString(json); }
+        try { if (!IsDisposed && !webDisposed && web != null && web.CoreWebView2 != null) web.CoreWebView2.PostWebMessageAsString(json); }
         catch { }
     }
 
@@ -2178,7 +2862,7 @@ class SettingsForm : Form
     bool shareMapped;
     public void MapShareFolder(string dir)
     {
-        if (shareMapped || IsDisposed || web.CoreWebView2 == null) return;
+        if (shareMapped || IsDisposed || webDisposed || web == null || web.CoreWebView2 == null) return;
         web.CoreWebView2.SetVirtualHostNameToFolderMapping("share.local", dir, CoreWebView2HostResourceAccessKind.Allow);
         shareMapped = true;
     }
@@ -2241,9 +2925,6 @@ class WallpaperForm : Form
         BackColor = Color.FromArgb(26, 163, 196);
         Text = "DesklandWindow";
 
-        web = CreateWebViewControl();
-        Controls.Add(web);
-
         iconTimer = new System.Windows.Forms.Timer();
         iconTimer.Interval = lowMode ? 1500 : 400;
         iconTimer.Tick += delegate { PollIcons(); };
@@ -2255,6 +2936,8 @@ class WallpaperForm : Form
         winTimer.Tick += delegate { PollWindows(); };
     }
 
+    uint webBrowserPid;
+
     WebView2 CreateWebViewControl()
     {
         var c = new WebView2();
@@ -2265,32 +2948,54 @@ class WallpaperForm : Form
         return c;
     }
 
+    WebView2 EnsureWebViewControl()
+    {
+        if (web == null || web.IsDisposed)
+        {
+            web = CreateWebViewControl();
+            Controls.Add(web);
+        }
+        return web;
+    }
+
     public bool NativeGlActive { get { return glHost != null && glHost.IsRunning; } }
 
-    // 进入 Rust OpenGL 模式时调用：隐藏并彻底释放壁纸 WebView2，让其浏览器进程退出、把内存还给系统。
+    // 进入 Rust OpenGL 模式时调用：隐藏并彻底释放壁纸 WebView2，并确保其浏览器进程树完全退出。
     // 若当前不在 native 模式（glHost 未运行）则不动，避免破坏 WebView 主题。
     public void ReleaseWallpaperWebView()
     {
         if (shuttingDown || IsDisposed) return;
         if (glHost == null || !glHost.IsRunning) return;
-        try { if (web != null) web.Visible = false; } catch { }
-        bool hadCore = false;
-        try { hadCore = web != null && web.CoreWebView2 != null; } catch { }
-        if (!hadCore) return;
-        try { Controls.Remove(web); } catch { }
-        try { web.Dispose(); } catch { }
-        web = CreateWebViewControl();
-        web.Visible = false;
-        Controls.Add(web);
-        webInitialized = false;
-        Log.Write("壁纸 WebView2 已释放（Rust OpenGL 模式），其浏览器进程可退出以回收内存");
+        uint pid = webBrowserPid;
+        if (web != null)
+        {
+            try { if (pid == 0 && web.CoreWebView2 != null) pid = web.CoreWebView2.BrowserProcessId; } catch { }
+            HashSet<uint> prePids = pid != 0 ? WebViewProcessGuard.CollectWebViewPidsUnder(new uint[] { pid }) : null;
+            var old = web;
+            web = null;
+            webInitialized = false;
+            webBrowserPid = 0;
+            try { old.Visible = false; } catch { }
+            try { Controls.Remove(old); } catch { }
+            try { old.Dispose(); } catch { }
+            if (pid != 0 || (prePids != null && prePids.Count > 0))
+            {
+                WebViewProcessGuard.ScheduleTerminateBrowserTree(pid, prePids);
+                Log.Write("壁纸 WebView2 已释放（Rust OpenGL 模式，root PID=" + pid + "），其浏览器进程树正在终止");
+            }
+        }
+        else if (pid != 0)
+        {
+            webBrowserPid = 0;
+            WebViewProcessGuard.ScheduleTerminateBrowserTree(pid, null);
+        }
     }
 
     public uint BrowserProcessId
     {
         get
         {
-            try { return (web != null && web.CoreWebView2 != null) ? web.CoreWebView2.BrowserProcessId : 0u; }
+            try { return (web != null && !web.IsDisposed && web.CoreWebView2 != null) ? web.CoreWebView2.BrowserProcessId : 0u; }
             catch { return 0u; }
         }
     }
@@ -2328,7 +3033,7 @@ class WallpaperForm : Form
     System.Windows.Forms.Timer snapshotTimeout;
     public void RequestSnapshot(Action<string, string, string> done)
     {
-        if (web.CoreWebView2 == null) { done(null, null, I18n.T("errNotReady")); return; }
+        if (web == null || web.CoreWebView2 == null) { done(null, null, I18n.T("errNotReady")); return; }
         if (snapshotDone != null) { done(null, null, I18n.T("errBusyImage")); return; }
         snapshotDone = done;
         snapshotTimeout = new System.Windows.Forms.Timer();
@@ -2360,7 +3065,7 @@ class WallpaperForm : Form
     public event Action<string> RecordProgress;            // 0..1（字符串）
     public void RequestRecording(Action<string, string, string, string> done)
     {
-        if (web.CoreWebView2 == null) { done(null, null, null, I18n.T("errNotReady")); return; }
+        if (web == null || web.CoreWebView2 == null) { done(null, null, null, I18n.T("errNotReady")); return; }
         if (recordDone != null) { done(null, null, null, I18n.T("errBusyVideo")); return; }
         recordDone = done;
         recordTimeout = new System.Windows.Forms.Timer();
@@ -2394,7 +3099,7 @@ class WallpaperForm : Form
             lastIcons = ""; lastPause = -1; PollIcons(); PollForeground();
             return;
         }
-        if (web.CoreWebView2 == null) return;
+        if (web == null || web.CoreWebView2 == null) return;
         try { web.CoreWebView2.Reload(); }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
@@ -2406,7 +3111,7 @@ class WallpaperForm : Form
             glHost.PostJson(json);
             return;
         }
-        if (web.CoreWebView2 == null) return;
+        if (web == null || web.CoreWebView2 == null) return;
         try { web.CoreWebView2.PostWebMessageAsString(json); }
         catch (InvalidOperationException ex) { WebDead(ex); }
         catch (COMException ex) { WebDead(ex); }
@@ -2426,6 +3131,11 @@ class WallpaperForm : Form
         "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
         "ai-mascots"
     };
+
+    public static bool IsNativeGlTheme(string tid)
+    {
+        return !string.IsNullOrEmpty(tid) && NativeGlThemes.Contains(tid);
+    }
 
     static bool ShouldUseNativeGl(string pageName, string tid)
     {
@@ -2520,6 +3230,7 @@ class WallpaperForm : Form
             return;
         }
         StopNativeGl();
+        EnsureWebViewControl();
         if (web.CoreWebView2 == null)
         {
             try { await InitWebViewAsync(); }
@@ -2707,11 +3418,32 @@ class WallpaperForm : Form
 
     async System.Threading.Tasks.Task InitWebViewAsync()
     {
-        if (webInitialized || shuttingDown || IsDisposed) return;
+        if (webInitialized || shuttingDown || IsDisposed || (glHost != null && glHost.IsRunning)) return;
+        EnsureWebViewControl();
         webInitialized = true;
-        await web.EnsureCoreWebView2Async(null);
-        if (shuttingDown || IsDisposed) return;
-        var core = web.CoreWebView2;
+        var curWeb = web;
+        await curWeb.EnsureCoreWebView2Async(null);
+        if (shuttingDown || IsDisposed || curWeb != web || curWeb.IsDisposed || (glHost != null && glHost.IsRunning))
+        {
+            try
+            {
+                if (curWeb != null && !curWeb.IsDisposed && curWeb.CoreWebView2 != null)
+                {
+                    uint p = curWeb.CoreWebView2.BrowserProcessId;
+                    WebViewProcessGuard.ScheduleTerminateBrowserTree(p, WebViewProcessGuard.CollectWebViewPidsUnder(new uint[] { p }));
+                }
+            }
+            catch { }
+            ReleaseWallpaperWebView();
+            return;
+        }
+        var core = curWeb.CoreWebView2;
+        try
+        {
+            webBrowserPid = core.BrowserProcessId;
+            WebViewProcessGuard.RegisterBrowserPid(webBrowserPid);
+        }
+        catch { }
         core.SetVirtualHostNameToFolderMapping("app.local", pageDir, CoreWebView2HostResourceAccessKind.Allow);
         string audioDir = Path.Combine(InstallProfile.DataDir, "audio");
         Directory.CreateDirectory(audioDir);
@@ -2719,7 +3451,7 @@ class WallpaperForm : Form
         WebCustomHelper.Attach(core, pageDir);
         WebViewSecurity.Harden(core, false);
         try { await WebViewSecurity.InjectCspAsync(core); } catch { }
-        if (shuttingDown || IsDisposed) return;
+        if (shuttingDown || IsDisposed || curWeb != web || (glHost != null && glHost.IsRunning)) { ReleaseWallpaperWebView(); return; }
         ApplyWebViewLowMode(lowMode);
         string lowJsPath = Path.Combine(pageDir, "low-mode.js");
         if (File.Exists(lowJsPath))
@@ -2727,7 +3459,7 @@ class WallpaperForm : Form
             try { await core.AddScriptToExecuteOnDocumentCreatedAsync(File.ReadAllText(lowJsPath, Encoding.UTF8)); }
             catch { }
         }
-        if (shuttingDown || IsDisposed) return;
+        if (shuttingDown || IsDisposed || curWeb != web || (glHost != null && glHost.IsRunning)) { ReleaseWallpaperWebView(); return; }
         core.WebMessageReceived += delegate(object s, CoreWebView2WebMessageReceivedEventArgs a)
         {
             if (!WebViewSecurity.IsAllowedMessageSource(a.Source)) return;
@@ -2897,7 +3629,7 @@ class WallpaperForm : Form
             glHost.DispatchMouse(k, x, y);
             return;
         }
-        if (web.CoreWebView2 == null) return;
+        if (web == null || web.CoreWebView2 == null) return;
         try
         {
             string payload = Json.Stringify(Json.Obj(
@@ -2915,7 +3647,7 @@ class WallpaperForm : Form
     IntPtr OnMouseHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
         bool glActive = glHost != null && glHost.IsRunning;
-        if (nCode < 0 || shuttingDown || IsDisposed || (!glActive && web.CoreWebView2 == null))
+        if (nCode < 0 || shuttingDown || IsDisposed || (!glActive && (web == null || web.CoreWebView2 == null)))
             return Native.CallNextHookEx(mouseHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
@@ -3098,7 +3830,7 @@ class WallpaperForm : Form
             glHost.DispatchKey(0, 0, text);
             return;
         }
-        if (web.CoreWebView2 == null) return;
+        if (web == null || web.CoreWebView2 == null) return;
         try
         {
             web.CoreWebView2.CallDevToolsProtocolMethodAsync(
@@ -3116,7 +3848,7 @@ class WallpaperForm : Form
             glHost.DispatchKey(1, vk, null);
             return;
         }
-        if (web.CoreWebView2 == null) return;
+        if (web == null || web.CoreWebView2 == null) return;
         try
         {
             var down = Json.Obj(
@@ -3186,7 +3918,7 @@ class WallpaperForm : Form
     IntPtr OnKeyboardHook(int nCode, IntPtr wParam, IntPtr lParam)
     {
         bool glActive = glHost != null && glHost.IsRunning;
-        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || (!glActive && web.CoreWebView2 == null) || !HasAnyUiRect())
+        if (nCode < 0 || !uiTextFocused || shuttingDown || IsDisposed || (!glActive && (web == null || web.CoreWebView2 == null)) || !HasAnyUiRect())
             return Native.CallNextHookEx(keyHook, nCode, wParam, lParam);
 
         int msg = wParam.ToInt32();
@@ -3606,7 +4338,7 @@ class WallpaperForm : Form
         EnsureWallpaperBounds();
         EnsureZOrder();
         bool glActive = glHost != null && glHost.IsRunning;
-        if (!glActive && web.CoreWebView2 == null) return;
+        if (!glActive && (web == null || web.CoreWebView2 == null)) return;
         bool visible;
         List<DesktopIcon> items = reader.Read(out visible);
         if (items == null) return;
@@ -3676,7 +4408,7 @@ class WallpaperForm : Form
     void PollWindows()
     {
         bool glActive = glHost != null && glHost.IsRunning;
-        if ((!glActive && web.CoreWebView2 == null) || lastPause == 1) return;
+        if ((!glActive && (web == null || web.CoreWebView2 == null)) || lastPause == 1) return;
         var sb = new StringBuilder(512);
         sb.Append("{\"t\":\"windows\",\"r\":[");
         int count = 0;
@@ -3733,7 +4465,7 @@ class WallpaperForm : Form
     void PollForeground()
     {
         bool glActive = glHost != null && glHost.IsRunning;
-        if (!glActive && web.CoreWebView2 == null) return;
+        if (!glActive && (web == null || web.CoreWebView2 == null)) return;
         SyncPowerPerf(false);
         IntPtr curFg = Native.GetForegroundWindow();
         if (uiTextFocused && !IsDesktopForeground() && (focusedFgHwnd == IntPtr.Zero || curFg != focusedFgHwnd))
@@ -3794,7 +4526,17 @@ class WallpaperForm : Form
         reader.ResetOrbitalPositions();
         reader.Dispose();
         IntPtr parent = parentHwnd;
-        try { web.Dispose(); } catch { }
+        uint pid = webBrowserPid;
+        if (web != null)
+        {
+            try { if (pid == 0 && web.CoreWebView2 != null) pid = web.CoreWebView2.BrowserProcessId; } catch { }
+            HashSet<uint> prePids = pid != 0 ? WebViewProcessGuard.CollectWebViewPidsUnder(new uint[] { pid }) : null;
+            try { web.Dispose(); } catch { }
+            web = null;
+            webBrowserPid = 0;
+            if (pid != 0 || (prePids != null && prePids.Count > 0))
+                WebViewProcessGuard.ScheduleTerminateBrowserTree(pid, prePids);
+        }
         if (IsHandleCreated) { Native.SetParent(Handle, IntPtr.Zero); Hide(); }
         // 不改动壁纸设置（幻灯片 / 聚焦壁纸也不受影响），只让资源管理器重画
         if (parent != IntPtr.Zero && Native.IsWindow(parent))
@@ -4345,6 +5087,26 @@ static class Native
     [DllImport("kernel32.dll")] public static extern bool ReadProcessMemory(IntPtr proc, IntPtr addr, out RECT buf, int size, out IntPtr read);
     [DllImport("kernel32.dll")] public static extern bool ReadProcessMemory(IntPtr proc, IntPtr addr, out POINT buf, int size, out IntPtr read);
     [DllImport("kernel32.dll")] public static extern bool ReadProcessMemory(IntPtr proc, IntPtr addr, [Out] byte[] buf, int size, out IntPtr read);
+
+    public const uint TH32CS_SNAPPROCESS = 0x00000002;
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct PROCESSENTRY32W
+    {
+        public uint dwSize;
+        public uint cntUsage;
+        public uint th32ProcessID;
+        public IntPtr th32DefaultHeapID;
+        public uint th32ModuleID;
+        public uint cntThreads;
+        public uint th32ParentProcessID;
+        public int pcPriClassBase;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szExeFile;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool Process32FirstW(IntPtr hSnapshot, ref PROCESSENTRY32W lppe);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool Process32NextW(IntPtr hSnapshot, ref PROCESSENTRY32W lppe);
 }
 
 // Deskland Preview has its own data and instance identity; isolated profiles support installation QA.
