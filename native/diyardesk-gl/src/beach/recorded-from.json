@@ -1,0 +1,13 @@
+{
+  "sources": [
+    {
+      "path": "prototype/flat.html",
+      "fnv1a": "790cdbaaa91d85aa"
+    },
+    {
+      "path": "prototype/beach-palms.js",
+      "fnv1a": "2ddfc75512fde79f"
+    }
+  ],
+  "caseCount": 5
+}

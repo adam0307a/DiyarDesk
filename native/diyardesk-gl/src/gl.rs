@@ -33,24 +33,39 @@ pub const GL_DEPTH_TEST: GLenum = 0x0B71;
 pub const GL_CULL_FACE: GLenum = 0x0B44;
 pub const GL_BLEND: GLenum = 0x0BE2;
 pub const GL_PROGRAM_POINT_SIZE: GLenum = 0x8642;
+pub const GL_ZERO: GLenum = 0;
+pub const GL_ONE: GLenum = 1;
 pub const GL_SRC_ALPHA: GLenum = 0x0302;
 pub const GL_ONE_MINUS_SRC_ALPHA: GLenum = 0x0303;
-pub const GL_ONE: GLenum = 1;
 pub const GL_SCISSOR_TEST: GLenum = 0x0C11;
 pub const GL_TEXTURE_2D: GLenum = 0x0DE1;
 pub const GL_TEXTURE0: GLenum = 0x84C0;
 pub const GL_TEXTURE1: GLenum = 0x84C1;
+pub const GL_TEXTURE2: GLenum = 0x84C2;
+pub const GL_TEXTURE3: GLenum = 0x84C3;
+pub const GL_TEXTURE4: GLenum = 0x84C4;
+pub const GL_TEXTURE5: GLenum = 0x84C5;
+pub const GL_TEXTURE6: GLenum = 0x84C6;
+pub const GL_TEXTURE7: GLenum = 0x84C7;
+pub const GL_TEXTURE8: GLenum = 0x84C8;
 pub const GL_TEXTURE_MIN_FILTER: GLenum = 0x2801;
 pub const GL_TEXTURE_MAG_FILTER: GLenum = 0x2800;
 pub const GL_TEXTURE_WRAP_S: GLenum = 0x2802;
 pub const GL_TEXTURE_WRAP_T: GLenum = 0x2803;
+pub const GL_NEAREST: GLint = 0x2600;
 pub const GL_LINEAR: GLint = 0x2601;
+pub const GL_LINEAR_MIPMAP_LINEAR: GLint = 0x2703;
+pub const GL_REPEAT: GLint = 0x2901;
 pub const GL_CLAMP_TO_EDGE: GLint = 0x812F;
 pub const GL_RED: GLenum = 0x1903;
 pub const GL_R8: GLenum = 0x8229;
+pub const GL_R16F: GLenum = 0x822D;
+pub const GL_R32F: GLenum = 0x822E;
+pub const GL_HALF_FLOAT: GLenum = 0x140B;
 pub const GL_RGBA: GLenum = 0x1908;
 pub const GL_RGBA8: GLenum = 0x8058;
 pub const GL_RGBA16F: GLenum = 0x881A;
+pub const GL_RGBA32F: GLenum = 0x8814;
 pub const GL_UNPACK_ALIGNMENT: GLenum = 0x0CF5;
 pub const GL_ARRAY_BUFFER: GLenum = 0x8892;
 pub const GL_STATIC_DRAW: GLenum = 0x88E4;
@@ -80,10 +95,12 @@ pub struct GlFns {
     pub Enable: unsafe extern "system" fn(GLenum),
     pub Disable: unsafe extern "system" fn(GLenum),
     pub BlendFunc: unsafe extern "system" fn(GLenum, GLenum),
+    pub BlendFuncSeparate: unsafe extern "system" fn(GLenum, GLenum, GLenum, GLenum),
     pub DepthMask: unsafe extern "system" fn(GLboolean),
     pub ClearColor: unsafe extern "system" fn(GLfloat, GLfloat, GLfloat, GLfloat),
     pub Clear: unsafe extern "system" fn(GLbitfield),
     pub DrawArrays: unsafe extern "system" fn(GLenum, GLint, GLsizei),
+    pub DrawArraysInstanced: unsafe extern "system" fn(GLenum, GLint, GLsizei, GLsizei),
     pub GenTextures: unsafe extern "system" fn(GLsizei, *mut GLuint),
     pub DeleteTextures: unsafe extern "system" fn(GLsizei, *const GLuint),
     pub BindTexture: unsafe extern "system" fn(GLenum, GLuint),
@@ -95,6 +112,7 @@ pub struct GlFns {
         GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, *const c_void,
     ),
     pub PixelStorei: unsafe extern "system" fn(GLenum, GLint),
+    pub GenerateMipmap: unsafe extern "system" fn(GLenum),
     pub ActiveTexture: unsafe extern "system" fn(GLenum),
     pub GenBuffers: unsafe extern "system" fn(GLsizei, *mut GLuint),
     pub DeleteBuffers: unsafe extern "system" fn(GLsizei, *const GLuint),
@@ -107,6 +125,7 @@ pub struct GlFns {
     pub EnableVertexAttribArray: unsafe extern "system" fn(GLuint),
     pub VertexAttribPointer:
         unsafe extern "system" fn(GLuint, GLint, GLenum, GLboolean, GLsizei, *const c_void),
+    pub VertexAttribDivisor: unsafe extern "system" fn(GLuint, GLuint),
     pub CreateShader: unsafe extern "system" fn(GLenum) -> GLuint,
     pub DeleteShader: unsafe extern "system" fn(GLuint),
     pub ShaderSource: unsafe extern "system" fn(GLuint, GLsizei, *const *const c_char, *const GLint),
@@ -127,6 +146,7 @@ pub struct GlFns {
     pub Uniform3f: unsafe extern "system" fn(GLint, GLfloat, GLfloat, GLfloat),
     pub Uniform4f: unsafe extern "system" fn(GLint, GLfloat, GLfloat, GLfloat, GLfloat),
     pub Uniform4fv: unsafe extern "system" fn(GLint, GLsizei, *const GLfloat),
+    pub Uniform1fv: unsafe extern "system" fn(GLint, GLsizei, *const GLfloat),
     pub UniformMatrix4fv: unsafe extern "system" fn(GLint, GLsizei, GLboolean, *const GLfloat),
     pub GenFramebuffers: unsafe extern "system" fn(GLsizei, *mut GLuint),
     pub DeleteFramebuffers: unsafe extern "system" fn(GLsizei, *const GLuint),
@@ -137,6 +157,7 @@ pub struct GlFns {
     pub BindRenderbuffer: unsafe extern "system" fn(GLenum, GLuint),
     pub RenderbufferStorage: unsafe extern "system" fn(GLenum, GLenum, GLsizei, GLsizei),
     pub FramebufferRenderbuffer: unsafe extern "system" fn(GLenum, GLenum, GLenum, GLuint),
+    pub ReadPixels: unsafe extern "system" fn(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, *mut c_void),
     pub Finish: unsafe extern "system" fn(),
 }
 
@@ -174,10 +195,12 @@ impl GlFns {
             Enable: ld!("glEnable"),
             Disable: ld!("glDisable"),
             BlendFunc: ld!("glBlendFunc"),
+            BlendFuncSeparate: ld!("glBlendFuncSeparate"),
             DepthMask: ld!("glDepthMask"),
             ClearColor: ld!("glClearColor"),
             Clear: ld!("glClear"),
             DrawArrays: ld!("glDrawArrays"),
+            DrawArraysInstanced: ld!("glDrawArraysInstanced"),
             GenTextures: ld!("glGenTextures"),
             DeleteTextures: ld!("glDeleteTextures"),
             BindTexture: ld!("glBindTexture"),
@@ -185,6 +208,7 @@ impl GlFns {
             TexImage2D: ld!("glTexImage2D"),
             TexSubImage2D: ld!("glTexSubImage2D"),
             PixelStorei: ld!("glPixelStorei"),
+            GenerateMipmap: ld!("glGenerateMipmap"),
             ActiveTexture: ld!("glActiveTexture"),
             GenBuffers: ld!("glGenBuffers"),
             DeleteBuffers: ld!("glDeleteBuffers"),
@@ -196,6 +220,7 @@ impl GlFns {
             BindVertexArray: ld!("glBindVertexArray"),
             EnableVertexAttribArray: ld!("glEnableVertexAttribArray"),
             VertexAttribPointer: ld!("glVertexAttribPointer"),
+            VertexAttribDivisor: ld!("glVertexAttribDivisor"),
             CreateShader: ld!("glCreateShader"),
             DeleteShader: ld!("glDeleteShader"),
             ShaderSource: ld!("glShaderSource"),
@@ -216,6 +241,7 @@ impl GlFns {
             Uniform3f: ld!("glUniform3f"),
             Uniform4f: ld!("glUniform4f"),
             Uniform4fv: ld!("glUniform4fv"),
+            Uniform1fv: ld!("glUniform1fv"),
             UniformMatrix4fv: ld!("glUniformMatrix4fv"),
             GenFramebuffers: ld!("glGenFramebuffers"),
             DeleteFramebuffers: ld!("glDeleteFramebuffers"),
@@ -226,6 +252,7 @@ impl GlFns {
             BindRenderbuffer: ld!("glBindRenderbuffer"),
             RenderbufferStorage: ld!("glRenderbufferStorage"),
             FramebufferRenderbuffer: ld!("glFramebufferRenderbuffer"),
+            ReadPixels: ld!("glReadPixels"),
             Finish: ld!("glFinish"),
         })
     }

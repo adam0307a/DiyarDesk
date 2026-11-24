@@ -79,8 +79,34 @@ if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force
-$rustDll = Join-Path $root '..\native\diyardesk-gl\target\release\diyardesk_gl.dll'
+$rustDir = Join-Path $root '..\native\diyardesk-gl'
+if ((Test-Path -LiteralPath (Join-Path $rustDir 'Cargo.toml')) -and (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    Write-Host "Derleniyor: native\diyardesk-gl (cargo build --release)..."
+    Push-Location $rustDir
+    try {
+        & cargo build --release
+        if ($LASTEXITCODE -ne 0) { throw 'Rust OpenGL motoru (diyardesk_gl) derlenemedi' }
+    } finally {
+        Pop-Location
+    }
+}
+$rustDll = Join-Path $rustDir 'target\release\diyardesk_gl.dll'
 if (Test-Path -LiteralPath $rustDll) {
-    Copy-Item -LiteralPath $rustDll -Destination (Join-Path $bin 'diyardesk_gl.dll') -Force
+    $destDll = Join-Path $bin 'diyardesk_gl.dll'
+    $locked = $false
+    try {
+        $fs = [System.IO.File]::Open($destDll, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+        $fs.Close()
+    } catch {
+        $locked = $true
+    }
+    if ($locked) {
+        Write-Warning "diyardesk_gl.dll kullanımda (Deskland.exe çalışıyor?). Önce uygulamayı kapatın."
+        $procs = Get-Process -Name "Deskland","DiyarDesk" -ErrorAction SilentlyContinue
+        if ($procs) {
+            Write-Host "Çalışan süreçler: $($procs.Name -join ', ')"
+        }
+    }
+    Copy-Item -LiteralPath $rustDll -Destination $destDll -Force
 }
 Write-Host "编译完成：$bin\Deskland.exe"

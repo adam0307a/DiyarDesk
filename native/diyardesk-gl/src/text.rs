@@ -43,6 +43,7 @@ struct TextVert {
 pub struct TextRenderer {
     font_regular: Font,
     font_bold: Font,
+    font_fallback: Option<Font>,
     atlas_tex: GLuint,
     prog: GLuint,
     vao: GLuint,
@@ -69,16 +70,53 @@ fn load_system_font(candidates: &[&str]) -> Result<Font, String> {
 
 impl TextRenderer {
     pub unsafe fn new(gl: &GlFns) -> Result<Self, String> {
-        let font_regular = load_system_font(&[
+        Self::new_with_fonts(
+            gl,
+            &[
+                r"C:\Windows\Fonts\segoeui.ttf",
+                r"C:\Windows\Fonts\arial.ttf",
+            ],
+            &[
+                r"C:\Windows\Fonts\segoeuib.ttf",
+                r"C:\Windows\Fonts\seguisb.ttf",
+                r"C:\Windows\Fonts\arialbd.ttf",
+                r"C:\Windows\Fonts\segoeui.ttf",
+            ],
+        )
+    }
+
+    pub unsafe fn new_monospace(gl: &GlFns) -> Result<Self, String> {
+        Self::new_with_fonts(
+            gl,
+            &[
+                r"C:\Windows\Fonts\consola.ttf",
+                r"C:\Windows\Fonts\CascadiaMono.ttf",
+                r"C:\Windows\Fonts\lucon.ttf",
+                r"C:\Windows\Fonts\cour.ttf",
+                r"C:\Windows\Fonts\segoeui.ttf",
+            ],
+            &[
+                r"C:\Windows\Fonts\consolab.ttf",
+                r"C:\Windows\Fonts\consola.ttf",
+                r"C:\Windows\Fonts\courbd.ttf",
+                r"C:\Windows\Fonts\segoeuib.ttf",
+            ],
+        )
+    }
+
+    unsafe fn new_with_fonts(
+        gl: &GlFns,
+        reg_candidates: &[&str],
+        bold_candidates: &[&str],
+    ) -> Result<Self, String> {
+        let font_regular = load_system_font(reg_candidates)?;
+        let font_bold = load_system_font(bold_candidates)?;
+        let font_fallback = load_system_font(&[
+            r"C:\Windows\Fonts\seguisym.ttf",
+            r"C:\Windows\Fonts\DejaVuSansMono.ttf",
             r"C:\Windows\Fonts\segoeui.ttf",
-            r"C:\Windows\Fonts\arial.ttf",
-        ])?;
-        let font_bold = load_system_font(&[
-            r"C:\Windows\Fonts\segoeuib.ttf",
-            r"C:\Windows\Fonts\seguisb.ttf",
-            r"C:\Windows\Fonts\arialbd.ttf",
-            r"C:\Windows\Fonts\segoeui.ttf",
-        ])?;
+        ])
+        .ok();
 
         let prog = gl.compile_program(TEXT_VERT, TEXT_FRAG)?;
         let u_res = gl.uniform_loc(prog, "u_res");
@@ -116,6 +154,7 @@ impl TextRenderer {
         Ok(Self {
             font_regular,
             font_bold,
+            font_fallback,
             atlas_tex,
             prog,
             vao,
@@ -139,7 +178,18 @@ impl TextRenderer {
         if let Some(&e) = self.glyphs.get(&key) {
             return e;
         }
-        let font = if bold { &self.font_bold } else { &self.font_regular };
+        let primary = if bold { &self.font_bold } else { &self.font_regular };
+        let font = if primary.lookup_glyph_index(ch) != 0 {
+            primary
+        } else if let Some(fb) = self.font_fallback.as_ref() {
+            if fb.lookup_glyph_index(ch) != 0 {
+                fb
+            } else {
+                primary
+            }
+        } else {
+            primary
+        };
         let (metrics, bitmap) = font.rasterize(ch, size_px as f32);
         let gw = metrics.width as i32;
         let gh = metrics.height as i32;

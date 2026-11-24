@@ -2319,7 +2319,8 @@ class WallpaperForm : Form
 
     static bool IsNativeGlPage(string p)
     {
-        return string.Equals(p, "material-impulse-gl.html", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(p, "material-impulse-gl.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ai-mascots.html", StringComparison.OrdinalIgnoreCase);
     }
 
     static readonly HashSet<string> NativeGlThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -2327,7 +2328,8 @@ class WallpaperForm : Form
         "material-impulse-gl", "material-impulse", "liquidglass", "thinking-orbs", "solar-system",
         "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
         "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
-        "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach"
+        "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
+        "ai-mascots"
     };
 
     static bool ShouldUseNativeGl(string pageName, string tid)
@@ -2887,7 +2889,9 @@ class WallpaperForm : Form
             {
                 int now = Environment.TickCount;
                 int minMoveMs = lowMode ? 45 : 20;
-                if (unchecked(now - lastHoverTick) >= minMoveMs && IsDesktopHit(hs.pt))
+                bool allowHover = IsDesktopHit(hs.pt)
+                    || string.Equals(themeId, "quietsnow", StringComparison.OrdinalIgnoreCase);
+                if (unchecked(now - lastHoverTick) >= minMoveMs && allowHover)
                 {
                     lastHoverTick = now;
                     bool down = desktopMouseDown;

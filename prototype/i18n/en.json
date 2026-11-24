@@ -1948,6 +1948,56 @@
           ]
         }
       }
+    },
+    "ai-mascots": {
+      "name": "AI Mascot Lab · OpenGL (Rust)",
+      "desc": "A calm nighttime futuristic AI research campus powered by native Rust + OpenGL 3.3: 8 original AI mascots live, work, and patrol around adaptive desktop icon workstations while walkways and trees smoothly curve around your files.",
+      "groups": [
+        "Campus Atmosphere",
+        "AI Mascots & Motion",
+        "Performance"
+      ],
+      "params": {
+        "timeMode": {
+          "label": "Ambient Time",
+          "hint": "Choose calm night, dusk evening, muted daylight, or a slow ambient day/night cycle",
+          "options": [
+            "Night",
+            "Evening",
+            "Day",
+            "Slow Cycle"
+          ]
+        },
+        "lightingGlow": {
+          "label": "Campus Lighting",
+          "hint": "Soft glow intensity of laboratory windows, terminals, and courtyard lamps"
+        },
+        "iconHalo": {
+          "label": "Workstation Glow",
+          "hint": "Rim lighting and connected path glow around adaptive desktop icon stations"
+        },
+        "mascotActivity": {
+          "label": "Mascot Activity",
+          "hint": "Autonomous pace of the 8 AI mascots walking, working, charging, and inspecting icons"
+        },
+        "particleDensity": {
+          "label": "Data Particles & Drones",
+          "hint": "Density of ambient floating data motes and miniature patrol drones"
+        },
+        "parallax": {
+          "label": "Subtle Parallax",
+          "hint": "Gentle fixed-camera depth parallax following the cursor"
+        },
+        "quality": {
+          "label": "Quality",
+          "hint": "Particle and effect rendering budget",
+          "options": [
+            "Low",
+            "Medium",
+            "High"
+          ]
+        }
+      }
     }
   }
 }

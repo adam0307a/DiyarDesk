@@ -1,4 +1,30 @@
+use crate::ai_mascots::{AiMascotsParams, AiMascotsState};
+use crate::aurora::{AuroraParams, AuroraState};
+use crate::beach::{BeachParams, BeachState};
+use crate::claymorph::{ClaymorphParams, ClaymorphState};
+use crate::desert::{DesertParams, DesertState};
+use crate::glade::{GladeParams, GladeState};
+use crate::istanbul::{IstanbulParams, IstanbulState};
+use crate::liquidglass::{LgParams, LiquidGlassState};
+use crate::zen_archipelago::{ZenArchipelagoParams, ZenArchipelagoState};
+use crate::meadow::{MeadowParams, MeadowState};
+use crate::neobrutalism::{NbParams, NeobrutalismState};
+use crate::neumorph::{NeumorphParams, NeumorphState};
+use crate::papercut::{PapercutParams, PapercutState};
+use crate::pocket::{PocketParams, PocketState};
+use crate::polarnight::{PolarNightParams, PolarNightState};
+use crate::quiet_snow::{QuietSnowParams, QuietSnowState, WindowInput};
+use crate::rift::{RiftParams, RiftState};
+use crate::roach::{RoachParams, RoachState};
+use crate::rosebrook::{RosebrookParams, RosebrookState};
+use crate::software_world::{SoftwareWorldParams, SoftwareWorldState};
+use crate::solar_system::{SolarSystemParams, SolarSystemState};
+use crate::strike::{StrikeParams, StrikeState};
 use crate::studio_glass::StudioGlassState;
+use crate::thinking_orbs::{ThinkingOrbsParams, ThinkingOrbsState};
+use crate::voxelcraft::{VoxelcraftParams, VoxelcraftState};
+use crate::winter::{WinterParams, WinterState};
+use crate::themes::common::str_index;
 use base64::Engine;
 use chrono::{Datelike, Local, Timelike};
 use serde::{Deserialize, Serialize};
@@ -355,6 +381,7 @@ pub struct AppState {
     pub low_mode: bool,
     pub params: ThemeParams,
     pub icons: Vec<Rect>,
+    pub icon_names: Vec<String>,
     pub pointer_x: f32,
     pub pointer_y: f32,
     pub pointer_active: bool,
@@ -428,6 +455,32 @@ pub struct AppState {
     pub hit_pomo_reset: Rect,
     pub hit_pomo_mode: Rect,
     pub studio: StudioGlassState,
+    pub quiet_snow: QuietSnowState,
+    pub papercut: PapercutState,
+    pub voxelcraft: VoxelcraftState,
+    pub desert: DesertState,
+    pub claymorph: ClaymorphState,
+    pub neobrutalism: NeobrutalismState,
+    pub software_world: SoftwareWorldState,
+    pub meadow: MeadowState,
+    pub beach: BeachState,
+    pub aurora: AuroraState,
+    pub glade: GladeState,
+    pub liquidglass: LiquidGlassState,
+    pub zen_archipelago: ZenArchipelagoState,
+    pub rift: RiftState,
+    pub strike: StrikeState,
+    pub pocket: PocketState,
+    pub roach: RoachState,
+    pub rosebrook: RosebrookState,
+    pub polarnight: PolarNightState,
+    pub winter: WinterState,
+    pub neumorph: NeumorphState,
+    pub istanbul: IstanbulState,
+    pub solar_system: SolarSystemState,
+    pub thinking_orbs: ThinkingOrbsState,
+    pub ai_mascots: AiMascotsState,
+    pub windows: Vec<WindowInput>,
     pub outbox: VecDeque<String>,
     pub last_ui_rects_sig: String,
     pub sim_time: f32,
@@ -483,6 +536,7 @@ impl AppState {
             low_mode: false,
             params: ThemeParams::default(),
             icons: Vec::new(),
+            icon_names: Vec::new(),
             pointer_x: -999.0,
             pointer_y: -999.0,
             pointer_active: false,
@@ -550,6 +604,32 @@ impl AppState {
             hit_pomo_reset: Rect::default(),
             hit_pomo_mode: Rect::default(),
             studio: StudioGlassState::default(),
+            quiet_snow: QuietSnowState::default(),
+            papercut: PapercutState::default(),
+            voxelcraft: VoxelcraftState::default(),
+            desert: DesertState::default(),
+            claymorph: ClaymorphState::default(),
+            neobrutalism: NeobrutalismState::default(),
+            software_world: SoftwareWorldState::default(),
+            meadow: MeadowState::default(),
+            beach: BeachState::default(),
+            aurora: AuroraState::default(),
+            glade: GladeState::default(),
+            liquidglass: LiquidGlassState::default(),
+            zen_archipelago: ZenArchipelagoState::default(),
+            rift: RiftState::default(),
+            strike: StrikeState::default(),
+            pocket: PocketState::default(),
+            roach: RoachState::default(),
+            rosebrook: RosebrookState::default(),
+            polarnight: PolarNightState::default(),
+            winter: WinterState::default(),
+            neumorph: NeumorphState::default(),
+            istanbul: IstanbulState::default(),
+            solar_system: SolarSystemState::default(),
+            thinking_orbs: ThinkingOrbsState::default(),
+            ai_mascots: AiMascotsState::default(),
+            windows: Vec::new(),
             outbox: VecDeque::new(),
             last_ui_rects_sig: String::new(),
             sim_time: 0.0,
@@ -616,6 +696,106 @@ impl AppState {
         self.theme_id == "studio-glass"
     }
 
+    pub fn is_quiet_snow_theme(&self) -> bool {
+        self.theme_id == "quietsnow"
+    }
+
+    pub fn is_papercut_theme(&self) -> bool {
+        self.theme_id == "papercut"
+    }
+
+    pub fn is_voxelcraft_theme(&self) -> bool {
+        self.theme_id == "voxelcraft"
+    }
+
+    pub fn is_desert_theme(&self) -> bool {
+        self.theme_id == "desert"
+    }
+
+    pub fn is_claymorph_theme(&self) -> bool {
+        self.theme_id == "claymorph"
+    }
+
+    pub fn is_neobrutalism_theme(&self) -> bool {
+        self.theme_id == "neobrutalism"
+    }
+
+    pub fn is_liquidglass_theme(&self) -> bool {
+        self.theme_id == "liquidglass"
+    }
+
+    pub fn is_zen_archipelago_theme(&self) -> bool {
+        self.theme_id == "zen-archipelago"
+    }
+
+    pub fn is_software_world_theme(&self) -> bool {
+        self.theme_id == "software-world"
+    }
+
+    pub fn is_meadow_theme(&self) -> bool {
+        self.theme_id == "meadow"
+    }
+
+    pub fn is_beach_theme(&self) -> bool {
+        self.theme_id == "beach"
+    }
+
+    pub fn is_aurora_theme(&self) -> bool {
+        self.theme_id == "aurora"
+    }
+
+    pub fn is_glade_theme(&self) -> bool {
+        self.theme_id == "glade"
+    }
+
+    pub fn is_rift_theme(&self) -> bool {
+        self.theme_id == "rift"
+    }
+
+    pub fn is_strike_theme(&self) -> bool {
+        self.theme_id == "strike"
+    }
+
+    pub fn is_pocket_theme(&self) -> bool {
+        self.theme_id == "pocket"
+    }
+
+    pub fn is_roach_theme(&self) -> bool {
+        self.theme_id == "roach"
+    }
+
+    pub fn is_rosebrook_theme(&self) -> bool {
+        self.theme_id == "rosebrook"
+    }
+
+    pub fn is_polarnight_theme(&self) -> bool {
+        self.theme_id == "polarnight"
+    }
+
+    pub fn is_winter_theme(&self) -> bool {
+        self.theme_id == "winter"
+    }
+
+    pub fn is_neumorph_theme(&self) -> bool {
+        self.theme_id == "neumorph"
+    }
+
+    pub fn is_istanbul_theme(&self) -> bool {
+        self.theme_id == "istanbul"
+    }
+
+    pub fn is_solar_system_theme(&self) -> bool {
+        self.theme_id == "solar-system"
+    }
+
+    pub fn is_thinking_orbs_theme(&self) -> bool {
+        self.theme_id == "thinking-orbs"
+    }
+
+    pub fn is_ai_mascots_theme(&self) -> bool {
+        self.theme_id == "ai-mascots"
+    }
+
     pub fn set_theme(&mut self, id: &str) {
         let clean = id.trim();
         if clean.is_empty() {
@@ -629,6 +809,155 @@ impl AppState {
         self.drag = None;
         self.seeking_media = false;
         self.studio.reset_interaction();
+        if self.is_papercut_theme() {
+            self.papercut.cache_ok = false;
+            self.papercut.dirty = true;
+        }
+        if self.is_voxelcraft_theme() {
+            self.voxelcraft.cache_ok = false;
+            self.voxelcraft.atlas_biome = -1;
+            self.voxelcraft.resize(self.css_w(), self.css_h());
+        }
+        if self.is_desert_theme() {
+            let (dw, dh) = crate::desert::css_dims(self);
+            self.desert.resize(dw, dh);
+            self.desert.rebake();
+        }
+        if self.is_claymorph_theme() {
+            self.claymorph.resize(self.css_w(), self.css_h());
+            self.claymorph.cache_ok = false;
+            self.claymorph.dirty = true;
+            if !self.icons.is_empty() {
+                self.claymorph.sync_incoming_icons(&self.icons);
+            }
+        }
+        if self.is_neobrutalism_theme() {
+            self.neobrutalism.resize(self.css_w(), self.css_h());
+            self.neobrutalism.cache_ok = false;
+            self.neobrutalism.dirty = true;
+            if !self.icons.is_empty() {
+                self.neobrutalism.sync_incoming_icons(&self.icons);
+            }
+        }
+        if self.is_liquidglass_theme() {
+            self.liquidglass.resize(self.css_w(), self.css_h());
+            self.liquidglass.cache_ok = false;
+            self.liquidglass.dirty = true;
+            if !self.icons.is_empty() {
+                self.liquidglass.sync_incoming_icons(&self.icons);
+            }
+        }
+        if self.is_zen_archipelago_theme() {
+            self.zen_archipelago.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.zen_archipelago.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_software_world_theme() {
+            self.software_world.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.software_world.update_icons(&self.icons, true);
+            }
+        }
+        if self.is_meadow_theme() {
+            self.meadow.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.meadow.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_beach_theme() {
+            self.beach.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.beach.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_aurora_theme() {
+            self.aurora.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.aurora.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_glade_theme() {
+            self.glade.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.glade.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_rift_theme() {
+            self.rift.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.rift.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_strike_theme() {
+            self.strike.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.strike.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_pocket_theme() {
+            self.pocket.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.pocket.set_icons(&self.icons, &self.icon_names, true);
+            }
+        }
+        if self.is_roach_theme() {
+            self.roach.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.roach.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_rosebrook_theme() {
+            self.rosebrook.resize(self.css_w() as f64, self.css_h() as f64);
+            if !self.icons.is_empty() {
+                self.rosebrook.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_polarnight_theme() {
+            self.polarnight.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.polarnight.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_winter_theme() {
+            self.winter.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.winter.set_icons(&self.icons, &self.icon_names, true);
+            }
+        }
+        if self.is_neumorph_theme() {
+            self.neumorph
+                .resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.icons.is_empty() {
+                self.neumorph.sync_incoming_icons(&self.icons);
+            }
+        }
+        if self.is_istanbul_theme() {
+            self.istanbul.set_env_hour(self.env_hour);
+            self.istanbul.resize(self.css_w(), self.css_h());
+            self.istanbul.set_icons(&self.icons, !self.icons.is_empty());
+        }
+        if self.is_solar_system_theme() {
+            self.solar_system.set_low_mode(self.low_mode);
+            self.solar_system.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.solar_system.set_icons(&self.icons, &self.icon_names, true);
+            }
+        }
+        if self.is_thinking_orbs_theme() {
+            self.thinking_orbs.set_low_mode(self.low_mode);
+            self.thinking_orbs.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.thinking_orbs.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_ai_mascots_theme() {
+            self.ai_mascots.set_low_mode(self.low_mode);
+            self.ai_mascots.resize(self.css_w(), self.css_h());
+            if !self.icons.is_empty() {
+                self.ai_mascots.set_icons(&self.icons, &self.icon_names, true);
+            }
+        }
         self.set_active_field(TextField::None);
         // Always clear cached uiRects signature because host clears uiRectGroups on every LoadPage/switch!
         self.last_ui_rects_sig.clear();
@@ -791,6 +1120,83 @@ impl AppState {
         if self.is_studio_glass_theme() {
             self.studio.recompute_hud(w, h);
         }
+        if self.is_quiet_snow_theme() {
+            self.quiet_snow.resize(w, h);
+        }
+        if self.is_papercut_theme() {
+            self.papercut.resize(w, h);
+        }
+        if self.is_voxelcraft_theme() {
+            self.voxelcraft.resize(w, h);
+        }
+        if self.is_desert_theme() {
+            let (dw, dh) = crate::desert::css_dims(self);
+            self.desert.resize(dw, dh);
+        }
+        if self.is_claymorph_theme() {
+            self.claymorph.resize(w, h);
+        }
+        if self.is_neobrutalism_theme() {
+            self.neobrutalism.resize(w, h);
+        }
+        if self.is_liquidglass_theme() {
+            self.liquidglass.resize(w, h);
+        }
+        if self.is_zen_archipelago_theme() {
+            self.zen_archipelago.resize(w, h);
+        }
+        if self.is_software_world_theme() {
+            self.software_world.resize(w, h);
+        }
+        if self.is_meadow_theme() {
+            self.meadow.resize(w, h);
+        }
+        if self.is_beach_theme() {
+            self.beach.resize(w, h);
+        }
+        if self.is_aurora_theme() {
+            self.aurora.resize(w, h);
+        }
+        if self.is_glade_theme() {
+            self.glade.resize(w, h);
+        }
+        if self.is_rift_theme() {
+            self.rift.resize(w, h);
+        }
+        if self.is_strike_theme() {
+            self.strike.resize(w, h);
+        }
+        if self.is_pocket_theme() {
+            self.pocket.resize(w, h);
+        }
+        if self.is_roach_theme() {
+            self.roach.resize(w, h);
+        }
+        if self.is_rosebrook_theme() {
+            self.rosebrook.resize(w as f64, h as f64);
+        }
+        if self.is_polarnight_theme() {
+            self.polarnight.resize(w, h);
+        }
+        if self.is_winter_theme() {
+            self.winter.resize(self.css_w(), self.css_h());
+        }
+        if self.is_neumorph_theme() {
+            self.neumorph
+                .resize(self.css_w(), self.css_h(), self.dpi_scale);
+        }
+        if self.is_istanbul_theme() {
+            self.istanbul.resize(w, h);
+        }
+        if self.is_solar_system_theme() {
+            self.solar_system.resize(w, h);
+        }
+        if self.is_thinking_orbs_theme() {
+            self.thinking_orbs.resize(w, h);
+        }
+        if self.is_ai_mascots_theme() {
+            self.ai_mascots.resize(w, h);
+        }
 
         self.emit_ui_rects();
     }
@@ -850,6 +1256,10 @@ impl AppState {
             "lowMode" => {
                 if let Some(b) = v.get("v").and_then(|x| x.as_bool()) {
                     self.low_mode = b;
+                    self.quiet_snow.set_low_mode(b);
+                    self.solar_system.set_low_mode(b);
+                    self.thinking_orbs.set_low_mode(b);
+                    self.ai_mascots.set_low_mode(b);
                 }
             }
             "settings" => {
@@ -861,6 +1271,82 @@ impl AppState {
                 self.params = ThemeParams::default();
                 self.raw_params.clear();
                 self.custom_pos = [None; 5];
+                if self.is_quiet_snow_theme() {
+                    self.quiet_snow.sync_params(QuietSnowParams::default());
+                }
+                if self.is_papercut_theme() {
+                    self.papercut.sync_params(PapercutParams::default());
+                }
+                if self.is_voxelcraft_theme() {
+                    self.voxelcraft.sync_params(VoxelcraftParams::default());
+                }
+                if self.is_desert_theme() {
+                    self.desert.sync_params(DesertParams::default());
+                }
+                if self.is_claymorph_theme() {
+                    self.claymorph.sync_params(ClaymorphParams::default());
+                }
+                if self.is_neobrutalism_theme() {
+                    self.neobrutalism.sync_params(NbParams::default());
+                }
+                if self.is_liquidglass_theme() {
+                    self.liquidglass.sync_params(LgParams::default());
+                }
+                if self.is_zen_archipelago_theme() {
+                    self.zen_archipelago.sync_params(ZenArchipelagoParams::default());
+                }
+                if self.is_software_world_theme() {
+                    self.software_world.sync_params(SoftwareWorldParams::default());
+                }
+                if self.is_meadow_theme() {
+                    self.meadow.sync_params(MeadowParams::default());
+                }
+                if self.is_beach_theme() {
+                    self.beach.sync_params(BeachParams::default());
+                }
+                if self.is_aurora_theme() {
+                    self.aurora.sync_params(AuroraParams::default());
+                }
+                if self.is_glade_theme() {
+                    self.glade.sync_params(GladeParams::default());
+                }
+                if self.is_rift_theme() {
+                    self.rift.sync_params(RiftParams::default());
+                }
+                if self.is_strike_theme() {
+                    self.strike.sync_params(StrikeParams::default());
+                }
+                if self.is_pocket_theme() {
+                    self.pocket.sync_params(PocketParams::default());
+                }
+                if self.is_roach_theme() {
+                    self.roach.sync_params(RoachParams::default());
+                }
+                if self.is_rosebrook_theme() {
+                    self.rosebrook.sync_params(RosebrookParams::default());
+                }
+                if self.is_polarnight_theme() {
+                    self.polarnight.sync_params(PolarNightParams::default());
+                }
+                if self.is_winter_theme() {
+                    self.winter.sync_params(WinterParams::default());
+                }
+                if self.is_neumorph_theme() {
+                    self.neumorph.sync_params(NeumorphParams::default());
+                }
+                if self.is_istanbul_theme() {
+                    self.istanbul.set_env_hour(self.env_hour);
+                    self.istanbul.sync_params(IstanbulParams::default());
+                }
+                if self.is_solar_system_theme() {
+                    self.solar_system.sync_params(SolarSystemParams::default());
+                }
+                if self.is_thinking_orbs_theme() {
+                    self.thinking_orbs.sync_params(ThinkingOrbsParams::default());
+                }
+                if self.is_ai_mascots_theme() {
+                    self.ai_mascots.sync_params(AiMascotsParams::default());
+                }
                 if let Some(obj) = v.get("v").and_then(|x| x.as_object()) {
                     self.apply_params(obj);
                 }
@@ -870,10 +1356,12 @@ impl AppState {
             "icons" => {
                 let vis = v.get("vis").and_then(|x| x.as_bool()).unwrap_or(false);
                 self.icons.clear();
+                self.icon_names.clear();
                 if vis {
+                    let names_arr = v.get("n").and_then(|x| x.as_array());
                     if let Some(arr) = v.get("r").and_then(|x| x.as_array()) {
                         let k = self.dpi_scale.max(0.5);
-                        for item in arr {
+                        for (idx, item) in arr.iter().enumerate() {
                             if let Some(r) = item.as_array() {
                                 if r.len() >= 4 {
                                     let l = r[0].as_f64().unwrap_or(0.0) as f32 / k;
@@ -881,16 +1369,77 @@ impl AppState {
                                     let ri = r[2].as_f64().unwrap_or(0.0) as f32 / k;
                                     let b = r[3].as_f64().unwrap_or(0.0) as f32 / k;
                                     self.icons.push(Rect { x: l, y: top, w: (ri - l).max(1.0), h: (b - top).max(1.0) });
+                                    let nm = names_arr
+                                        .and_then(|na| na.get(idx))
+                                        .and_then(|nv| nv.as_str())
+                                        .unwrap_or("");
+                                    self.icon_names.push(nm.to_string());
                                 }
                             }
                         }
                     }
                 }
+                self.quiet_snow.set_icons(&self.icons);
+                self.desert.set_icons(&self.icons, vis);
+                self.software_world.update_icons(&self.icons, vis);
+                self.meadow.set_icons(&self.icons, vis);
+                self.beach.set_icons(&self.icons, vis);
+                self.aurora.set_icons(&self.icons, vis);
+                self.glade.set_icons(&self.icons, vis);
+                self.rift.set_icons(&self.icons, vis);
+                self.strike.set_icons(&self.icons, vis);
+                self.pocket.set_icons(&self.icons, &self.icon_names, vis);
+                self.roach.set_icons(&self.icons, vis);
+                self.rosebrook.set_icons(&self.icons, vis);
+                self.polarnight.set_icons(&self.icons, vis);
+                self.winter.set_icons(&self.icons, &self.icon_names, vis);
+                if self.is_neumorph_theme() {
+                    let rects: Vec<Rect> = if vis {
+                        self.icons.clone()
+                    } else {
+                        Vec::new()
+                    };
+                    self.neumorph.sync_incoming_icons(&rects);
+                }
+                self.claymorph.sync_incoming_icons(&self.icons);
+                self.neobrutalism.sync_incoming_icons(&self.icons);
+                self.liquidglass.sync_incoming_icons(&self.icons);
+                self.zen_archipelago.set_icons(&self.icons, vis);
+                self.istanbul.set_icons(&self.icons, vis);
+                self.solar_system.set_icons(&self.icons, &self.icon_names, vis);
+                self.thinking_orbs.set_icons(&self.icons, vis);
+                self.ai_mascots.set_icons(&self.icons, &self.icon_names, vis);
                 self.recompute_layout();
+            }
+            "windows" => {
+                self.windows.clear();
+                if let Some(arr) = v.get("r").and_then(|x| x.as_array()) {
+                    let k = self.dpi_scale.max(0.5);
+                    for item in arr {
+                        if let Some(r) = item.as_array() {
+                            if r.len() >= 5 {
+                                let id = r[0].as_i64().unwrap_or(0);
+                                let l = r[1].as_f64().unwrap_or(0.0) as f32 / k;
+                                let top = r[2].as_f64().unwrap_or(0.0) as f32 / k;
+                                let ri = r[3].as_f64().unwrap_or(0.0) as f32 / k;
+                                let b = r[4].as_f64().unwrap_or(0.0) as f32 / k;
+                                self.windows.push(WindowInput {
+                                    id,
+                                    x: l,
+                                    y: top,
+                                    w: (ri - l).max(1.0),
+                                    h: (b - top).max(1.0),
+                                });
+                            }
+                        }
+                    }
+                }
+                self.quiet_snow.set_windows(&self.windows);
             }
             "environment" => {
                 if let Some(hr) = v.get("hour").and_then(|x| x.as_f64()) {
                     self.env_hour = hr as f32;
+                    self.istanbul.set_env_hour(self.env_hour);
                 }
             }
             "systemStats" => {
@@ -974,6 +1523,458 @@ impl AppState {
             let show_hud = self.param_bool("showHud", true);
             self.studio.sync_from_raw_params(st_preset, blinds, shafts, weather, mon_ang, lamp, par, refr, frost, ic_glass, show_hud);
         }
+        if self.is_quiet_snow_theme() {
+            let qsp = QuietSnowParams {
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                mode: (self.param_f32("mode", 0.0).round() as i32).clamp(0, 3),
+                intensity: self.param_f32("intensity", 0.85).clamp(0.1, 1.6),
+                wind: self.param_f32("wind", 0.22).clamp(-1.5, 1.5),
+                gusts: self.param_f32("gusts", 0.45).clamp(0.0, 1.0),
+                accumulate: (self.param_f32("accumulate", 2.0).round() as i32).clamp(0, 2),
+                windows: if self.param_bool("windows", true) { 1 } else { 0 },
+                melt: self.param_f32("melt", 0.35).clamp(0.0, 1.0),
+                cursor: (self.param_f32("cursor", 2.0).round() as i32).clamp(0, 2),
+                depth: self.param_f32("depth", 0.85).clamp(0.3, 1.4),
+                atmosphere: (self.param_f32("atmosphere", 0.0).round() as i32).clamp(0, 3),
+                sparkle: self.param_f32("sparkle", 0.55).clamp(0.0, 1.0),
+                backdrop: self.param_f32("backdrop", 0.75).clamp(0.0, 1.0),
+                quality: (self.param_f32("quality", 1.0).round() as i32).clamp(0, 2),
+            };
+            self.quiet_snow.sync_params(qsp);
+        }
+        if self.is_winter_theme() {
+            let q = match self.param_str("quality") {
+                Some("Low") => 0,
+                Some("Medium") => 1,
+                Some("High") => 2,
+                _ => (self.param_f32("quality", 2.0).round() as i32).clamp(0, 2),
+            };
+            let seed = self
+                .raw_params
+                .get("seed")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32)
+                .unwrap_or(20261117);
+            let wp = WinterParams {
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                snow_intensity: self.param_f32("snowIntensity", 0.75).clamp(0.0, 1.5),
+                snow_speed: self.param_f32("snowSpeed", 0.85).clamp(0.2, 2.0),
+                wind_strength: self.param_f32("windStrength", 0.18).clamp(-1.0, 1.0),
+                smoke_amount: self.param_f32("smokeAmount", 0.85).clamp(0.0, 1.5),
+                atmosphere_density: self.param_f32("atmosphereDensity", 0.75).clamp(0.0, 1.5),
+                tree_density: self.param_f32("treeDensity", 0.80).clamp(0.0, 1.5),
+                mountain_visibility: self.param_f32("mountainVisibility", 0.85).clamp(0.0, 1.0),
+                icon_snow_amount: self.param_f32("iconSnowAmount", 0.90).clamp(0.0, 1.5),
+                anim_speed: self.param_f32("animSpeed", 1.0).clamp(0.2, 2.0),
+                quality: q,
+                seed,
+            };
+            self.winter.sync_params(wp);
+        }
+        if self.is_neumorph_theme() {
+            let palette = match self.param_str("palette") {
+                Some("sand") => 1,
+                Some("slate") => 2,
+                Some("sage") => 3,
+                _ => 0,
+            };
+            let accent = match self.param_str("accentColor") {
+                Some("coral") => 1,
+                Some("emerald") => 2,
+                Some("amber") => 3,
+                _ => 0,
+            };
+            let icon_style = match self.param_str("iconStyle") {
+                Some("well") => 1,
+                Some("minimal") => 2,
+                _ => 0,
+            };
+            let quality = match self.param_str("quality") {
+                Some("Low") => 0,
+                Some("Medium") => 1,
+                Some("High") => 2,
+                _ => (self.param_f32("quality", 2.0).round() as i32).clamp(0, 2),
+            };
+            let seed = self
+                .raw_params
+                .get("seed")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u32)
+                .unwrap_or(20261118);
+            let np = NeumorphParams {
+                palette,
+                accent,
+                relief_depth: self.param_f32("reliefDepth", 1.0).clamp(0.3, 1.6),
+                light_follow_cursor: self.param_bool("lightFollowCursor", false),
+                wave_speed: self.param_f32("waveSpeed", 0.75).clamp(0.0, 2.5),
+                tile_density: self.param_f32("tileDensity", 1.0).clamp(0.5, 1.6),
+                ripple_strength: self.param_f32("rippleStrength", 1.0).clamp(0.0, 2.2),
+                icon_style,
+                quality,
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                seed,
+            };
+            self.neumorph.sync_params(np);
+        }
+        if self.is_papercut_theme() {
+            let pcp = PapercutParams {
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                time: (self.param_f32("time", 0.0).round() as i32).clamp(0, 4),
+                light: self.param_f32("light", 225.0).clamp(0.0, 360.0),
+                shadow: self.param_f32("shadow", 1.0).clamp(0.0, 2.0),
+                palette: (self.param_f32("palette", 0.0).round() as usize).min(3),
+                grain: self.param_f32("grain", 0.50).clamp(0.0, 1.0),
+                gap: self.param_f32("gap", 1.0).clamp(0.4, 2.0),
+                flowers: self.param_f32("flowers", 0.60).clamp(0.0, 1.5),
+                trees: if self.param_bool("trees", true) { 1 } else { 0 },
+                critters: (self.param_f32("critters", 1.0).round() as usize).min(2),
+                skyline: if self.param_bool("skyline", true) { 1 } else { 0 },
+                frame: if self.param_bool("frame", true) { 1 } else { 0 },
+                sway: self.param_f32("sway", 1.0).clamp(0.0, 2.0),
+                fw: self.param_f32("fw", 16.0).clamp(6.0, 40.0),
+                fstyle: (self.param_f32("fstyle", 0.0).round() as i32).clamp(0, 1),
+                quality: (self.param_f32("quality", 1.0).round() as usize).min(2),
+            };
+            self.papercut.sync_params(pcp);
+        }
+        if self.is_voxelcraft_theme() {
+            let vp = VoxelcraftParams {
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                biome: str_index(self, "biome", &["overworld", "cherry", "snowy", "nether"], 0) as usize,
+                time_of_day: str_index(self, "timeOfDay", &["auto", "day", "sunset", "night"], 0) as usize,
+                icon_style: str_index(self, "iconBlockStyle", &["island", "planks", "frame"], 0) as usize,
+                block_size: self.param_f32("blockSize", 1.0).clamp(0.7, 1.5),
+                cloud_density: self.param_f32("cloudDensity", 1.0).clamp(0.0, 1.6),
+                weather_amount: self.param_f32("weatherAmount", 1.0).clamp(0.0, 1.8),
+                critter_amount: self.param_f32("critterAmount", 1.0).clamp(0.0, 1.8),
+                torch_glow: self.param_f32("torchGlow", 1.0).clamp(0.0, 1.8),
+                anim_speed: self.param_f32("animSpeed", 1.0).clamp(0.2, 2.5),
+                quality: str_index(self, "quality", &["Low", "Medium", "High"], 2) as usize,
+                seed: self.param_f32("seed", 0.0).max(0.0) as u32,
+            };
+            self.voxelcraft.sync_params(vp);
+        }
+        if self.is_desert_theme() {
+            let dp = DesertParams {
+                sigma: self.param_f32("sigma", 88.0).clamp(40.0, 200.0),
+                warp: self.param_f32("warp", 36.0).clamp(0.0, 80.0),
+                oases: (self.param_f32("oases", 2.0).round() as i32).clamp(0, 4) as usize,
+                warmth: self.param_f32("warmth", 0.78).clamp(0.0, 1.0),
+                wind: self.param_f32("wind", 1.0).clamp(0.0, 2.5),
+                camels: (self.param_f32("camels", 6.0).round() as i32).clamp(0, 12) as usize,
+                travelers: self.param_bool("travelers", true),
+                palms: (self.param_f32("palms", 10.0).round() as i32).clamp(0, 18) as usize,
+                adaptive: self.param_bool("adaptive", true),
+                debug: self.param_bool("debug", false),
+                seed: self.param_f32("seed", 73194.0).max(0.0) as u32,
+                quality: str_index(self, "quality", &["Low", "Medium", "High"], 2) as usize,
+            };
+            self.desert.sync_params(dp);
+        }
+        if self.is_claymorph_theme() {
+            let pal_idx = match self.param_str("palette") {
+                Some("candy") => 1,
+                Some("matcha") => 2,
+                Some("dusk") => 3,
+                _ => 0,
+            };
+            let cradle_idx = match self.param_str("iconCradle") {
+                Some("cloud") => 1,
+                Some("ring") => 2,
+                _ => 0,
+            };
+            let quality = match self.param_str("quality") {
+                Some("Low") => 0,
+                Some("Medium") => 1,
+                _ => 2,
+            };
+            let cmp = ClaymorphParams {
+                palette: pal_idx,
+                puffiness: self.param_f32("puffiness", 1.0).clamp(0.4, 1.6),
+                squish_strength: self.param_f32("squishStrength", 1.0).clamp(0.0, 1.8),
+                blob_count: self.param_f32("blobCount", 1.0).clamp(0.0, 1.8),
+                float_speed: self.param_f32("floatSpeed", 0.80).clamp(0.0, 2.0),
+                cursor_repel: self.param_f32("cursorRepel", 1.0).clamp(0.0, 1.8),
+                icon_cradle: cradle_idx,
+                quality,
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                seed: self.param_f32("seed", 20261118.0).round() as u32,
+            };
+            self.claymorph.sync_params(cmp);
+        }
+        if self.is_neobrutalism_theme() {
+            let pal_idx = match self.param_str("palette") {
+                Some("acid") => 1,
+                Some("zine") => 2,
+                Some("dark") => 3,
+                _ => 0,
+            };
+            let frame_idx = match self.param_str("iconFrame") {
+                Some("sticker") => 1,
+                Some("blueprint") => 2,
+                _ => 0,
+            };
+            let quality = match self.param_str("quality") {
+                Some("Low") => 0,
+                Some("Medium") => 1,
+                _ => 2,
+            };
+            let nbp = NbParams {
+                palette: pal_idx,
+                border_weight: self.param_f32("borderWeight", 3.0).clamp(1.5, 5.5),
+                shadow_depth: self.param_f32("shadowDepth", 7.0).clamp(2.0, 14.0),
+                shape_count: self.param_f32("shapeCount", 1.0).clamp(0.0, 1.8),
+                motion_speed: self.param_f32("motionSpeed", 0.85).clamp(0.0, 2.0),
+                cursor_push: self.param_f32("cursorPush", 1.0).clamp(0.0, 1.8),
+                halftone: self.param_bool("halftonePattern", true),
+                icon_frame: frame_idx,
+                quality,
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                seed: self.param_f32("seed", 0.0).round() as u32,
+            };
+            self.neobrutalism.sync_params(nbp);
+        }
+        if self.is_liquidglass_theme() {
+            let pal_idx = match self.param_str("palette") {
+                Some("aurora") => 1,
+                Some("prism") => 2,
+                Some("obsidian") => 3,
+                Some("classic") => 4,
+                _ => 0,
+            };
+            let style_idx = match self.param_str("iconGlassStyle") {
+                Some("droplet") => 1,
+                Some("prism") => 2,
+                _ => 0,
+            };
+            let quality = match self.param_str("quality") {
+                Some("Low") => 0,
+                Some("Medium") => 1,
+                _ => 2,
+            };
+            let lgp = LgParams {
+                palette: pal_idx,
+                refraction: self.param_f32("refraction", 1.0).clamp(0.15, 1.6),
+                frost_amount: self.param_f32("frostAmount", 0.65).clamp(0.0, 1.5),
+                dispersion: self.param_f32("dispersion", 0.95).clamp(0.0, 1.6),
+                merge_rate: self.param_f32("mergeRate", 0.55).clamp(0.0, 1.5),
+                droplet_count: self.param_f32("dropletCount", 1.0).clamp(0.0, 2.0),
+                flow_speed: self.param_f32("flowSpeed", 0.85).clamp(0.0, 2.0),
+                cursor_lens: self.param_bool("cursorLens", true),
+                icon_style: style_idx,
+                quality,
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                seed: self.param_f32("seed", 0.0).round() as u32,
+            };
+            self.liquidglass.sync_params(lgp);
+        }
+        if self.is_zen_archipelago_theme() {
+            // TIME_MODES = ["night", "sunset", "day"] -> 0 = night (default), 1 = sunset, 2 = day
+            let tod = match self.param_str("timeOfDay") {
+                Some("night") => 0,
+                Some("sunset") => 1,
+                Some("day") => 2,
+                _ => (self.param_f32("timeOfDay", 0.0).round() as i32).clamp(0, 2) as usize,
+            };
+            let zap = ZenArchipelagoParams {
+                adaptive: self.param_bool("adaptive", true),
+                time_of_day: tod,
+                koi_count: (self.param_f32("koiCount", 14.0).round() as i32).clamp(4, 30) as usize,
+                lantern_count: (self.param_f32("lanternCount", 10.0).round() as i32).clamp(0, 25) as usize,
+                island_margin: (self.param_f32("islandMargin", 44.0) as f64).clamp(18.0, 72.0),
+                bridge_distance: (self.param_f32("bridgeDistance", 230.0) as f64).clamp(100.0, 500.0),
+                wave_intensity: (self.param_f32("waveIntensity", 1.0) as f64).clamp(0.2, 2.0),
+                sakura_density: (self.param_f32("sakuraDensity", 1.0) as f64).clamp(0.0, 2.0),
+                fireflies: (self.param_f32("fireflies", 45.0).round() as i32).clamp(0, 100) as usize,
+            };
+            self.zen_archipelago.sync_params(zap);
+        }
+        if self.is_software_world_theme() {
+            let swp = SoftwareWorldParams {
+                adaptive: if self.param_bool("adaptive", true) { 1 } else { 0 },
+                anim_speed: self.param_f32("animSpeed", 1.0).clamp(0.25, 2.5),
+                network_activity: self.param_f32("networkActivity", 0.65).clamp(0.0, 1.0),
+                connection_intensity: self.param_f32("connectionIntensity", 0.55).clamp(0.0, 1.0),
+                particle_density: self.param_f32("particleDensity", 0.55).clamp(0.0, 1.0),
+                code_particle_density: self.param_f32("codeParticleDensity", 0.45).clamp(0.0, 1.0),
+                env_detail: self.param_f32("envDetail", 0.70).clamp(0.0, 1.0),
+                quality: (self.param_f32("quality", 1.0).round() as usize).min(2),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+            };
+            self.software_world.sync_params(swp);
+            if swp.adaptive != 0 && self.software_world.nodes.is_empty() && !self.icons.is_empty() {
+                self.software_world.update_icons(&self.icons, true);
+            }
+        }
+        if self.is_meadow_theme() {
+            let mp = MeadowParams {
+                sigma: (self.param_f32("sigma", 72.0) as f64).clamp(40.0, 200.0),
+                warp: 40.0,
+                edge: 10.0,
+                cover: (self.param_f32("cover", 0.3) as f64).clamp(0.0, 1.0),
+                flow: (self.param_f32("flow", 1.0) as f64).clamp(0.0, 3.0),
+                show_boy: self.param_bool("showBoy", true),
+                show_cat: self.param_bool("showCat", true),
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.meadow.sync_params(mp);
+        }
+        if self.is_beach_theme() {
+            let bp = BeachParams {
+                sigma: (self.param_f32("sigma", 85.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 34.0) as f64).clamp(0.0, 80.0),
+                shallow: (self.param_f32("shallow", 260.0) as f64).clamp(120.0, 700.0),
+                shoal: (self.param_f32("shoal", 110.0) as f64).clamp(0.0, 300.0),
+                speed: 22.0,
+                runup: 120.0,
+                wave: 1.6,
+                spacing: 70.0,
+                waves: 1.0,
+                grain: 1.0,
+                kayaks: (self.param_f32("kayaks", 2.0).round() as i32).clamp(0, 4) as usize,
+                birds: (self.param_f32("birds", 3.0).round() as i32).clamp(0, 8) as usize,
+                palms: (self.param_f32("palms", 4.0).round() as i32).clamp(0, 10) as usize,
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.beach.sync_params(bp);
+        }
+        if self.is_aurora_theme() {
+            let ap = AuroraParams {
+                sigma: (self.param_f32("sigma", 82.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 32.0) as f64).clamp(0.0, 80.0),
+                shoal: (self.param_f32("shoal", 90.0) as f64).clamp(0.0, 240.0),
+                aurora: (self.param_f32("aurora", 0.78) as f64).clamp(0.0, 1.0),
+                flow: (self.param_f32("flow", 1.0) as f64).clamp(0.0, 3.0),
+                snow: (self.param_f32("snow", 0.45) as f64).clamp(0.0, 1.0),
+                pines: (self.param_f32("pines", 6.0).round() as i32).clamp(0, 12) as usize,
+                lanterns: (self.param_f32("lanterns", 2.0).round() as i32).clamp(0, 6) as usize,
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.aurora.sync_params(ap);
+        }
+        if self.is_glade_theme() {
+            let gp = GladeParams {
+                sigma: (self.param_f32("sigma", 78.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 28.0) as f64).clamp(0.0, 80.0),
+                density: (self.param_f32("density", 1.0) as f64).clamp(0.2, 1.5),
+                wind: (self.param_f32("wind", 1.0) as f64).clamp(0.0, 3.0),
+                birds: (self.param_f32("birds", 4.0).round() as i32).clamp(0, 10) as usize,
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.glade.sync_params(gp);
+        }
+        if self.is_rift_theme() {
+            let rp = RiftParams {
+                sigma: (self.param_f32("sigma", 82.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 24.0) as f64).clamp(0.0, 80.0),
+                glow: (self.param_f32("glow", 0.78) as f64).clamp(0.0, 1.0),
+                wind: (self.param_f32("wind", 1.0) as f64).clamp(0.0, 3.0),
+                heroes: (self.param_f32("heroes", 5.0).round() as i32).clamp(0, 5) as usize,
+                turrets: (self.param_f32("turrets", 4.0).round() as i32).clamp(0, 6) as usize,
+                wards: (self.param_f32("wards", 4.0).round() as i32).clamp(0, 8) as usize,
+                wisps: (self.param_f32("wisps", 8.0).round() as i32).clamp(0, 16) as usize,
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.rift.sync_params(rp);
+        }
+        if self.is_strike_theme() {
+            let sp = StrikeParams {
+                sigma: (self.param_f32("sigma", 82.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 20.0) as f64).clamp(0.0, 80.0),
+                holes: (self.param_f32("holes", 1.0) as f64).clamp(0.0, 2.0),
+                smoke: (self.param_f32("smoke", 0.45) as f64).clamp(0.0, 1.0),
+                wind: (self.param_f32("wind", 1.0) as f64).clamp(0.0, 3.0),
+                ball: (self.param_f32("ball", 1.0).round() as i32).clamp(0, 3) as usize,
+                chickens: (self.param_f32("chickens", 4.0).round() as i32).clamp(0, 10) as usize,
+                crates: (self.param_f32("crates", 1.0) as f64).clamp(0.2, 1.5),
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.strike.sync_params(sp);
+        }
+        if self.is_pocket_theme() {
+            let pp = PocketParams {
+                sigma: (self.param_f32("sigma", 78.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 22.0) as f64).clamp(0.0, 80.0),
+                arrows: (self.param_f32("arrows", 0.78) as f64).clamp(0.0, 1.0),
+                divisions: (self.param_f32("divisions", 12.0).round() as i32).clamp(0, 24) as usize,
+                faction: (self.param_f32("faction", 0.0).round() as i32).clamp(0, 3),
+                pace: (self.param_f32("pace", 1.0) as f64).clamp(0.0, 3.0),
+                skirmish: (self.param_f32("skirmish", 0.65) as f64).clamp(0.0, 1.0),
+                supply: (self.param_f32("supply", 0.55) as f64).clamp(0.0, 1.0),
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.pocket.sync_params(pp);
+        }
+        if self.is_roach_theme() {
+            let rp = RoachParams {
+                sigma: (self.param_f32("sigma", 78.0) as f64).clamp(40.0, 200.0),
+                warp: (self.param_f32("warp", 24.0) as f64).clamp(0.0, 80.0),
+                glow: (self.param_f32("glow", 0.78) as f64).clamp(0.0, 1.0),
+                crowd: (self.param_f32("crowd", 12.0).round() as i32).clamp(0, 22) as usize,
+                speed: (self.param_f32("speed", 1.0) as f64).clamp(0.2, 2.2),
+                props: (self.param_f32("props", 0.9) as f64).clamp(0.0, 1.0),
+                vibe: (self.param_f32("vibe", 0.0) as f64).clamp(0.0, 1.0),
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 41297.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.roach.sync_params(rp);
+        }
+        if self.is_rosebrook_theme() {
+            let rp = RosebrookParams {
+                sigma: (self.param_f32("sigma", 72.0) as f64).clamp(40.0, 180.0),
+                stream: (self.param_f32("stream", 1.0) as f64).clamp(0.25, 1.5),
+                flow: (self.param_f32("flow", 1.0) as f64).clamp(0.2, 2.2),
+                sunlight: (self.param_f32("sunlight", 0.78) as f64).clamp(0.0, 1.0),
+                roses: (self.param_f32("roses", 0.85) as f64).clamp(0.0, 1.0),
+                petals: (self.param_f32("petals", 12.0).round() as i32).clamp(0, 24) as usize,
+                breeze: (self.param_f32("breeze", 1.0) as f64).clamp(0.2, 2.0),
+                adaptive: self.param_bool("adaptive", true),
+                seed: self.param_f32("seed", 42.0).round() as i32,
+                debug: self.param_bool("debug", false),
+            };
+            self.rosebrook.sync_params(rp);
+        }
+        if self.is_polarnight_theme() {
+            let pnp = PolarNightParams {
+                sigma: (self.param_f32("sigma", 90.0) as f64).clamp(40.0, 200.0),
+                density: (self.param_f32("density", 0.6) as f64).clamp(0.1, 1.0),
+                glow: (self.param_f32("glow", 0.75) as f64).clamp(0.1, 1.0),
+                flow: (self.param_f32("flow", 1.0) as f64).clamp(0.2, 2.5),
+                palette: (self.param_f32("palette", 0.0).round() as i32).clamp(0, 2) as usize,
+                snow: (self.param_f32("snow", 110.0).round() as i32).clamp(0, 250) as usize,
+                meteor: self.param_bool("meteor", true),
+                cabin: self.param_bool("cabin", true),
+                seed: self.param_f32("seed", 424242.0).round() as i32,
+            };
+            self.polarnight.sync_params(pnp);
+        }
+        if self.is_istanbul_theme() {
+            self.istanbul.set_env_hour(self.env_hour);
+            self.istanbul.sync_params(IstanbulParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_solar_system_theme() {
+            self.solar_system.sync_params(SolarSystemParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_thinking_orbs_theme() {
+            self.thinking_orbs.sync_params(ThinkingOrbsParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_ai_mascots_theme() {
+            self.ai_mascots.sync_params(AiMascotsParams::from_raw_params(&self.raw_params));
+        }
         self.recompute_layout();
     }
 
@@ -1015,6 +2016,100 @@ impl AppState {
             let py = self.pointer_y;
             let pa = self.pointer_active;
             self.studio.step(dt, px, py, pa, cw, ch);
+        }
+        if self.is_quiet_snow_theme() {
+            self.quiet_snow.set_low_mode(self.low_mode);
+            self.quiet_snow.step(dt);
+        }
+        if self.is_papercut_theme() {
+            self.papercut.step(dt, &self.icons);
+        }
+        if self.is_voxelcraft_theme() {
+            let px = self.pointer_x;
+            let py = self.pointer_y;
+            let pa = self.pointer_active;
+            let icons = &self.icons;
+            self.voxelcraft.set_icons(icons, true);
+            self.voxelcraft.step(dt, (px, py, pa));
+        }
+        if self.is_desert_theme() {
+            self.desert.step(dt);
+        }
+        if self.is_claymorph_theme() {
+            let px = self.pointer_x;
+            let py = self.pointer_y;
+            let pa = self.pointer_active;
+            let pd = self.claymorph.pointer_down;
+            self.claymorph.step(dt, &self.icons, (px, py, pa, pd));
+        }
+        if self.is_neobrutalism_theme() {
+            let px = self.pointer_x;
+            let py = self.pointer_y;
+            let pa = self.pointer_active;
+            let pd = self.neobrutalism.pointer_down;
+            self.neobrutalism.step(dt, &self.icons, (px, py, pa, pd));
+        }
+        if self.is_liquidglass_theme() {
+            self.liquidglass.step(dt, &self.icons);
+        }
+        if self.is_zen_archipelago_theme() {
+            self.zen_archipelago.step(dt);
+        }
+        if self.is_software_world_theme() {
+            self.software_world.step(dt);
+        }
+        if self.is_meadow_theme() {
+            self.meadow.step(dt);
+        }
+        if self.is_beach_theme() {
+            self.beach.step(dt);
+        }
+        if self.is_aurora_theme() {
+            self.aurora.step(dt);
+        }
+        if self.is_glade_theme() {
+            self.glade.step(dt);
+        }
+        if self.is_rift_theme() {
+            self.rift.step(dt);
+        }
+        if self.is_strike_theme() {
+            self.strike.step(dt);
+        }
+        if self.is_pocket_theme() {
+            self.pocket.step(dt);
+        }
+        if self.is_roach_theme() {
+            self.roach.step(dt);
+        }
+        if self.is_rosebrook_theme() {
+            self.rosebrook.step(dt as f64);
+        }
+        if self.is_polarnight_theme() {
+            self.polarnight.step(dt);
+        }
+        if self.is_winter_theme() {
+            self.winter.set_low_mode(self.low_mode);
+            self.winter.step(dt);
+        }
+        if self.is_neumorph_theme() {
+            self.neumorph.set_low_mode(self.low_mode);
+            self.neumorph.step(dt);
+        }
+        if self.is_istanbul_theme() {
+            self.istanbul.step(dt);
+        }
+        if self.is_solar_system_theme() {
+            self.solar_system.set_low_mode(self.low_mode);
+            self.solar_system.step(dt);
+        }
+        if self.is_thinking_orbs_theme() {
+            self.thinking_orbs.set_low_mode(self.low_mode);
+            self.thinking_orbs.step(dt);
+        }
+        if self.is_ai_mascots_theme() {
+            self.ai_mascots.set_low_mode(self.low_mode);
+            self.ai_mascots.step(dt);
         }
     }
 
@@ -1219,6 +2314,13 @@ impl AppState {
             self.drag = None;
             self.seeking_media = false;
             self.studio.handle_mouse(3, 0.0, 0.0, 1.0, 1.0);
+            self.quiet_snow.on_pointer_leave();
+            self.claymorph.on_pointer_leave();
+            self.neobrutalism.on_pointer_leave();
+            self.liquidglass.on_pointer_leave();
+            self.solar_system.handle_mouse(3, 0.0, 0.0);
+            self.thinking_orbs.handle_mouse(3, 0.0, 0.0);
+            self.ai_mascots.handle_mouse(3, 0.0, 0.0);
             return false;
         }
         self.pointer_x = x;
@@ -1233,6 +2335,116 @@ impl AppState {
                 self.emit_ui_rects();
             }
             return handled;
+        }
+
+        if self.is_quiet_snow_theme() {
+            match kind {
+                0 => self.quiet_snow.on_pointer_move(x, y, None),
+                1 => self.quiet_snow.on_pointer_down(x, y),
+                2 => self.quiet_snow.on_pointer_up(),
+                _ => {}
+            }
+            return false;
+        }
+        if self.is_claymorph_theme() {
+            match kind {
+                0 => self.claymorph.on_pointer_move(x, y),
+                1 => self.claymorph.on_pointer_down(x, y),
+                2 => self.claymorph.on_pointer_up(),
+                _ => {}
+            }
+            return false;
+        }
+        if self.is_neobrutalism_theme() {
+            match kind {
+                0 => self.neobrutalism.on_pointer_move(x, y),
+                1 => self.neobrutalism.on_pointer_down(x, y),
+                2 => self.neobrutalism.on_pointer_up(),
+                _ => {}
+            }
+            return false;
+        }
+        if self.is_liquidglass_theme() {
+            match kind {
+                0 => self.liquidglass.on_pointer_move(x, y),
+                1 => self.liquidglass.on_pointer_down(x, y),
+                2 => self.liquidglass.on_pointer_up(),
+                _ => {}
+            }
+            return false;
+        }
+        if self.is_zen_archipelago_theme() {
+            if kind == 1 {
+                self.zen_archipelago.on_pointer_down(x as f64, y as f64);
+            }
+            return false;
+        }
+        if self.is_beach_theme() {
+            if kind == 1 {
+                self.beach.add_ripple_if_water(x, y, 1.0);
+            }
+            return false;
+        }
+        if self.is_voxelcraft_theme() {
+            if kind == 1 {
+                self.voxelcraft.pop_block_break(x, y);
+            }
+            return false;
+        }
+        if self.is_desert_theme() {
+            if kind == 1 {
+                let on_water = self.desert.is_on_water(x, y);
+                self.desert.tap(x, y, on_water);
+            }
+            return false;
+        }
+        if self.is_aurora_theme() {
+            if kind == 1 {
+                self.aurora.add_ripple_if_ice(x, y, 1.0);
+            }
+            return false;
+        }
+        if self.is_strike_theme() {
+            if kind == 0 || kind == 1 {
+                self.strike.handle_pointer(kind == 1, x, y);
+            }
+            return false;
+        }
+        if self.is_roach_theme() {
+            return self.roach.handle_mouse(kind, x as f64, y as f64);
+        }
+        if self.is_rosebrook_theme() {
+            if kind == 1 {
+                self.rosebrook.on_pointer_down(x as f64, y as f64);
+            }
+            return false;
+        }
+        if self.is_polarnight_theme() {
+            if kind == 1 {
+                self.polarnight.add_ripple(x as f64, y as f64);
+            }
+            return false;
+        }
+        if self.is_neumorph_theme() {
+            match kind {
+                0 => self.neumorph.on_pointer_move(x, y),
+                1 => self.neumorph.on_pointer_down(x, y),
+                2 => self.neumorph.on_pointer_up(),
+                _ => self.neumorph.on_pointer_leave(),
+            }
+            return false;
+        }
+        if self.is_istanbul_theme() {
+            return self.istanbul.handle_mouse(kind, x, y);
+        }
+        if self.is_solar_system_theme() {
+            return self.solar_system.handle_mouse(kind, x, y);
+        }
+        if self.is_thinking_orbs_theme() {
+            return self.thinking_orbs.handle_mouse(kind, x, y);
+        }
+        if self.is_ai_mascots_theme() {
+            return self.ai_mascots.handle_mouse(kind, x, y);
         }
 
         if kind == 0 {

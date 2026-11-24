@@ -121,6 +121,7 @@ DiyarDesk includes a native **Android Tablet** live wallpaper companion (`androi
 | `linux/kde-iconspy/` | KDE Plasma companion helper for live desktop icon coordinates |
 | `linux/packaging/` | Desktop entry, original DiyarDesk SVG icon, `.deb` and Arch `PKGBUILD` scripts |
 | `host/` | Windows C#/WinForms/WebView2 host and build scripts |
+| `native/diyardesk-gl/` | Native Rust + OpenGL 3.3 Core desktop wallpaper engine (`diyardesk_gl.dll`) ported 1:1 from WebGL2 prototypes and verified with [rust-anything](https://github.com/erkamyaman/rust-anything) ground-truth recording |
 | `android/` | Native Android Tablet (`sw600dp+`) Kotlin `WallpaperService`, icon/widget layout editor & Settings host |
 | `prototype/` | Shared themes, settings UI (`settings.html`), i18n JSONs (`en`, `zh-CN`), sharing script, assets |
 | `tools/` | Version metadata and Windows NSIS installer scripts |
@@ -135,6 +136,8 @@ Thank you to everyone who has helped build and improve DiyarDesk:
 - **Antigravity** *(Google DeepMind AI coding assistant)* — Collaborative theme development (**Studio Glass** 3D Three.js + WebGL2 engine, shaders, localization & release engineering)
 
 ## Credits and license
+
+- **Native Rust + OpenGL 3.3 Core Porting & Verification:** Theme ports in `native/diyardesk-gl/` follow the ground-truth recording, FNV-1a source fingerprinting, and differential verification workflow inspired by **[@erkamyaman](https://github.com/erkamyaman)**'s [rust-anything](https://github.com/erkamyaman/rust-anything).
 
 Source code and included theme assets are licensed under [GPL-3.0](LICENSE). Third-party dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [NOTICE](NOTICE), and [TRADEMARKS.md](TRADEMARKS.md).
 
@@ -207,7 +210,9 @@ DiyarDesk'in geliştirilmesine ve çevirilerine katkı sunan herkese teşekkürl
 - **[@BLEZZ0102](https://github.com/BLEZZ0102)** & **[@qwen-intl](https://github.com/qwen-intl)** — Yukarı akış Deskland temel katkıda bulunanları
 - **Antigravity** *(Google DeepMind yapay zeka kodlama asistanı)* — Ortak tema geliştirme (**Studio Glass** 3B Three.js + WebGL2 motoru, shader, yerelleştirme ve sürüm desteği)
 
-### Lisans
+### Lisans ve Atıflar
+
+- **Yerel Rust + OpenGL 3.3 Core Geçişi ve Doğrulama:** `native/diyardesk-gl/` altındaki 1:1 Rust + OpenGL 3.3 Core duvar kâğıdı motoru portları; **[@erkamyaman](https://github.com/erkamyaman)** tarafından geliştirilen [rust-anything](https://github.com/erkamyaman/rust-anything) projesinin temel referans kaydı (`cases.jsonl`), FNV-1a kaynak parmak izi ve diferansiyel doğrulama yaklaşımından esinlenilerek doğrulanmaktadır.
 
 Kaynak kodu ve dahil edilen tema varlıkları [GPL-3.0](LICENSE) lisansı altındadır. Üçüncü taraf bileşenler için [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), marka kullanımı için [TRADEMARKS.md](TRADEMARKS.md) dosyalarına bakın.
 

@@ -1948,6 +1948,56 @@
           ]
         }
       }
+    },
+    "ai-mascots": {
+      "name": "AI Mascot Lab · OpenGL (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 ile çalışan sakin gece yapay zekâ araştırma kampüsü: 8 özgün AI maskotu laboratuvarlar ve sunucu odaları arasında yaşar; masaüstü simgeleriniz ışıklı istasyonlara dönüşür, yollar ve ağaçlar simgelerin etrafından yumuşakça kıvrılır.",
+      "groups": [
+        "Kampüs Atmosferi",
+        "AI Maskotları ve Hareket",
+        "Performans"
+      ],
+      "params": {
+        "timeMode": {
+          "label": "Zaman Atmosferi",
+          "hint": "Sakin gece, akşam alacakaranlığı, yumuşak gündüz veya yavaş döngü arasında seçim yapın",
+          "options": [
+            "Gece",
+            "Akşam",
+            "Gündüz",
+            "Yavaş Döngü"
+          ]
+        },
+        "lightingGlow": {
+          "label": "Kampüs Aydınlatması",
+          "hint": "Laboratuvar pencereleri, terminaller ve yol lambalarının yumuşak parıltı şiddeti"
+        },
+        "iconHalo": {
+          "label": "Simge İstasyonu Parıltısı",
+          "hint": "Masaüstü simgelerinin altındaki çalışma platformları ve bağlantı yollarının ışığı"
+        },
+        "mascotActivity": {
+          "label": "Maskot Hareketliliği",
+          "hint": "8 AI maskotunun yürüme, çalışma, şarj olma ve simgeleri inceleme temposu"
+        },
+        "particleDensity": {
+          "label": "Veri Parçacıkları ve Dronlar",
+          "hint": "Süzülen veri parçacıkları ile minyatür devriye dronlarının yoğunluğu"
+        },
+        "parallax": {
+          "label": "Hafif Paralaks",
+          "hint": "Sabit kamera açısında imleci izleyen yumuşak derinlik hissi"
+        },
+        "quality": {
+          "label": "Kalite",
+          "hint": "Parçacık ve efekt bütçesi",
+          "options": [
+            "Düşük",
+            "Orta",
+            "Yüksek"
+          ]
+        }
+      }
     }
   }
 }

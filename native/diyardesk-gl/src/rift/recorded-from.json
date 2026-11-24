@@ -1,0 +1,13 @@
+{
+  "sources": [
+    {
+      "path": "prototype/rift.html",
+      "fnv1a": "2cfefaa205a4c60f"
+    },
+    {
+      "path": "prototype/rift-props.js",
+      "fnv1a": "0bf288a02da549ba"
+    }
+  ],
+  "caseCount": 3
+}

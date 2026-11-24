@@ -1,0 +1,9 @@
+{
+  "generator": "rust-anything-ground-truth-recorder",
+  "recorded_at": "2026-11-23T15:56:00Z",
+  "sources": {
+    "prototype/roach.html": "2d01cb99176c9fc8",
+    "prototype/roach-props.js": "a0bc55ead7a6ba71"
+  },
+  "case_count": 3
+}

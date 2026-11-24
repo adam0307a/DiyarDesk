@@ -1,0 +1,13 @@
+{
+  "sources": [
+    {
+      "path": "prototype/strike.html",
+      "fnv1a": "dd5b69c9b0b30681"
+    },
+    {
+      "path": "prototype/strike-props.js",
+      "fnv1a": "1ab513ee8ab057ef"
+    }
+  ],
+  "caseCount": 3
+}

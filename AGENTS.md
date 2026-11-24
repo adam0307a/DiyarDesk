@@ -3,11 +3,31 @@
 > Canonical architectural reference and contributor/agent guide for the **DiyarDesk** repository (independent GPL-3.0 fork based on Deskland Preview).
 > Communicate with the repository owner in **Turkish** when working interactively on this fork.
 
+> [!IMPORTANT]
+> **Native Rust + OpenGL 3.3 Öncelikli Tema Mimarisi (Zorunlu Ajan Kuralı):**
+> DiyarDesk artık birincil duvar kağıdı motoru olarak **native Rust + OpenGL 3.3 (`native/diyardesk-gl` → `host/bin/diyardesk_gl.dll`)** kullanmaktadır. `prototype/*.html` dosyaları önceki emekler ve isteğe bağlı WebView/tarayıcı/içe aktarım uyumluluğu için korunmaktadır; ancak yeni temalar varsayılan olarak yalnızca HTML/JS şeklinde yazılmamalıdır.
+>
+> **Yeni bir tema istendiğinde, yapay zekâ ajanı kodlamaya başlamadan önce kullanıcıya mutlaka aşağıdakini sormalıdır (kullanıcı açıkça belirtmediyse):**
+> 1. **Yalnızca Rust + OpenGL 3.3 (`native/diyardesk-gl`)** *(Varsayılan / Önerilen)*
+> 2. **Yalnızca HTML5/Canvas + JS (`prototype/`)** *(WebView / tarayıcı / içe aktarılabilir tema)*
+> 3. **Her ikisi birden (HTML/JS prototipi + Rust + OpenGL 3.3)**
+>
+> **Rust + OpenGL 3.3 Yeni Tema Entegrasyon Kontrol Listesi:**
+> - Modüler klasör yapısı oluştur: `native/diyardesk-gl/src/<tema_id>/` (`mod.rs`, `shaders.rs`, gerekirse `field.rs`, `atlas.rs`, vb.).
+> - Motor bağlantıları: `native/diyardesk-gl/src/lib.rs`, `state.rs`, `renderer.rs` (mevcut diğer temalara dokunmadan).
+> - Windows Host kaydı: `host/DesktopHost.cs` içindeki `NativeGlThemes` (ve yalnızca GL olan temalarda `IsNativeGlPage`) listesine tema kimliğini ekle.
+> - Ayarlar & yerelleştirme: `prototype/themes.json`, `prototype/i18n/en.json`, `prototype/i18n/tr.json` (ve ayarlar iframe'inde 404 olmaması için hafif bir `prototype/<tema_id>.html` kartı/yönlendirmesi).
+> - OpenGL görsel temizlik kuralları:
+>   - Hedef alfa kanalını korumak için `(gl.BlendFuncSeparate)(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE)` kullan (yarı saydam elemanların PNG/DWM üzerinde sütlü gri görünmesini engeller).
+>   - Radyal glow sprite dokularını RGBA8 üret; dış 1 px kenarlık kesinlikle `alpha = 0` (`GL_CLAMP_TO_EDGE`).
+>   - Önbellekleri `(w, h, icon_count)` yerine monotonik `rev: u64` sayacıyla geçersiz kıl; `resize(w, h)` yalnızca `> 0.5 px` değişimde `dirty = true` yapsın.
+> - Doğrulama: `cargo test --lib` (determinizm, parametre/enum, ikon taşıma/uç durumlar ve GPU PNG görsel incelemesi) + `cargo build --release` → `host/bin/diyardesk_gl.dll` kopyalama.
+
 ---
 
 ## 1. Project Overview
 
-**DiyarDesk** renders adaptive HTML5/Canvas/WebGL desktop wallpapers that react in real time to desktop icon positions (`icons` messages with icon bounding rectangles) without AI, cloud accounts, telemetry, purchase flows, or auto-updater endpoints.
+**DiyarDesk** renders adaptive desktop wallpapers powered primarily by a **native Rust + OpenGL 3.3 Core engine (`native/diyardesk-gl`)** alongside legacy/portable HTML5/Canvas/WebGL prototypes (`prototype/`), reacting in real time to desktop icon positions (`icons` messages with icon bounding rectangles) without cloud accounts, telemetry, purchase flows, or auto-updater endpoints.
 
 This fork (**DiyarDesk**) builds on upstream Deskland Preview (`tools/version.json`: `0.1.4`, GPL-3.0) using its own product identity and original icon, and includes:
 1. **Shared Web Prototype (`prototype/`)** — All wallpaper theme pages, parameter definitions (`themes.json`), settings UI (`settings.html`), snapshot/video sharing (`share.js`), and UI translations (`i18n/en.json`, `i18n/zh-CN.json`, `i18n/zh-TW.json`, `i18n/tr.json`, `i18n/de.json`, `i18n/fr.json`, `i18n/ja.json`, `i18n/ko.json`).

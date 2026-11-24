@@ -1,9 +1,33 @@
+use crate::ai_mascots::AiMascotsRenderer;
+use crate::aurora::AuroraRenderer;
+use crate::beach::BeachRenderer;
+use crate::claymorph::ClaymorphRenderer;
+use crate::neobrutalism::NeobrutalismRenderer;
 use crate::gl::*;
+use crate::liquidglass::LiquidGlassRenderer;
+use crate::glade::GladeRenderer;
+use crate::istanbul::IstanbulRenderer;
+use crate::meadow::MeadowRenderer;
+use crate::neumorph::NeumorphRenderer;
+use crate::papercut::PapercutRenderer;
+use crate::desert::DesertRenderer;
+use crate::voxelcraft::VoxelcraftRenderer;
+use crate::pocket::PocketRenderer;
+use crate::polarnight::PolarNightRenderer;
+use crate::quiet_snow::QuietSnowRenderer;
+use crate::rift::RiftRenderer;
+use crate::roach::RoachRenderer;
+use crate::rosebrook::RosebrookRenderer;
 use crate::shaders::*;
+use crate::software_world::SoftwareWorldRenderer;
+use crate::solar_system::SolarSystemRenderer;
 use crate::state::*;
+use crate::strike::StrikeRenderer;
 use crate::studio_glass::StudioGlassRenderer;
 use crate::text::TextRenderer;
 use crate::themes::resolve_shader_and_params;
+use crate::thinking_orbs::ThinkingOrbsRenderer;
+use crate::winter::WinterRenderer;
 use chrono::{DateTime, Datelike, Local, NaiveDate, Timelike};
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -66,6 +90,31 @@ pub struct Renderer {
     art_tex: GLuint,
     text: TextRenderer,
     studio_renderer: Option<StudioGlassRenderer>,
+    quiet_snow_renderer: Option<QuietSnowRenderer>,
+    papercut_renderer: Option<PapercutRenderer>,
+    voxelcraft_renderer: Option<VoxelcraftRenderer>,
+    desert_renderer: Option<DesertRenderer>,
+    claymorph_renderer: Option<ClaymorphRenderer>,
+    neobrutalism_renderer: Option<NeobrutalismRenderer>,
+    liquidglass_renderer: Option<LiquidGlassRenderer>,
+    zen_archipelago_renderer: Option<crate::zen_archipelago::ZenArchipelagoRenderer>,
+    software_world_renderer: Option<SoftwareWorldRenderer>,
+    meadow_renderer: Option<MeadowRenderer>,
+    beach_renderer: Option<BeachRenderer>,
+    aurora_renderer: Option<AuroraRenderer>,
+    glade_renderer: Option<GladeRenderer>,
+    rift_renderer: Option<RiftRenderer>,
+    strike_renderer: Option<StrikeRenderer>,
+    pocket_renderer: Option<PocketRenderer>,
+    roach_renderer: Option<RoachRenderer>,
+    rosebrook_renderer: Option<RosebrookRenderer>,
+    polarnight_renderer: Option<PolarNightRenderer>,
+    winter_renderer: Option<WinterRenderer>,
+    neumorph_renderer: Option<NeumorphRenderer>,
+    istanbul_renderer: Option<IstanbulRenderer>,
+    solar_system_renderer: Option<SolarSystemRenderer>,
+    thinking_orbs_renderer: Option<ThinkingOrbsRenderer>,
+    ai_mascots_renderer: Option<AiMascotsRenderer>,
     theme_progs: HashMap<String, GLuint>,
 }
 
@@ -105,6 +154,31 @@ impl Renderer {
             art_tex,
             text,
             studio_renderer: None,
+            quiet_snow_renderer: None,
+            papercut_renderer: None,
+            voxelcraft_renderer: None,
+            desert_renderer: None,
+            claymorph_renderer: None,
+            neobrutalism_renderer: None,
+            liquidglass_renderer: None,
+            zen_archipelago_renderer: None,
+            software_world_renderer: None,
+            meadow_renderer: None,
+            beach_renderer: None,
+            aurora_renderer: None,
+            glade_renderer: None,
+            rift_renderer: None,
+            strike_renderer: None,
+            pocket_renderer: None,
+            roach_renderer: None,
+            rosebrook_renderer: None,
+            polarnight_renderer: None,
+            winter_renderer: None,
+            neumorph_renderer: None,
+            istanbul_renderer: None,
+            solar_system_renderer: None,
+            thinking_orbs_renderer: None,
+            ai_mascots_renderer: None,
             theme_progs: HashMap::new(),
         })
     }
@@ -115,6 +189,81 @@ impl Renderer {
         }
         if let Some(mut sr) = self.studio_renderer.take() {
             sr.destroy(gl);
+        }
+        if let Some(mut qr) = self.quiet_snow_renderer.take() {
+            qr.destroy(gl);
+        }
+        if let Some(mut pr) = self.papercut_renderer.take() {
+            pr.destroy(gl);
+        }
+        if let Some(mut vr) = self.voxelcraft_renderer.take() {
+            vr.destroy(gl);
+        }
+        if let Some(mut dr) = self.desert_renderer.take() {
+            dr.destroy(gl);
+        }
+        if let Some(mut cr) = self.claymorph_renderer.take() {
+            cr.destroy(gl);
+        }
+        if let Some(mut nr) = self.neobrutalism_renderer.take() {
+            nr.destroy(gl);
+        }
+        if let Some(mut lg) = self.liquidglass_renderer.take() {
+            lg.destroy(gl);
+        }
+        if let Some(mut za) = self.zen_archipelago_renderer.take() {
+            za.destroy(gl);
+        }
+        if let Some(mut swr) = self.software_world_renderer.take() {
+            swr.destroy(gl);
+        }
+        if let Some(mut mr) = self.meadow_renderer.take() {
+            mr.destroy(gl);
+        }
+        if let Some(mut br) = self.beach_renderer.take() {
+            br.destroy(gl);
+        }
+        if let Some(mut ar) = self.aurora_renderer.take() {
+            ar.destroy(gl);
+        }
+        if let Some(mut gr) = self.glade_renderer.take() {
+            gr.destroy(gl);
+        }
+        if let Some(mut rr) = self.rift_renderer.take() {
+            rr.destroy(gl);
+        }
+        if let Some(mut sr) = self.strike_renderer.take() {
+            sr.destroy(gl);
+        }
+        if let Some(mut pr) = self.pocket_renderer.take() {
+            pr.destroy(gl);
+        }
+        if let Some(mut rr) = self.roach_renderer.take() {
+            rr.destroy(gl);
+        }
+        if let Some(mut rb) = self.rosebrook_renderer.take() {
+            rb.destroy(gl);
+        }
+        if let Some(mut pnr) = self.polarnight_renderer.take() {
+            pnr.destroy(gl);
+        }
+        if let Some(mut wr) = self.winter_renderer.take() {
+            wr.destroy(gl);
+        }
+        if let Some(mut nr) = self.neumorph_renderer.take() {
+            nr.destroy(gl);
+        }
+        if let Some(mut ir) = self.istanbul_renderer.take() {
+            ir.destroy(gl);
+        }
+        if let Some(mut ssr) = self.solar_system_renderer.take() {
+            ssr.destroy(gl);
+        }
+        if let Some(mut tor) = self.thinking_orbs_renderer.take() {
+            tor.destroy(gl);
+        }
+        if let Some(mut amr) = self.ai_mascots_renderer.take() {
+            amr.destroy(gl);
         }
         self.scene_fbo.destroy(gl);
         self.blur_a.destroy(gl);
@@ -333,6 +482,281 @@ impl Renderer {
             }
             if let Some(sr) = self.studio_renderer.as_mut() {
                 sr.render(gl, st, &mut self.text);
+                return;
+            }
+        }
+        if st.is_quiet_snow_theme() {
+            if self.quiet_snow_renderer.is_none() {
+                if let Ok(qr) = QuietSnowRenderer::new(gl) {
+                    self.quiet_snow_renderer = Some(qr);
+                }
+            }
+            if let Some(qr) = self.quiet_snow_renderer.as_mut() {
+                qr.render(gl, st, self.prog_blit);
+                return;
+            }
+        }
+        if st.is_voxelcraft_theme() {
+            if self.voxelcraft_renderer.is_none() {
+                if let Ok(vr) = VoxelcraftRenderer::new(gl) {
+                    self.voxelcraft_renderer = Some(vr);
+                }
+            }
+            if let Some(vr) = self.voxelcraft_renderer.as_mut() {
+                vr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_desert_theme() {
+            if self.desert_renderer.is_none() {
+                if let Ok(dr) = DesertRenderer::new(gl) {
+                    self.desert_renderer = Some(dr);
+                }
+            }
+            if let Some(dr) = self.desert_renderer.as_mut() {
+                dr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_papercut_theme() {
+            if self.papercut_renderer.is_none() {
+                if let Ok(pr) = PapercutRenderer::new(gl) {
+                    self.papercut_renderer = Some(pr);
+                }
+            }
+            if let Some(pr) = self.papercut_renderer.as_mut() {
+                pr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_claymorph_theme() {
+            if self.claymorph_renderer.is_none() {
+                if let Ok(cr) = ClaymorphRenderer::new(gl) {
+                    self.claymorph_renderer = Some(cr);
+                }
+            }
+            if let Some(cr) = self.claymorph_renderer.as_mut() {
+                cr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_neobrutalism_theme() {
+            if self.neobrutalism_renderer.is_none() {
+                if let Ok(nr) = NeobrutalismRenderer::new(gl) {
+                    self.neobrutalism_renderer = Some(nr);
+                }
+            }
+            if let Some(nr) = self.neobrutalism_renderer.as_mut() {
+                nr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_liquidglass_theme() {
+            if self.liquidglass_renderer.is_none() {
+                if let Ok(lg) = LiquidGlassRenderer::new(gl) {
+                    self.liquidglass_renderer = Some(lg);
+                }
+            }
+            if let Some(lg) = self.liquidglass_renderer.as_mut() {
+                lg.render(gl, st);
+                return;
+            }
+        }
+        if st.is_zen_archipelago_theme() {
+            if self.zen_archipelago_renderer.is_none() {
+                if let Ok(za) = crate::zen_archipelago::ZenArchipelagoRenderer::new(gl) {
+                    self.zen_archipelago_renderer = Some(za);
+                }
+            }
+            if let Some(za) = self.zen_archipelago_renderer.as_mut() {
+                za.render(gl, st);
+                return;
+            }
+        }
+        if st.is_software_world_theme() {
+            if self.software_world_renderer.is_none() {
+                if let Ok(swr) = SoftwareWorldRenderer::new(gl) {
+                    self.software_world_renderer = Some(swr);
+                }
+            }
+            if let Some(swr) = self.software_world_renderer.as_mut() {
+                swr.render(gl, st, self.prog_blit);
+                return;
+            }
+        }
+        if st.is_meadow_theme() {
+            if self.meadow_renderer.is_none() {
+                if let Ok(mr) = MeadowRenderer::new(gl) {
+                    self.meadow_renderer = Some(mr);
+                }
+            }
+            if let Some(mr) = self.meadow_renderer.as_mut() {
+                mr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_beach_theme() {
+            if self.beach_renderer.is_none() {
+                if let Ok(br) = BeachRenderer::new(gl) {
+                    self.beach_renderer = Some(br);
+                }
+            }
+            if let Some(br) = self.beach_renderer.as_mut() {
+                br.render(gl, st);
+                return;
+            }
+        }
+        if st.is_aurora_theme() {
+            if self.aurora_renderer.is_none() {
+                if let Ok(ar) = AuroraRenderer::new(gl) {
+                    self.aurora_renderer = Some(ar);
+                }
+            }
+            if let Some(ar) = self.aurora_renderer.as_mut() {
+                ar.render(gl, st);
+                return;
+            }
+        }
+        if st.is_glade_theme() {
+            if self.glade_renderer.is_none() {
+                if let Ok(gr) = GladeRenderer::new(gl) {
+                    self.glade_renderer = Some(gr);
+                }
+            }
+            if let Some(gr) = self.glade_renderer.as_mut() {
+                gr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_rift_theme() {
+            if self.rift_renderer.is_none() {
+                if let Ok(rr) = RiftRenderer::new(gl) {
+                    self.rift_renderer = Some(rr);
+                }
+            }
+            if let Some(rr) = self.rift_renderer.as_mut() {
+                rr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_strike_theme() {
+            if self.strike_renderer.is_none() {
+                if let Ok(sr) = StrikeRenderer::new(gl) {
+                    self.strike_renderer = Some(sr);
+                }
+            }
+            if let Some(sr) = self.strike_renderer.as_mut() {
+                sr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_pocket_theme() {
+            if self.pocket_renderer.is_none() {
+                if let Ok(pr) = PocketRenderer::new(gl) {
+                    self.pocket_renderer = Some(pr);
+                }
+            }
+            if let Some(pr) = self.pocket_renderer.as_mut() {
+                pr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_roach_theme() {
+            if self.roach_renderer.is_none() {
+                if let Ok(rr) = RoachRenderer::new(gl) {
+                    self.roach_renderer = Some(rr);
+                }
+            }
+            if let Some(rr) = self.roach_renderer.as_mut() {
+                rr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_polarnight_theme() {
+            if self.polarnight_renderer.is_none() {
+                if let Ok(pnr) = PolarNightRenderer::new(gl) {
+                    self.polarnight_renderer = Some(pnr);
+                }
+            }
+            if let Some(pnr) = self.polarnight_renderer.as_mut() {
+                pnr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_rosebrook_theme() {
+            if self.rosebrook_renderer.is_none() {
+                if let Ok(rr) = RosebrookRenderer::new(gl) {
+                    self.rosebrook_renderer = Some(rr);
+                }
+            }
+            if let Some(rr) = self.rosebrook_renderer.as_mut() {
+                rr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_neumorph_theme() {
+            if self.neumorph_renderer.is_none() {
+                if let Ok(nr) = NeumorphRenderer::new(gl) {
+                    self.neumorph_renderer = Some(nr);
+                }
+            }
+            if let Some(nr) = self.neumorph_renderer.as_mut() {
+                nr.render(gl, st, self.prog_blit);
+                return;
+            }
+        }
+        if st.is_winter_theme() {
+            if self.winter_renderer.is_none() {
+                if let Ok(wr) = WinterRenderer::new(gl) {
+                    self.winter_renderer = Some(wr);
+                }
+            }
+            if let Some(wr) = self.winter_renderer.as_mut() {
+                wr.render(gl, st, self.prog_blit);
+                return;
+            }
+        }
+        if st.is_istanbul_theme() {
+            if self.istanbul_renderer.is_none() {
+                if let Ok(ir) = IstanbulRenderer::new(gl) {
+                    self.istanbul_renderer = Some(ir);
+                }
+            }
+            if let Some(ir) = self.istanbul_renderer.as_mut() {
+                ir.render(gl, st);
+                return;
+            }
+        }
+        if st.is_solar_system_theme() {
+            if self.solar_system_renderer.is_none() {
+                if let Ok(ssr) = SolarSystemRenderer::new(gl) {
+                    self.solar_system_renderer = Some(ssr);
+                }
+            }
+            if let Some(ssr) = self.solar_system_renderer.as_mut() {
+                ssr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_thinking_orbs_theme() {
+            if self.thinking_orbs_renderer.is_none() {
+                if let Ok(tor) = ThinkingOrbsRenderer::new(gl) {
+                    self.thinking_orbs_renderer = Some(tor);
+                }
+            }
+            if let Some(tor) = self.thinking_orbs_renderer.as_mut() {
+                tor.render(gl, st);
+                return;
+            }
+        }
+        if st.is_ai_mascots_theme() {
+            if self.ai_mascots_renderer.is_none() {
+                if let Ok(amr) = AiMascotsRenderer::new(gl) {
+                    self.ai_mascots_renderer = Some(amr);
+                }
+            }
+            if let Some(amr) = self.ai_mascots_renderer.as_mut() {
+                amr.render(gl, st, &mut self.text);
                 return;
             }
         }

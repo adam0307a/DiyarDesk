@@ -1,0 +1,8 @@
+{
+  "generator": "rust-anything-ground-truth-recorder",
+  "recorded_at": "2026-11-23T16:50:00Z",
+  "sources": {
+    "prototype/polarnight.html": "b3eeb7e5e6ead26e"
+  },
+  "case_count": 3
+}

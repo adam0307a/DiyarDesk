@@ -1,0 +1,17 @@
+{
+  "sources": [
+    {
+      "path": "prototype/meadow.html",
+      "fnv1a": "6e928234c7e68991"
+    },
+    {
+      "path": "prototype/meadow-boy.js",
+      "fnv1a": "f6ad57c4e75cfa31"
+    },
+    {
+      "path": "prototype/meadow-cat.js",
+      "fnv1a": "0969dae010a6a68c"
+    }
+  ],
+  "caseCount": 5
+}

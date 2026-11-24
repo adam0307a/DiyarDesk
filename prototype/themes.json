@@ -3593,6 +3593,117 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ai-mascots",
+      "adaptive": true,
+      "name": "AI Mascot Lab · OpenGL (Rust)",
+      "desc": "夜间未来感 AI 研究园区（原生 Rust + OpenGL 3.3）：8 位原创 AI 吉祥物在实验室、服务器机房与路径之间自主活动，桌面图标化作柔和发光工作站，道路与树木自然绕开图标。",
+      "page": "ai-mascots.html",
+      "status": "ready",
+      "product": "free",
+      "thumb": "radial-gradient(circle at 50% 34%, rgba(112,214,240,0.42) 0%, transparent 34%), radial-gradient(circle at 26% 72%, rgba(74,222,128,0.28) 0%, transparent 30%), radial-gradient(circle at 75% 32%, rgba(167,139,250,0.32) 0%, transparent 32%), radial-gradient(circle at 74% 71%, rgba(245,166,75,0.26) 0%, transparent 30%), linear-gradient(165deg, #090d18 0%, #0e1526 52%, #0a101d 100%)",
+      "groups": [
+        {
+          "name": "园区氛围",
+          "params": [
+            {
+              "key": "timeMode",
+              "label": "时段氛围",
+              "hint": "切换静谧夜色、黄昏暮色、清朗白昼或缓慢昼夜循环",
+              "options": [
+                "夜晚",
+                "黄昏",
+                "白昼",
+                "自动循环"
+              ],
+              "values": [
+                "night",
+                "evening",
+                "day",
+                "cycle"
+              ],
+              "default": "night"
+            },
+            {
+              "key": "lightingGlow",
+              "label": "园区光晕",
+              "hint": "实验室窗灯、全息核心与路径微光的柔和亮度",
+              "min": 0.2,
+              "max": 1.6,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            },
+            {
+              "key": "iconHalo",
+              "label": "图标工作站辉光",
+              "hint": "桌面图标下方圆形工作站与集群连线的柔光强度",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "AI 吉祥物与动态",
+          "params": [
+            {
+              "key": "mascotActivity",
+              "label": "吉祥物活跃度",
+              "hint": "8 位 AI 吉祥物在园区巡游、工作、充能与查看图标的整体节奏",
+              "min": 0.2,
+              "max": 2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            },
+            {
+              "key": "particleDensity",
+              "label": "数据微粒与无人机",
+              "hint": "悬浮数据微粒与微型巡逻无人机的密度",
+              "min": 0,
+              "max": 1.6,
+              "step": 0.05,
+              "default": 0.85,
+              "format": "percent"
+            },
+            {
+              "key": "parallax",
+              "label": "柔和视差",
+              "hint": "固定机位下随鼠标轻微产生的景深视差幅度",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.45,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "性能",
+          "params": [
+            {
+              "key": "quality",
+              "label": "画质",
+              "hint": "粒子密度与渲染预算",
+              "options": [
+                "低",
+                "中",
+                "高"
+              ],
+              "values": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "default": "High"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

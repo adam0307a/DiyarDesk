@@ -1,0 +1,13 @@
+{
+  "sources": [
+    {
+      "path": "prototype/aurora.html",
+      "fnv1a": "fabaa4f79c3622df"
+    },
+    {
+      "path": "prototype/aurora-pines.js",
+      "fnv1a": "fcfae49a51007919"
+    }
+  ],
+  "caseCount": 4
+}
