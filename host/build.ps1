@@ -91,11 +91,19 @@ if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force
 $rustDir = Join-Path $root '..\native\diyardesk-gl'
-if ((Test-Path -LiteralPath (Join-Path $rustDir 'Cargo.toml')) -and (Get-Command cargo -ErrorAction SilentlyContinue)) {
+$cargoExe = $null
+$cargoCmd = Get-Command cargo -ErrorAction SilentlyContinue
+if ($cargoCmd) {
+    $cargoExe = $cargoCmd.Source
+} else {
+    $userCargo = Join-Path $env:USERPROFILE '.cargo\bin\cargo.exe'
+    if (Test-Path -LiteralPath $userCargo) { $cargoExe = $userCargo }
+}
+if ((Test-Path -LiteralPath (Join-Path $rustDir 'Cargo.toml')) -and $cargoExe) {
     Write-Host "Derleniyor: native\diyardesk-gl (cargo build --release)..."
     Push-Location $rustDir
     try {
-        & cargo build --release
+        & $cargoExe build --release
         if ($LASTEXITCODE -ne 0) { throw 'Rust OpenGL motoru (diyardesk_gl) derlenemedi' }
     } finally {
         Pop-Location
