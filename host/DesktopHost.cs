@@ -137,6 +137,88 @@ static class Log
     }
 }
 
+// Startup crash sentinel (Safe Mode): if DiyarDesk fails to stay up for 12 s on
+// two consecutive launches within 3 minutes (for example due to a broken custom
+// WebGL shader or GPU driver crash), automatically fall back to a safe built-in
+// theme on the next startup so the user is never trapped in a crash loop.
+static class StartupCrashSentinel
+{
+    static readonly string FilePath = Path.Combine(InstallProfile.DataDir, "startup.sentinel");
+    const int CrashThreshold = 2;
+    const long WindowSeconds = 180;
+
+    static long NowUnixSeconds()
+    {
+        return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+    }
+
+    public static bool BeginStartup(string pageDir)
+    {
+        bool fellBack = false;
+        long now = NowUnixSeconds();
+        int prevCount = 0;
+        long prevTs = 0;
+        string prevTheme = "";
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                string[] lines = File.ReadAllLines(FilePath);
+                if (lines.Length >= 1) int.TryParse(lines[0].Trim(), out prevCount);
+                if (lines.Length >= 2) long.TryParse(lines[1].Trim(), out prevTs);
+                if (lines.Length >= 3) prevTheme = lines[2].Trim();
+            }
+        }
+        catch { prevCount = 0; prevTs = 0; }
+
+        bool withinWindow = prevTs > 0 && (now - prevTs) >= 0 && (now - prevTs) <= WindowSeconds;
+        int nextCount = withinWindow ? (prevCount + 1) : 1;
+
+        if (withinWindow && prevCount >= CrashThreshold)
+        {
+            string safeTheme = Themes.FirstReadyBuiltIn(pageDir);
+            if (string.IsNullOrEmpty(safeTheme)) safeTheme = "meadow";
+            if (Settings.RustOpenGl && !WallpaperForm.IsNativeGlTheme(safeTheme))
+                safeTheme = "papercut";
+
+            string oldTheme = string.IsNullOrEmpty(Settings.Theme) ? prevTheme : Settings.Theme;
+            if (!string.Equals(oldTheme, safeTheme, StringComparison.OrdinalIgnoreCase))
+            {
+                Settings.Theme = safeTheme;
+                Settings.Save();
+                fellBack = true;
+                Log.Write("Safe Mode: detected " + prevCount + " consecutive startup crashes (theme '"
+                    + oldTheme + "'), automatically fell back to built-in theme '" + safeTheme + "'");
+            }
+            else
+            {
+                Log.Write("Safe Mode: detected " + prevCount + " consecutive startup crashes on '"
+                    + oldTheme + "', resetting crash sentinel");
+            }
+            nextCount = 1;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(InstallProfile.DataDir);
+            string payload = nextCount.ToString() + "\n" + now.ToString() + "\n" + (Settings.Theme ?? "");
+            File.WriteAllText(FilePath, payload);
+        }
+        catch { }
+
+        return fellBack;
+    }
+
+    public static void MarkStable()
+    {
+        try
+        {
+            if (File.Exists(FilePath)) File.Delete(FilePath);
+        }
+        catch { }
+    }
+}
+
 static class PowerHelper
 {
     public static bool IsRemoteSession()
@@ -692,6 +774,8 @@ class HostContext : ApplicationContext
     NativeSettingsForm nativeSettingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
     DateTime lastPlaylistSwitch = DateTime.UtcNow, lastEnvPush = DateTime.MinValue;
+    readonly DateTime startupUtc = DateTime.UtcNow;
+    bool startupMarkedStable;
     string lastEnvJson = "";
     readonly Random rng = new Random();
     bool manualPause, wallpaperPaused, exiting;
@@ -706,6 +790,7 @@ class HostContext : ApplicationContext
         Log.Write("启动，页面目录：" + pageDir + (showSettings ? "" : "（开机自动启动）"));
         if (showSettings) autoStartSw = AutoStartCheck.Detect(IsAutoStart());
         Settings.Load();
+        StartupCrashSentinel.BeginStartup(pageDir);
         I18n.Load(pageDir, Settings.Lang);
         exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ExitEventName);
         menuEvent = new EventWaitHandle(false, EventResetMode.AutoReset, Program.MenuEventName);
@@ -2165,6 +2250,11 @@ class HostContext : ApplicationContext
         if (settingsEvent.WaitOne(0)) OpenSettings();
         if (DateTime.Now >= saveDue) { saveDue = DateTime.MaxValue; Settings.Save(); }
         if (form == null && !exiting && DateTime.Now >= nextStart) StartForm();
+        if (!startupMarkedStable && !exiting && form != null && (DateTime.UtcNow - startupUtc).TotalSeconds >= 12.0)
+        {
+            startupMarkedStable = true;
+            StartupCrashSentinel.MarkStable();
+        }
         if (!exiting && form != null)
         {
             PushEnvironment(false);
@@ -2200,6 +2290,7 @@ class HostContext : ApplicationContext
     {
         if (exiting) return;
         exiting = true;
+        StartupCrashSentinel.MarkStable();
         watch.Stop();
         if (saveDue != DateTime.MaxValue) Settings.Save();
         if (nativeSettingsWin != null) { try { nativeSettingsWin.Close(); } catch { } }
@@ -4461,6 +4552,113 @@ class WallpaperForm : Form
         Post(json);
     }
 
+    static readonly uint SelfPid = (uint)Process.GetCurrentProcess().Id;
+
+    // Multi-window Grid coverage check (Lively-style 95% occlusion pause):
+    // Detects when 2+ side-by-side tiled windows completely cover the desktop
+    // even though no single window is maximized or fullscreen.
+    bool IsScreenCoveredByGrid(Rectangle targetBounds, int thresholdPct)
+    {
+        if (targetBounds.Width < 64 || targetBounds.Height < 64) return false;
+
+        Rectangle sampleArea = targetBounds;
+        try
+        {
+            Rectangle wa = Screen.FromRectangle(targetBounds).WorkingArea;
+            Rectangle inter = Rectangle.Intersect(targetBounds, wa);
+            if (inter.Width >= (targetBounds.Width * 3) / 4 && inter.Height >= (targetBounds.Height * 3) / 4)
+                sampleArea = inter;
+            else if (targetBounds.Height > 120)
+                sampleArea = new Rectangle(targetBounds.X, targetBounds.Y, targetBounds.Width, targetBounds.Height - 48);
+        }
+        catch { }
+
+        const int Cols = 8;
+        const int Rows = 6;
+        const int Total = Cols * Rows; // 48 sample points -> fits in a single ulong bitmask
+        int needed = (Total * thresholdPct + 99) / 100;
+
+        int[] xs = new int[Cols];
+        int[] ys = new int[Rows];
+        for (int c = 0; c < Cols; c++)
+            xs[c] = sampleArea.Left + (int)(((c + 0.5) * sampleArea.Width) / Cols);
+        for (int r = 0; r < Rows; r++)
+            ys[r] = sampleArea.Top + (int)(((r + 0.5) * sampleArea.Height) / Rows);
+
+        ulong coveredMask = 0UL;
+        int coveredCount = 0;
+        var clsBuf = new StringBuilder(64);
+        int rectSize = Marshal.SizeOf(typeof(Native.RECT));
+
+        Native.EnumWindows(delegate(IntPtr h, IntPtr l)
+        {
+            if (h == Handle || !Native.IsWindowVisible(h) || Native.IsIconic(h))
+                return true;
+
+            clsBuf.Length = 0;
+            Native.GetClassName(h, clsBuf, clsBuf.Capacity);
+            string cls = clsBuf.ToString();
+            if (string.IsNullOrEmpty(cls)) return true;
+
+            // EnumWindows walks top-to-bottom in Z-order: once we reach the desktop
+            // layer (Progman or the WorkerW hosting SHELLDLL_DefView during Win+D),
+            // any remaining windows sit BEHIND the desktop and must not trigger pause.
+            if (cls == "Progman") return false;
+            if (cls == "WorkerW" && Native.FindWindowEx(h, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero)
+                return false;
+
+            if (IsIgnoredWindowClass(cls)) return true;
+
+            uint wpid = 0;
+            Native.GetWindowThreadProcessId(h, out wpid);
+            if (wpid == SelfPid) return true;
+
+            int st = Native.GetWindowLong(h, Native.GWL_STYLE);
+            if ((st & Native.WS_CHILD) != 0) return true;
+
+            int ex = Native.GetWindowLong(h, Native.GWL_EXSTYLE);
+            if ((ex & 0x00000080 /* WS_EX_TOOLWINDOW */) != 0) return true;
+            if ((ex & 0x00000020 /* WS_EX_TRANSPARENT */) != 0) return true;
+            if ((ex & 0x08000000 /* WS_EX_NOACTIVATE */) != 0) return true;
+
+            int cloaked = 0;
+            if (Native.DwmGetWindowAttribute(h, 14 /* DWMWA_CLOAKED */, out cloaked, 4) == 0 && cloaked != 0)
+                return true;
+
+            Native.RECT wr;
+            if (Native.DwmGetWindowAttribute(h, 9 /* DWMWA_EXTENDED_FRAME_BOUNDS */, out wr, rectSize) != 0)
+            {
+                if (!Native.GetWindowRect(h, out wr)) return true;
+            }
+            if ((wr.Right - wr.Left) < 120 || (wr.Bottom - wr.Top) < 80) return true;
+            if (wr.Right <= sampleArea.Left || wr.Left >= sampleArea.Right
+                || wr.Bottom <= sampleArea.Top || wr.Top >= sampleArea.Bottom)
+                return true;
+
+            for (int r = 0; r < Rows; r++)
+            {
+                int py = ys[r];
+                if (py < wr.Top || py >= wr.Bottom) continue;
+                int rowBase = r * Cols;
+                for (int c = 0; c < Cols; c++)
+                {
+                    ulong bit = 1UL << (rowBase + c);
+                    if ((coveredMask & bit) != 0UL) continue;
+                    int px = xs[c];
+                    if (px >= wr.Left && px < wr.Right)
+                    {
+                        coveredMask |= bit;
+                        coveredCount++;
+                        if (coveredCount >= needed) return false;
+                    }
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        return coveredCount >= needed;
+    }
+
     // ---------------------------------------------------------------- 最大化 / 全屏 / 锁屏 / 省电时暂停
     void PollForeground()
     {
@@ -4504,6 +4702,11 @@ class WallpaperForm : Form
                 }
                 if (screen.Contains(cx, cy) && (covers || Native.IsZoomed(fg) || lowCovers)) { pause = true; pauseBy = c; }
             }
+        }
+        if (!pause && !disableAutoPause && IsScreenCoveredByGrid(screen, lowMode ? 80 : 95))
+        {
+            pause = true;
+            pauseBy = lowMode ? "GridCoverage>=80%" : "GridCoverage>=95%";
         }
         int p = pause ? 1 : 0;
         if (p == lastPause) return;
