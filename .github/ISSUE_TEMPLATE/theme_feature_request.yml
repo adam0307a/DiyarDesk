@@ -1,0 +1,32 @@
+name: Theme or Feature Request
+description: Propose a new wallpaper theme, platform improvement, or SDK feature
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New Wallpaper Theme
+        - Existing Theme Improvement
+        - Platform Support (Windows / Linux / macOS / Android)
+        - Performance & Power Management
+        - Custom Theme Importer / Theme SDK
+        - UI / Localization
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Proposal Summary
+      description: What problem does this solve, or what visual/interactive experience should it create?
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional Context or Visual References (optional)
+      description: How should desktop icons interact with the scene? Any performance constraints, mockups, or open-source references?

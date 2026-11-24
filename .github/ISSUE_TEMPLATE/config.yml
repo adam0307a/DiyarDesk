@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability (Private Report)
+    url: https://github.com/adam0307a/DiyarDesk/security/advisories/new
+    about: Please report security issues privately instead of opening a public issue.
+  - name: Theme SDK & Custom Theme Guide
+    url: https://github.com/adam0307a/DiyarDesk/blob/main/docs/THEME_SDK.md
+    about: Learn how to package and test custom HTML, Canvas, WebGL, or GLSL themes.

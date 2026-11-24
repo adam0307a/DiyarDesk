@@ -1,0 +1,73 @@
+name: Bug Report
+description: Report a crash, rendering glitch, icon tracking problem, or platform bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! For security vulnerabilities (sandbox escape, Zip-Slip, IPC flaw), please use **Security → Advisories** instead of a public issue.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows 11 (24H2 or newer)
+        - Windows 11 (23H2 or older)
+        - Windows 10
+        - Linux — KDE Plasma 6
+        - Linux — GNOME
+        - Linux — wlroots Wayland (Hyprland / Sway / river)
+        - Linux — X11 (XFCE / Cinnamon / i3 / etc.)
+        - macOS
+        - Android Tablet
+    validations:
+      required: true
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Renderer / Engine Mode
+      options:
+        - Native Rust + OpenGL 3.3
+        - WebView2 (Windows)
+        - WebKitGTK (Linux)
+        - Plasma 6 WebEngine Plugin
+        - Android WebView / WallpaperService
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: DiyarDesk Version & Theme
+      placeholder: "e.g., v0.5.2 — Liquid Glass / Studio Glass / Meadow"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the issue clearly, along with what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open DiyarDesk and select theme '...'
+        2. Move an icon / switch monitors / drag widget
+        3. Observe '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: GPU, Monitor Setup & Logs (optional)
+      description: Mention GPU model, multi-monitor scaling (DPI), or relevant snippets from `host.log` / `~/.config/deskland/`.

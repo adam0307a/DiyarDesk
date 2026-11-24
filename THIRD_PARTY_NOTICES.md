@@ -51,3 +51,27 @@ The WebGL2 physical Snell refraction, chromatic RGB dispersion, 2-pass separable
 - Referans bağlantı / Reference link: https://threeui.com/studio-glass
 - 3B motor / 3D engine: `prototype/lib/three.min.js` — **Three.js** (`three@0.170.0`, Copyright © 2010–2024 three.js authors, MIT License — https://github.com/mrdoob/three.js)
 - Not: `prototype/studio-glass.html` and `prototype/studio-glass-engine.js` are original GPL-3.0 implementations written from scratch for DiyarDesk using bundled MIT-licensed Three.js, inspired by the Studio Glass interactive workspace concept at https://threeui.com/studio-glass.
+
+
+## `@samasante/liquid-glass` (Optical Refraction Reference)
+
+`native/diyardesk-gl/src/liquidglass/shaders.rs`, `prototype/liquidglass.html`, `native/diyardesk-gl/src/studio_glass/shaders.rs`, and `prototype/studio-glass-engine.js` incorporate dual-zone Snell optical rim/dome refraction, white-preserving multi-band spectral dispersion, and smooth SDF gradient optics inspired by `@samasante/liquid-glass`:
+
+- Repository: https://github.com/samasante/liquid-glass
+
+## Native Rust + OpenGL 3.3 Engine Crates (`native/diyardesk-gl`)
+
+The native Rust renderer (`diyardesk_gl.dll`) uses the following open-source crates declared in `native/diyardesk-gl/Cargo.toml` (all permissive MIT / Apache-2.0 / Zlib licenses, compatible with GPL-3.0):
+
+- `fontdue` (MIT / Apache-2.0 / Zlib) — TrueType/OpenType glyph rasterization
+- `serde` & `serde_json` (MIT / Apache-2.0) — JSON serialization for host/engine state
+- `base64` (MIT / Apache-2.0) — Base64 encoding/decoding for local widget artwork
+- `image` (MIT / Apache-2.0) — Local PNG/JPEG/WebP image decoding
+- `chrono` (MIT / Apache-2.0) — Local clock/date formatting
+- `windows-sys` (MIT / Apache-2.0) — Win32 GDI/OpenGL/Windowing FFI bindings
+
+## Platform Runtime Libraries (Linux, macOS, Android)
+
+- **Linux (`linux/`):** Uses system-provided Python 3, PyGObject, GTK 3, WebKit2GTK, optional `gtk-layer-shell`, KDE Plasma 6 WebEngine/Kirigami QML APIs, and GNOME Shell JavaScript extension APIs under their respective open-source licenses (LGPL / GPL / MIT).
+- **macOS (`macos/`):** Uses system Apple frameworks (`AppKit`, `WebKit`, `Foundation`).
+- **Android (`android/`):** Uses Kotlin standard library, AndroidX (`core-ktx`, `appcompat`, `webkit` `WebViewAssetLoader`), and Material Components (Apache-2.0).

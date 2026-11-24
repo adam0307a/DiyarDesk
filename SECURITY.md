@@ -6,8 +6,8 @@ DiyarDesk is maintained as a community fork of Deskland Preview (GPL-3.0). Secur
 
 | Version | Supported |
 | --- | --- |
-| `0.2.x` | Yes |
-| `< 0.2.0` | No |
+| `0.5.x` | Yes |
+| `< 0.5.0` | No |
 
 ## Reporting a Vulnerability
 
@@ -19,7 +19,7 @@ Instead, report it privately via one of the following channels:
 2. **Maintainer contact:** If GitHub Private Vulnerability Reporting is unavailable, contact the repository maintainer directly through their GitHub profile before disclosing details publicly.
 
 Please include:
-- Affected platform(s) (`Windows`, `Linux`, `Android`, or `prototype/`) and DiyarDesk version
+- Affected platform(s) (`Windows`, `Linux`, `macOS`, `Android`, `native/diyardesk-gl`, or `prototype/`) and DiyarDesk version
 - Clear reproduction steps or a minimal proof-of-concept archive/file
 - Expected vs. actual behavior and potential impact
 
