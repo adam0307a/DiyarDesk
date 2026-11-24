@@ -10,6 +10,12 @@ InstallModes:
   - interactive
   - silent
 UpgradeBehavior: install
+ReleaseDate: 2026-11-24
+AppsAndFeaturesEntries:
+  - DisplayName: DiyarDesk
+    Publisher: DiyarDesk contributors
+    DisplayVersion: 0.5.3
+    InstallerType: nullsoft
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/adam0307a/DiyarDesk/releases/download/v0.5.3/DiyarDesk-0.5.3-win-x64-Setup.exe
