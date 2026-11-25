@@ -57,6 +57,22 @@ def build_command_payload(argv: list[str]) -> tuple[dict[str, Any], bool, Path |
     p_sb.add_argument("state", choices=["on", "off", "toggle"], nargs="?", default="toggle")
     p_mpv = sub.add_parser("mpv", help="Toggle or set hardware-accelerated mpv video backend")
     p_mpv.add_argument("state", choices=["on", "off", "toggle"], nargs="?", default="toggle")
+    p_gl = sub.add_parser("rust-gl", help="Toggle or set native Rust OpenGL 3.3 wallpaper engine")
+    p_gl.add_argument("state", choices=["on", "off", "toggle"], nargs="?", default="toggle")
+    p_vi = sub.add_parser(
+        "vicons", help="Manage virtual desktop icons (add, shuffle, clear, rename, list, mode)"
+    )
+    p_vi.add_argument(
+        "action",
+        choices=["add", "shuffle", "clear", "rename", "list", "mode", "status"],
+        nargs="?",
+        default="status",
+    )
+    p_vi.add_argument(
+        "args",
+        nargs="*",
+        help="Count for 'add', mode (auto|always|off) for 'mode', or '<index> <new name>' for 'rename'",
+    )
     sub.add_parser("lockscreen-sync", help="Render blurred static lockscreen image from active wallpaper")
     sub.add_parser("reload", help="Reload wallpaper renderer")
     sub.add_parser("exit", help="Quit DiyarDesk cleanly")
@@ -70,8 +86,26 @@ def build_command_payload(argv: list[str]) -> tuple[dict[str, Any], bool, Path |
         payload["value"] = _parse_value(args.value)
         if args.theme:
             payload["theme"] = args.theme
-    elif args.cmd in ("lowmode", "solar", "window-aware", "system-bridge", "mpv"):
+    elif args.cmd in ("lowmode", "solar", "window-aware", "system-bridge", "mpv", "rust-gl"):
         payload["state"] = args.state
+    elif args.cmd == "vicons":
+        payload["action"] = args.action
+        extra = list(args.args or [])
+        if args.action == "add" and extra:
+            try:
+                payload["count"] = max(1, int(extra[0]))
+            except ValueError:
+                payload["count"] = 1
+        elif args.action == "mode" and extra:
+            payload["mode"] = extra[0]
+        elif args.action == "rename":
+            if len(extra) < 2:
+                parser.error("vicons rename requires <index> <new_name>")
+            try:
+                payload["index"] = int(extra[0])
+            except ValueError:
+                parser.error(f"invalid icon index: {extra[0]}")
+            payload["name"] = " ".join(extra[1:]).strip()
     elif args.cmd == "playlist":
         payload["action"] = args.action
         if args.interval > 0:
@@ -89,7 +123,8 @@ def main(argv: list[str] | None = None) -> int:
             if "theme" in resp and payload["cmd"] == "status":
                 print(
                     f"theme={resp.get('theme')} paused={resp.get('paused')} "
-                    f"lowMode={resp.get('lowMode')} displayMode={resp.get('displayMode')} "
+                    f"lowMode={resp.get('lowMode')} rustOpenGl={resp.get('rustOpenGl')} "
+                    f"displayMode={resp.get('displayMode')} "
                     f"solarSync={resp.get('solarSync')} playlist={resp.get('playlistEnabled')}"
                 )
             else:

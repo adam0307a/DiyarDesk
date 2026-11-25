@@ -3212,7 +3212,9 @@ class WallpaperForm : Form
     static bool IsNativeGlPage(string p)
     {
         return string.Equals(p, "material-impulse-gl.html", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(p, "ai-mascots.html", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(p, "ai-mascots.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "cat-shore.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "persephone.html", StringComparison.OrdinalIgnoreCase);
     }
 
     static readonly HashSet<string> NativeGlThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -3221,7 +3223,7 @@ class WallpaperForm : Form
         "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
         "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
         "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
-        "ai-mascots"
+        "ai-mascots", "cat-shore", "persephone"
     };
 
     public static bool IsNativeGlTheme(string tid)

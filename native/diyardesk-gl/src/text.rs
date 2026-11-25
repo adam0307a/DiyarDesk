@@ -65,45 +65,191 @@ fn load_system_font(candidates: &[&str]) -> Result<Font, String> {
             }
         }
     }
-    Err("Could not load any Windows UI font from C:\\Windows\\Fonts".into())
+    #[cfg(not(target_os = "windows"))]
+    {
+        for pattern in ["sans-serif", "DejaVu Sans", "Liberation Sans", "Noto Sans"] {
+            if let Some(path) = fc_match_font(pattern) {
+                if let Ok(bytes) = std::fs::read(&path) {
+                    if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                        return Ok(font);
+                    }
+                }
+            }
+        }
+    }
+    Err("Could not load any system UI font".into())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn fc_match_font(pattern: &str) -> Option<String> {
+    let out = std::process::Command::new("fc-match")
+        .args(["-f", "%{file}", pattern])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let s = String::from_utf8(out.stdout).ok()?;
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn load_linux_font_with_fc(candidates: &[&str], fc_pattern: &str) -> Result<Font, String> {
+    for path in candidates {
+        if let Ok(bytes) = std::fs::read(path) {
+            if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                return Ok(font);
+            }
+        }
+    }
+    if let Some(path) = fc_match_font(fc_pattern) {
+        if let Ok(bytes) = std::fs::read(&path) {
+            if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                return Ok(font);
+            }
+        }
+    }
+    load_system_font(candidates)
 }
 
 impl TextRenderer {
     pub unsafe fn new(gl: &GlFns) -> Result<Self, String> {
-        Self::new_with_fonts(
-            gl,
-            &[
-                r"C:\Windows\Fonts\segoeui.ttf",
-                r"C:\Windows\Fonts\arial.ttf",
-            ],
-            &[
-                r"C:\Windows\Fonts\segoeuib.ttf",
-                r"C:\Windows\Fonts\seguisb.ttf",
-                r"C:\Windows\Fonts\arialbd.ttf",
-                r"C:\Windows\Fonts\segoeui.ttf",
-            ],
-        )
+        #[cfg(target_os = "windows")]
+        {
+            Self::new_with_fonts(
+                gl,
+                &[
+                    r"C:\Windows\Fonts\segoeui.ttf",
+                    r"C:\Windows\Fonts\arial.ttf",
+                ],
+                &[
+                    r"C:\Windows\Fonts\segoeuib.ttf",
+                    r"C:\Windows\Fonts\seguisb.ttf",
+                    r"C:\Windows\Fonts\arialbd.ttf",
+                    r"C:\Windows\Fonts\segoeui.ttf",
+                ],
+            )
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let reg = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                    "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+                    "/usr/share/fonts/TTF/Inter-Regular.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                    "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+                    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+                    "/usr/share/fonts/adwaita-sans-fonts/AdwaitaSans-Regular.ttf",
+                    "/usr/share/fonts/cantarell/Cantarell-Regular.otf",
+                ],
+                "sans-serif:weight=regular",
+            )?;
+            let bold = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/noto/NotoSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+                    "/usr/share/fonts/google-noto/NotoSans-Bold.ttf",
+                    "/usr/share/fonts/TTF/Inter-Bold.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                    "/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
+                    "/usr/share/fonts/adwaita-sans-fonts/AdwaitaSans-Bold.ttf",
+                    "/usr/share/fonts/cantarell/Cantarell-Bold.otf",
+                ],
+                "sans-serif:weight=bold",
+            )
+            .or_else(|_| load_linux_font_with_fc(&[], "sans-serif"))?;
+            let fallback = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/noto/NotoSansSymbols2-Regular.ttf",
+                    "/usr/share/fonts/noto/NotoSansSymbols-Regular.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+                ],
+                "DejaVu Sans",
+            )
+            .ok();
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
     }
 
     pub unsafe fn new_monospace(gl: &GlFns) -> Result<Self, String> {
-        Self::new_with_fonts(
-            gl,
-            &[
-                r"C:\Windows\Fonts\consola.ttf",
-                r"C:\Windows\Fonts\CascadiaMono.ttf",
-                r"C:\Windows\Fonts\lucon.ttf",
-                r"C:\Windows\Fonts\cour.ttf",
-                r"C:\Windows\Fonts\segoeui.ttf",
-            ],
-            &[
-                r"C:\Windows\Fonts\consolab.ttf",
-                r"C:\Windows\Fonts\consola.ttf",
-                r"C:\Windows\Fonts\courbd.ttf",
-                r"C:\Windows\Fonts\segoeuib.ttf",
-            ],
-        )
+        #[cfg(target_os = "windows")]
+        {
+            Self::new_with_fonts(
+                gl,
+                &[
+                    r"C:\Windows\Fonts\consola.ttf",
+                    r"C:\Windows\Fonts\CascadiaMono.ttf",
+                    r"C:\Windows\Fonts\lucon.ttf",
+                    r"C:\Windows\Fonts\cour.ttf",
+                    r"C:\Windows\Fonts\segoeui.ttf",
+                ],
+                &[
+                    r"C:\Windows\Fonts\consolab.ttf",
+                    r"C:\Windows\Fonts\consola.ttf",
+                    r"C:\Windows\Fonts\courbd.ttf",
+                    r"C:\Windows\Fonts\segoeuib.ttf",
+                ],
+            )
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let reg = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/TTF/JetBrainsMono-Regular.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                    "/usr/share/fonts/dejavu-sans-mono-fonts/DejaVuSansMono.ttf",
+                    "/usr/share/fonts/noto/NotoSansMono-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+                    "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf",
+                ],
+                "monospace:weight=regular",
+            )?;
+            let bold = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/TTF/JetBrainsMono-Bold.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSansMono-Bold.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+                    "/usr/share/fonts/dejavu-sans-mono-fonts/DejaVuSansMono-Bold.ttf",
+                    "/usr/share/fonts/noto/NotoSansMono-Bold.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSansMono-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
+                    "/usr/share/fonts/liberation-mono/LiberationMono-Bold.ttf",
+                ],
+                "monospace:weight=bold",
+            )
+            .or_else(|_| load_linux_font_with_fc(&[], "monospace"))?;
+            let fallback = load_linux_font_with_fc(
+                &[
+                    "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                ],
+                "DejaVu Sans Mono",
+            )
+            .ok();
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
     }
 
+    #[cfg(target_os = "windows")]
     unsafe fn new_with_fonts(
         gl: &GlFns,
         reg_candidates: &[&str],
@@ -117,6 +263,15 @@ impl TextRenderer {
             r"C:\Windows\Fonts\segoeui.ttf",
         ])
         .ok();
+        Self::new_from_loaded_fonts(gl, font_regular, font_bold, font_fallback)
+    }
+
+    unsafe fn new_from_loaded_fonts(
+        gl: &GlFns,
+        font_regular: Font,
+        font_bold: Font,
+        font_fallback: Option<Font>,
+    ) -> Result<Self, String> {
 
         let prog = gl.compile_program(TEXT_VERT, TEXT_FRAG)?;
         let u_res = gl.uniform_loc(prog, "u_res");

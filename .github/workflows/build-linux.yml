@@ -21,20 +21,27 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=linux python3 -m pytest -p no:cacheprovider -v linux/tests
           find linux -type d \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} +
 
+      - name: Build Rust OpenGL engine (libdiyardesk_gl.so)
+        run: |
+          cargo build --release --locked --manifest-path native/diyardesk-gl/Cargo.toml
+          mkdir -p linux/lib
+          cp native/diyardesk-gl/target/release/libdiyardesk_gl.so linux/lib/libdiyardesk_gl.so
+
       - name: Build .deb and generic Linux tarball
         run: |
           VER=$(python3 -c "import json; print(json.load(open('tools/version.json'))['version'])")
           sh linux/packaging/build-deb.sh
-          DEB_PATH=$(find dist -maxdepth 1 -type f -name 'diyardesk_*_all.deb' | head -n 1)
+          DEB_PATH=$(find dist -maxdepth 1 -type f -name 'diyardesk_*.deb' | head -n 1)
           test -n "$DEB_PATH"
           dpkg-deb -I "$DEB_PATH"
 
           STAGE_DIR=$(mktemp -d)
           PKG_ROOT="$STAGE_DIR/DiyarDesk-${VER}-linux"
-          mkdir -p "$PKG_ROOT/linux"
+          mkdir -p "$PKG_ROOT/linux/lib"
           cp LICENSE NOTICE README.md SECURITY.md THIRD_PARTY_NOTICES.md TRADEMARKS.md "$PKG_ROOT/"
           cp -a prototype "$PKG_ROOT/"
-          cp -a linux/bin linux/deskland_linux linux/gnome-extension linux/kde-iconspy linux/packaging linux/plasma-wallpaper linux/tests linux/README.md linux/run.sh "$PKG_ROOT/linux/"
+          cp -a linux/bin linux/deskland_linux linux/gnome-extension linux/kde-iconspy linux/packaging linux/plasma-wallpaper linux/tests linux/README.md linux/run.sh linux/build-native.sh "$PKG_ROOT/linux/"
+          cp -a linux/lib/libdiyardesk_gl.so "$PKG_ROOT/linux/lib/libdiyardesk_gl.so"
           find "$PKG_ROOT" \( -name '__pycache__' -o -name '.pytest_cache' \) -prune -exec rm -rf {} +
           find "$PKG_ROOT" -name '*.pyc' -delete
 
@@ -46,7 +53,7 @@ jobs:
 
           (
             cd out-linux
-            for f in diyardesk_*_all.deb "$TAR_NAME"; do
+            for f in diyardesk_*.deb "$TAR_NAME"; do
               sha256sum "$f" > "${f}.sha256"
             done
           )

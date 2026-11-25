@@ -1,12 +1,12 @@
 # Maintainer: DiyarDesk contributors
 pkgname=diyardesk
-pkgver=0.5.3
+pkgver=0.5.4
 pkgrel=1
-pkgdesc="DiyarDesk — adaptive animated wallpaper that follows desktop icons (based on Deskland)"
-arch=('any')
+pkgdesc="DiyarDesk — native Rust OpenGL 3.3 & HTML/CSS/JS adaptive wallpaper that follows desktop icons"
+arch=('x86_64' 'aarch64')
 url="https://github.com/adam0307a/DiyarDesk"
 license=('GPL-3.0-only')
-makedepends=('gettext')
+makedepends=('gettext' 'cargo' 'cmake')
 provides=('deskland-preview')
 conflicts=('deskland-preview')
 replaces=('deskland-preview')
@@ -18,14 +18,27 @@ depends=(
   'webkit2gtk-4.1'
   'libayatana-appindicator'
   'xdg-utils'
+  'libglvnd'
 )
 optdepends=(
   'gtk-layer-shell: Wayland layer-shell wallpaper backend'
   'xdotool: automatic pause on X11'
   'gst-plugins-good: background audio playback in WebKitGTK themes'
+  'qt6-declarative: native Rust OpenGL 3.3 KDE Plasma 6 wallpaper plugin'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/adam0307a/DiyarDesk/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
+
+build() {
+  local src="$srcdir/DiyarDesk-$pkgver"
+  (cd "$src/native/diyardesk-gl" && cargo build --release --locked)
+  if [ -d /usr/include/qt6/QtQuick ]; then
+    cmake -S "$src/linux/plasma-gl-plugin" \
+          -B "$src/linux/plasma-gl-plugin/build" \
+          -DCMAKE_BUILD_TYPE=Release
+    cmake --build "$src/linux/plasma-gl-plugin/build" -j"$(nproc)"
+  fi
+}
 
 package() {
   local src="$srcdir/DiyarDesk-$pkgver"
@@ -45,6 +58,20 @@ package() {
   cp -a "$src/linux/plasma-wallpaper/org.deskland.preview" "$pkgdir/usr/share/plasma/wallpapers/"
   cp -a "$src/linux/kde-iconspy/org.deskland.iconspy" "$pkgdir/usr/share/plasma/plasmoids/"
   cp -a "$src/linux/gnome-extension/deskland@deskland.app" "$pkgdir/usr/share/gnome-shell/extensions/"
+
+  if [ -f "$src/native/diyardesk-gl/target/release/libdiyardesk_gl.so" ]; then
+    install -m755 "$src/native/diyardesk-gl/target/release/libdiyardesk_gl.so" \
+      "$pkgdir/usr/lib/deskland/libdiyardesk_gl.so"
+  fi
+  if [ -f "$src/linux/plasma-gl-plugin/build/libdiyardesk_plasma_gl.so" ]; then
+    install -d "$pkgdir/usr/share/plasma/wallpapers/org.deskland.preview/contents/ui/gl"
+    install -m755 "$src/linux/plasma-gl-plugin/build/libdiyardesk_plasma_gl.so" \
+      "$pkgdir/usr/share/plasma/wallpapers/org.deskland.preview/contents/ui/gl/libdiyardesk_plasma_gl.so"
+    install -m644 "$src/linux/plasma-gl-plugin/qmldir" \
+      "$pkgdir/usr/share/plasma/wallpapers/org.deskland.preview/contents/ui/gl/qmldir"
+    ln -sf /usr/lib/deskland/libdiyardesk_gl.so \
+      "$pkgdir/usr/share/plasma/wallpapers/org.deskland.preview/contents/ui/gl/libdiyardesk_gl.so"
+  fi
   # Compile gettext catalogs into the system locale tree when present;
   # system extensions bind to Config.LOCALEDIR when no locale/ subfolder is shipped.
   if [ -f "$src/linux/gnome-extension/build-mo.sh" ]; then
@@ -65,5 +92,6 @@ export DESKLAND_PROTOTYPE="${DESKLAND_PROTOTYPE:-/usr/lib/deskland/prototype}"
 exec python3 -m deskland_linux "$@"
 EOF
   chmod 755 "$pkgdir/usr/bin/deskland-linux"
+  ln -sf /usr/bin/deskland-linux "$pkgdir/usr/bin/diyardesk"
   install -m755 "$src/linux/bin/diyardesk-ctl" "$pkgdir/usr/bin/diyardesk-ctl"
 }

@@ -241,6 +241,7 @@
       if (!data) return;
       var lowMode = !!data.lowMode;
       window.__desklandLowModeState = lowMode;
+      window.__desklandRustOpenGl = !!data.rustOpenGl;
       if (lowMode !== lastLowModeSent) {
         lastLowModeSent = lowMode;
         window.__desklandDeliver(JSON.stringify({ t: 'lowMode', v: lowMode }));
@@ -254,6 +255,7 @@
         window.__desklandDisableAutoPause = nextDisableAutoPause;
       }
       var theme = data.theme || 'meadow';
+      window.__desklandThemeId = theme;
       var page = THEME_PAGES[theme];
       if (theme !== CURRENT_THEME) {
         if (page) {

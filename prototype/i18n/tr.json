@@ -2005,6 +2005,104 @@
           ]
         }
       }
+    },
+    "cat-shore": {
+      "name": "Kıyı Kedisi · OpenGL (Rust)",
+      "desc": "Yerel Rust + OpenGL 3.3 ile boyanmış çakıllı sahil ve sığ su halkaları: ortadaki siyah kedi fare imlecini gözleriyle canlı takip eder, göz kırpar ve okşayınca dalga çıkarır; üstte açılır kapanır görev, 45 dk nokta-matris odak sayacı, not ve takvim çubuğu bulunur.",
+      "groups": [
+        "Üst Çubuk ve Kedi",
+        "Su Halkaları ve Sahil Işığı"
+      ],
+      "params": {
+        "notchMode": {
+          "label": "Üst Açılır Çubuk",
+          "hint": "Fareyle üzerine gelince veya tıklayınca açılır, sabitlenebilir ya da gizlenebilir",
+          "options": [
+            "Otomatik (Açılır/Kapanır)",
+            "Her Zaman Açık",
+            "Yalnızca Üst Çentik",
+            "Gizli"
+          ]
+        },
+        "catScale": {
+          "label": "Kedi Boyutu",
+          "hint": "Suyun ortasında duran siyah kedinin ölçeği"
+        },
+        "shoreTone": {
+          "label": "Sahil Atmosferi",
+          "hint": "Gündüz berrak kıyısı, altın ikindi veya alacakaranlık paleti",
+          "options": [
+            "Gündüz",
+            "Altın İkindi",
+            "Alacakaranlık"
+          ]
+        },
+        "rippleStrength": {
+          "label": "Su Halkası Şiddeti",
+          "hint": "Kedi ve masaüstü simgelerinin etrafında yayılan eşmerkezli su dalgalarının belirginliği"
+        },
+        "waterSpeed": {
+          "label": "Dalga Hızı",
+          "hint": "Su halkalarının yayılma ve kedi kuyruğunun sallanma hızı"
+        }
+      }
+    },
+    "persephone": {
+      "name": "Persephone · Gümüş Gravür (Rust GL)",
+      "desc": "Saf Rust + OpenGL 3.3 ile gerçek zamanlı yıldız kıvılcımlı gümüş gravür: gözlerden dışa doğru binlerce ince çizgi kıvılcımlarla çizilir, ardından ay ışığı dolgu dalgası, göksel ışık hüzmeleri, sedef parıltı geçişi ve kelime kelime şiir belirir. Tıklayarak çizimi yeniden başlatabilirsin.",
+      "groups": [
+        "Atmosfer ve Koreografi",
+        "Kıvılcım ve Yıldız Tozu"
+      ],
+      "params": {
+        "palette": {
+          "label": "Ay Işığı Paleti",
+          "hint": "Orijinal gümüş-mor gece, gül-inci altın veya buz safiri tonu",
+          "options": [
+            "Gümüş Gece (Orijinal)",
+            "Gül İnci & Altın",
+            "Buz Safiri"
+          ]
+        },
+        "playMode": {
+          "label": "Oynatma Modu",
+          "hint": "Çizim bittikten sonra sakince bekleyip tekrar çizsin ya da tek seferde kalsın",
+          "options": [
+            "Döngü (Tekrar Çiz)",
+            "Tek Sefer"
+          ]
+        },
+        "quoteMode": {
+          "label": "Üst Şiir Alıntısı",
+          "hint": "Ay halesinin üzerinde kelime kelime beliren alıntı dili",
+          "options": [
+            "Orijinal (Portekizce)",
+            "Türkçe",
+            "İngilizce",
+            "Gizli"
+          ]
+        },
+        "showCodePanel": {
+          "label": "Sağ Kod Paneli",
+          "hint": "Referans videodaki gibi sağda canlı aşama vurgulu kod sütununu göster"
+        },
+        "traceSpeed": {
+          "label": "Çizim Hızı",
+          "hint": "Kontur çizimi, ay ışığı dolumu ve sedef dalgasının temposu"
+        },
+        "sparkIntensity": {
+          "label": "Kıvılcım Parlaklığı",
+          "hint": "Çizim uçlarındaki parlak yıldız kıvılcımları ve 45 parıltı yıldızının şiddeti"
+        },
+        "dustDensity": {
+          "label": "Yıldız Tozu Yoğunluğu",
+          "hint": "Obsidyen gece gökyüzünde süzülen 140 sedef yıldız tozunun yoğunluğu"
+        },
+        "parallax": {
+          "label": "Fare Paralaksı",
+          "hint": "İmleç hareketine duyarlı yumuşak derinlik hissi"
+        }
+      }
     }
   }
 }

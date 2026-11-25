@@ -3704,6 +3704,209 @@
           ]
         }
       ]
+    },
+    {
+      "id": "cat-shore",
+      "adaptive": true,
+      "name": "岸边黑猫 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 绘本风浅水鹅卵石海岸：站在涟漪中心的黑猫会实时注视鼠标指针并自然眨眼，顶部配有可悬停/点击展开的极简效率灵动栏（任务、45分钟点阵专注计时、便签、日历与剪贴绳）。",
+      "page": "cat-shore.html",
+      "status": "ready",
+      "product": "free",
+      "thumb": "radial-gradient(circle at 44% 59%, rgba(16,18,22,0.92) 0%, rgba(16,18,22,0.88) 10%, rgba(126,204,228,0.45) 14%, transparent 34%), linear-gradient(225deg, #e5c67b 0%, #cda95c 28%, #5ba3bd 54%, #1f506b 100%)",
+      "groups": [
+        {
+          "name": "顶部展开栏与黑猫",
+          "params": [
+            {
+              "key": "notchMode",
+              "label": "顶部展开栏",
+              "hint": "悬停/点击自动展开、始终展开、仅显示顶部胶囊或隐藏",
+              "options": [
+                "自动展开",
+                "始终展开",
+                "仅折叠胶囊",
+                "隐藏"
+              ],
+              "values": [
+                "auto",
+                "pinned",
+                "collapsed",
+                "off"
+              ],
+              "default": "auto"
+            },
+            {
+              "key": "catScale",
+              "label": "黑猫大小",
+              "hint": "调整站在水中央的黑猫比例",
+              "min": 0.7,
+              "max": 1.4,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            }
+          ]
+        },
+        {
+          "name": "浅水涟漪与海岸光影",
+          "params": [
+            {
+              "key": "shoreTone",
+              "label": "海岸光色",
+              "hint": "切换清朗日光、午后暖金或静谧暮色",
+              "options": [
+                "日光",
+                "暖金",
+                "暮色"
+              ],
+              "values": [
+                "daylight",
+                "golden",
+                "twilight"
+              ],
+              "default": "daylight"
+            },
+            {
+              "key": "rippleStrength",
+              "label": "涟漪强度",
+              "hint": "围绕黑猫与桌面图标扩散的手绘同心水波强弱",
+              "min": 0.2,
+              "max": 1.6,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            },
+            {
+              "key": "waterSpeed",
+              "label": "水流节奏",
+              "hint": "水波扩散与猫尾轻摆的速度",
+              "min": 0.2,
+              "max": 2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "persephone",
+      "adaptive": true,
+      "name": "银月神像 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 实时轮廓星火描边与月光浮雕：数千道银白雕刻线条从双眸向双翼与花冠迸发星火绘制，随后径向绽放银月光辉、天穹射线、珠光虹彩流波与逐词浮现诗句；点击可重播绘制。",
+      "page": "persephone.html",
+      "status": "ready",
+      "product": "free",
+      "thumb": "radial-gradient(circle at 50% 34%, rgba(235,242,255,0.44) 0%, rgba(140,152,190,0.22) 24%, transparent 56%), linear-gradient(180deg, #08050f 0%, #110d20 55%, #08050f 100%)",
+      "groups": [
+        {
+          "name": "神像光色与编排",
+          "params": [
+            {
+              "key": "palette",
+              "label": "月光色调",
+              "hint": "银月紫夜（原版）、玫瑰珠金或冰蓝星辉",
+              "options": [
+                "银月紫夜",
+                "玫瑰珠金",
+                "冰蓝星辉"
+              ],
+              "values": [
+                "moonlight",
+                "roseGold",
+                "iceCyan"
+              ],
+              "default": "moonlight"
+            },
+            {
+              "key": "playMode",
+              "label": "动画循环",
+              "hint": "完成后优雅停留再循环重绘，或仅绘制一次永久凝视",
+              "options": [
+                "循环重绘",
+                "单次绘制"
+              ],
+              "values": [
+                "loop",
+                "once"
+              ],
+              "default": "loop"
+            },
+            {
+              "key": "quoteMode",
+              "label": "顶部诗句",
+              "hint": "在月晕上方逐词浮现的诗句语言或隐藏",
+              "options": [
+                "原版葡语",
+                "土耳其语",
+                "英语",
+                "隐藏"
+              ],
+              "values": [
+                "pt",
+                "tr",
+                "en",
+                "off"
+              ],
+              "default": "pt"
+            },
+            {
+              "key": "showCodePanel",
+              "label": "右侧代码分屏",
+              "hint": "像演示视频一样在右侧显示实时高亮动画代码栏",
+              "type": "toggle",
+              "default": false
+            }
+          ]
+        },
+        {
+          "name": "星火描边与氛围",
+          "params": [
+            {
+              "key": "traceSpeed",
+              "label": "描边速度",
+              "hint": "轮廓星火绘制、月光填充与流波的整体节奏",
+              "min": 0.4,
+              "max": 2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            },
+            {
+              "key": "sparkIntensity",
+              "label": "星火亮度",
+              "hint": "线条笔尖星火与 45 颗四角星芒的辉光强度",
+              "min": 0.2,
+              "max": 1.8,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            },
+            {
+              "key": "dustDensity",
+              "label": "星尘密度",
+              "hint": "夜空中漂浮的虹彩微尘数量",
+              "min": 0,
+              "max": 1.6,
+              "step": 0.05,
+              "default": 1,
+              "format": "percent"
+            },
+            {
+              "key": "parallax",
+              "label": "鼠标视差",
+              "hint": "跟随光标的轻微景深层次",
+              "min": 0,
+              "max": 1,
+              "step": 0.05,
+              "default": 0.45,
+              "format": "percent"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

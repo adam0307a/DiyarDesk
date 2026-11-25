@@ -1,6 +1,7 @@
 use crate::ai_mascots::{AiMascotsParams, AiMascotsState};
 use crate::aurora::{AuroraParams, AuroraState};
 use crate::beach::{BeachParams, BeachState};
+use crate::cat_shore::{CatShoreParams, CatShoreState};
 use crate::claymorph::{ClaymorphParams, ClaymorphState};
 use crate::desert::{DesertParams, DesertState};
 use crate::glade::{GladeParams, GladeState};
@@ -11,6 +12,7 @@ use crate::meadow::{MeadowParams, MeadowState};
 use crate::neobrutalism::{NbParams, NeobrutalismState};
 use crate::neumorph::{NeumorphParams, NeumorphState};
 use crate::papercut::{PapercutParams, PapercutState};
+use crate::persephone::{PersephoneParams, PersephoneState};
 use crate::pocket::{PocketParams, PocketState};
 use crate::polarnight::{PolarNightParams, PolarNightState};
 use crate::quiet_snow::{QuietSnowParams, QuietSnowState, WindowInput};
@@ -480,6 +482,8 @@ pub struct AppState {
     pub solar_system: SolarSystemState,
     pub thinking_orbs: ThinkingOrbsState,
     pub ai_mascots: AiMascotsState,
+    pub cat_shore: CatShoreState,
+    pub persephone: PersephoneState,
     pub windows: Vec<WindowInput>,
     pub outbox: VecDeque<String>,
     pub last_ui_rects_sig: String,
@@ -629,6 +633,8 @@ impl AppState {
             solar_system: SolarSystemState::default(),
             thinking_orbs: ThinkingOrbsState::default(),
             ai_mascots: AiMascotsState::default(),
+            cat_shore: CatShoreState::default(),
+            persephone: PersephoneState::default(),
             windows: Vec::new(),
             outbox: VecDeque::new(),
             last_ui_rects_sig: String::new(),
@@ -796,6 +802,14 @@ impl AppState {
         self.theme_id == "ai-mascots"
     }
 
+    pub fn is_cat_shore_theme(&self) -> bool {
+        self.theme_id == "cat-shore"
+    }
+
+    pub fn is_persephone_theme(&self) -> bool {
+        self.theme_id == "persephone"
+    }
+
     pub fn set_theme(&mut self, id: &str) {
         let clean = id.trim();
         if clean.is_empty() {
@@ -956,6 +970,23 @@ impl AppState {
             self.ai_mascots.resize(self.css_w(), self.css_h());
             if !self.icons.is_empty() {
                 self.ai_mascots.set_icons(&self.icons, &self.icon_names, true);
+            }
+        }
+        if self.is_cat_shore_theme() {
+            self.cat_shore.set_low_mode(self.low_mode);
+            self.cat_shore.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.icons.is_empty() {
+                self.cat_shore.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_persephone_theme() {
+            self.persephone.set_low_mode(self.low_mode);
+            self.persephone.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if changed {
+                self.persephone.restart_animation();
+            }
+            if !self.icons.is_empty() {
+                self.persephone.set_icons(&self.icons, true);
             }
         }
         self.set_active_field(TextField::None);
@@ -1197,6 +1228,12 @@ impl AppState {
         if self.is_ai_mascots_theme() {
             self.ai_mascots.resize(w, h);
         }
+        if self.is_cat_shore_theme() {
+            self.cat_shore.resize(w, h, self.dpi_scale);
+        }
+        if self.is_persephone_theme() {
+            self.persephone.resize(w, h, self.dpi_scale);
+        }
 
         self.emit_ui_rects();
     }
@@ -1222,6 +1259,16 @@ impl AppState {
             }
         } else if self.is_studio_glass_theme() {
             rects.extend(self.studio.ui_rects());
+        } else if self.is_cat_shore_theme() {
+            let r = self.cat_shore.active_notch_rect();
+            if r.w > 4.0 && r.h > 4.0 {
+                rects.push([
+                    r.x.floor() as i32,
+                    r.y.floor() as i32,
+                    r.w.ceil() as i32,
+                    r.h.ceil() as i32,
+                ]);
+            }
         }
         let json = serde_json::json!({
             "t": "uiRects",
@@ -1260,6 +1307,8 @@ impl AppState {
                     self.solar_system.set_low_mode(b);
                     self.thinking_orbs.set_low_mode(b);
                     self.ai_mascots.set_low_mode(b);
+                    self.cat_shore.set_low_mode(b);
+                    self.persephone.set_low_mode(b);
                 }
             }
             "settings" => {
@@ -1347,6 +1396,12 @@ impl AppState {
                 if self.is_ai_mascots_theme() {
                     self.ai_mascots.sync_params(AiMascotsParams::default());
                 }
+                if self.is_cat_shore_theme() {
+                    self.cat_shore.sync_params(CatShoreParams::default());
+                }
+                if self.is_persephone_theme() {
+                    self.persephone.sync_params(PersephoneParams::default());
+                }
                 if let Some(obj) = v.get("v").and_then(|x| x.as_object()) {
                     self.apply_params(obj);
                 }
@@ -1409,6 +1464,8 @@ impl AppState {
                 self.solar_system.set_icons(&self.icons, &self.icon_names, vis);
                 self.thinking_orbs.set_icons(&self.icons, vis);
                 self.ai_mascots.set_icons(&self.icons, &self.icon_names, vis);
+                self.cat_shore.set_icons(&self.icons, vis);
+                self.persephone.set_icons(&self.icons, vis);
                 self.recompute_layout();
             }
             "windows" => {
@@ -1975,6 +2032,12 @@ impl AppState {
         if self.is_ai_mascots_theme() {
             self.ai_mascots.sync_params(AiMascotsParams::from_raw_params(&self.raw_params));
         }
+        if self.is_cat_shore_theme() {
+            self.cat_shore.sync_params(CatShoreParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_persephone_theme() {
+            self.persephone.sync_params(PersephoneParams::from_raw_params(&self.raw_params));
+        }
         self.recompute_layout();
     }
 
@@ -2110,6 +2173,18 @@ impl AppState {
         if self.is_ai_mascots_theme() {
             self.ai_mascots.set_low_mode(self.low_mode);
             self.ai_mascots.step(dt);
+        }
+        if self.is_cat_shore_theme() {
+            let was_open = self.cat_shore.is_notch_expanded();
+            self.cat_shore.set_low_mode(self.low_mode);
+            self.cat_shore.step(dt);
+            if self.cat_shore.is_notch_expanded() != was_open {
+                self.emit_ui_rects();
+            }
+        }
+        if self.is_persephone_theme() {
+            self.persephone.set_low_mode(self.low_mode);
+            self.persephone.step(dt);
         }
     }
 
@@ -2321,6 +2396,8 @@ impl AppState {
             self.solar_system.handle_mouse(3, 0.0, 0.0);
             self.thinking_orbs.handle_mouse(3, 0.0, 0.0);
             self.ai_mascots.handle_mouse(3, 0.0, 0.0);
+            self.cat_shore.handle_mouse(3, 0.0, 0.0);
+            self.persephone.handle_mouse(3, 0.0, 0.0);
             return false;
         }
         self.pointer_x = x;
@@ -2445,6 +2522,16 @@ impl AppState {
         }
         if self.is_ai_mascots_theme() {
             return self.ai_mascots.handle_mouse(kind, x, y);
+        }
+        if self.is_cat_shore_theme() {
+            let handled = self.cat_shore.handle_mouse(kind, x, y);
+            if kind == 1 {
+                self.emit_ui_rects();
+            }
+            return handled;
+        }
+        if self.is_persephone_theme() {
+            return self.persephone.handle_mouse(kind, x, y);
         }
 
         if kind == 0 {

@@ -39,11 +39,13 @@ class Tray:
         on_autostart: Callable[[bool], None],
         on_exit: Callable[[], None],
         on_low_mode: Callable[[bool], None] | None = None,
+        on_rust_opengl: Callable[[bool], None] | None = None,
     ) -> None:
         self.i18n = i18n
         self.on_pause = on_pause
         self.on_autostart = on_autostart
         self.on_low_mode = on_low_mode
+        self.on_rust_opengl = on_rust_opengl
         self._indicator = None
         self._status_icon = None
         self._menu = Gtk.Menu()
@@ -54,6 +56,8 @@ class Tray:
         self.pause_item.connect("toggled", self._pause_toggled)
         self.low_mode_item = Gtk.CheckMenuItem(label=i18n.t("trayLowMode"))
         self.low_mode_item.connect("toggled", self._low_mode_toggled)
+        self.rust_gl_item = Gtk.CheckMenuItem(label=i18n.t("rustOpenGl") if i18n.t("rustOpenGl") != "rustOpenGl" else "Rust OpenGL")
+        self.rust_gl_item.connect("toggled", self._rust_gl_toggled)
         self.reload_item = Gtk.MenuItem(label=i18n.t("trayReload"))
         self.reload_item.connect("activate", lambda *_: on_reload())
         self.autostart_item = Gtk.CheckMenuItem(label=i18n.t("trayAutostart"))
@@ -64,6 +68,7 @@ class Tray:
         self._menu.append(self.settings_item)
         self._menu.append(self.pause_item)
         self._menu.append(self.low_mode_item)
+        self._menu.append(self.rust_gl_item)
         self._menu.append(self.reload_item)
         self._menu.append(self.autostart_item)
         self._menu.append(Gtk.SeparatorMenuItem())
@@ -103,6 +108,10 @@ class Tray:
         if self.on_low_mode is not None:
             self.on_low_mode(bool(item.get_active()))
 
+    def _rust_gl_toggled(self, item: Gtk.CheckMenuItem) -> None:
+        if self.on_rust_opengl is not None:
+            self.on_rust_opengl(bool(item.get_active()))
+
     def _autostart_toggled(self, item: Gtk.CheckMenuItem) -> None:
         self.on_autostart(bool(item.get_active()))
 
@@ -118,6 +127,14 @@ class Tray:
             self.low_mode_item.set_active(enabled)
             self.low_mode_item.handler_unblock_by_func(self._low_mode_toggled)
 
+    def set_rust_opengl(self, enabled: bool, available: bool = True) -> None:
+        self.rust_gl_item.set_sensitive(bool(available))
+        active = bool(enabled and available)
+        if bool(self.rust_gl_item.get_active()) != active:
+            self.rust_gl_item.handler_block_by_func(self._rust_gl_toggled)
+            self.rust_gl_item.set_active(active)
+            self.rust_gl_item.handler_unblock_by_func(self._rust_gl_toggled)
+
     def set_autostart(self, enabled: bool) -> None:
         if bool(self.autostart_item.get_active()) != enabled:
             self.autostart_item.handler_block_by_func(self._autostart_toggled)
@@ -128,6 +145,8 @@ class Tray:
         self.settings_item.set_label(self.i18n.t("traySettings"))
         self.pause_item.set_label(self.i18n.t("trayPause"))
         self.low_mode_item.set_label(self.i18n.t("trayLowMode"))
+        lbl = self.i18n.t("rustOpenGl")
+        self.rust_gl_item.set_label(lbl if lbl != "rustOpenGl" else "Rust OpenGL")
         self.reload_item.set_label(self.i18n.t("trayReload"))
         self.autostart_item.set_label(self.i18n.t("trayAutostart"))
         self.exit_item.set_label(self.i18n.t("trayExit"))

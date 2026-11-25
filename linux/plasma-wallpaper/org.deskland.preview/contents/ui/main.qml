@@ -1,18 +1,16 @@
 /*
- * Deskland wallpaper for KDE Plasma 6 (Wayland).
+ * Deskland / DiyarDesk hybrid wallpaper for KDE Plasma 6 (Wayland).
  *
- * The Plasma desktop containment is opaque and always sits above ordinary
- * windows, so the Deskland scene cannot be shown as a regular window or a
- * layer-shell surface — it has to BE the wallpaper. This plugin embeds the
- * Deskland theme page (the same HTML/WebGL scene the rest of the app uses)
- * in a WebEngineView and injects the bridge (inject.js) that keeps the
- * scene fed with live icon positions from the folder-view applet config and
- * with the Deskland settings (theme, seed, pause…).
+ * Dynamically selects between:
+ *  1. NativeGlLayer.qml — Native Rust + OpenGL 3.3 Core (zero QtWebEngineProcess)
+ *     when `rustOpenGl` is enabled in ~/.config/deskland/settings.json and the
+ *     active theme is supported natively (or is a GL-only theme).
+ *  2. WebEngineLayer.qml — QtWebEngine + inject.js for HTML/CSS/JS themes,
+ *     custom imported packages/videos/images, or fallback if the GL plugin is absent.
  */
 
 import QtQuick
 import Qt.labs.platform
-import QtWebEngine
 import org.kde.kwindowsystem
 import org.kde.plasma.plasmoid
 import org.kde.taskmanager as TaskManager
@@ -21,36 +19,121 @@ WallpaperItem {
     id: root
     objectName: "desklandWallpaper"
 
-    property string prototypeRoot: "file:///usr/lib/deskland/prototype/"
-    property string theme: "papercut"
     property string homeDir: {
         var base = String(StandardPaths.writableLocation(StandardPaths.GenericConfigLocation));
-        // "file:///home/user/.config" -> "/home/user"
         base = base.replace(/^file:\/\//, "");
         base = base.replace(/\/\.config\/?$/, "");
         return base.replace(/\/+$/, "");
     }
-    property bool pageReady: false
+
+    property string prototypeRoot: "file:///usr/lib/deskland/prototype/"
+    property string theme: "meadow"
+    property bool rustOpenGl: false
+    property bool nativeGlFailed: false
+    property bool settingsLoaded: false
+    property var themeParams: ({})
+
     property bool windowPaused: false
     property bool screenshotPaused: false
     property bool lowMode: false
     property bool disableAutoPause: false
     property var iconMover: null
-    property bool iconMoveActive: false
-    property double lastIconMoveAt: 0
     readonly property bool showingDesktop: KWindowSystem.showingDesktop
-    readonly property bool effectivePaused: pageReady && !disableAutoPause && (screenshotPaused || (windowPaused && !showingDesktop))
+    readonly property bool effectivePaused: !disableAutoPause && (screenshotPaused || (windowPaused && !showingDesktop))
+
+    readonly property var nativeGlThemes: ({
+        "material-impulse-gl": true,
+        "material-impulse": true,
+        "liquidglass": true,
+        "thinking-orbs": true,
+        "solar-system": true,
+        "studio-glass": true,
+        "beach": true,
+        "meadow": true,
+        "desert": true,
+        "rosebrook": true,
+        "glade": true,
+        "zen-archipelago": true,
+        "aurora": true,
+        "polarnight": true,
+        "quietsnow": true,
+        "winter": true,
+        "neumorph": true,
+        "claymorph": true,
+        "neobrutalism": true,
+        "voxelcraft": true,
+        "papercut": true,
+        "istanbul": true,
+        "software-world": true,
+        "rift": true,
+        "strike": true,
+        "pocket": true,
+        "roach": true,
+        "ai-mascots": true
+    })
+
+    readonly property bool isGlOnlyTheme: theme === "material-impulse-gl" || theme === "ai-mascots"
+    readonly property bool wantNativeGl: !nativeGlFailed && (isGlOnlyTheme || (rustOpenGl && !!nativeGlThemes[theme]))
 
     onShowingDesktopChanged: pauseEvalTimer.restart()
 
+    property string _lastParamsJson: ""
+
+    function resolvePrototypeRoot() {
+        var bridge = hostBridgeLoader.item;
+        if (!bridge || typeof bridge.fileExists !== "function" || !root.homeDir) return;
+        var userProto = root.homeDir + "/.local/share/deskland/prototype";
+        if (bridge.fileExists(userProto + "/meadow.html")) {
+            root.prototypeRoot = "file://" + userProto + "/";
+            return;
+        }
+        if (bridge.fileExists("/usr/lib/deskland/prototype/meadow.html")) {
+            root.prototypeRoot = "file:///usr/lib/deskland/prototype/";
+        }
+    }
+
+    function applySettingsObject(data) {
+        if (!data || typeof data !== "object") return;
+        if (typeof data.theme === "string" && data.theme.length > 0 && data.theme !== root.theme) {
+            root.theme = data.theme;
+        }
+        var nextGl = !!data.rustOpenGl;
+        if (nextGl !== root.rustOpenGl) {
+            root.rustOpenGl = nextGl;
+        }
+        var nextLow = !!data.lowMode;
+        if (nextLow !== root.lowMode) {
+            root.lowMode = nextLow;
+            root.updateWindowPause();
+        }
+        var nextDisable = !!data.disableAutoPause;
+        if (nextDisable !== root.disableAutoPause) {
+            root.disableAutoPause = nextDisable;
+            root.updateWindowPause();
+        }
+        var p = (data.params && data.params[root.theme]) ? data.params[root.theme] : {};
+        var serialized = JSON.stringify(p);
+        if (serialized !== root._lastParamsJson) {
+            root._lastParamsJson = serialized;
+            root.themeParams = p;
+        }
+    }
+
+    function pollHostSettings() {
+        if (!root.homeDir) return;
+        var bridge = hostBridgeLoader.item;
+        if (!bridge || typeof bridge.readFileText !== "function") return;
+        var txt = bridge.readFileText(root.homeDir + "/.config/deskland/settings.json");
+        if (txt && txt.length > 0) {
+            try { applySettingsObject(JSON.parse(txt)); } catch (e) {}
+        }
+    }
+
     function dispatchPointer(kind, x, y) {
         if (root.effectivePaused) return;
-        view.runJavaScript(
-            "if (window.__desklandDispatchPointer) window.__desklandDispatchPointer("
-            + JSON.stringify(kind) + "," + Number(x) + "," + Number(y) + ");"
-            + "else if (window.roachHostPointer) window.roachHostPointer("
-            + JSON.stringify(kind) + "," + Number(x) + "," + Number(y) + ");"
-        );
+        if (engineLoader.item && typeof engineLoader.item.dispatchPointer === "function") {
+            engineLoader.item.dispatchPointer(kind, x, y);
+        }
     }
 
     function updateWindowPause() {
@@ -88,27 +171,19 @@ WallpaperItem {
         root.windowPaused = (KWindowSystem.showingDesktop && !hasScreenshot) ? false : covered;
     }
 
-    function applyEffectivePause() {
-        if (!root.pageReady) return;
-        if (root.effectivePaused) {
-            view.runJavaScript("window.__desklandSetHostPaused&&window.__desklandSetHostPaused(true);");
-            freezeTimer.restart();
-        } else {
-            freezeTimer.stop();
-            try { view.lifecycleState = WebEngineView.LifecycleState.Active; } catch (e) {}
-            view.runJavaScript("window.__desklandSetHostPaused&&window.__desklandSetHostPaused(false);");
-        }
-    }
-
-    onEffectivePausedChanged: applyEffectivePause()
-
-    Timer {
-        id: freezeTimer
-        interval: 180
-        repeat: false
-        onTriggered: {
-            if (root.effectivePaused) {
-                try { view.lifecycleState = WebEngineView.LifecycleState.Frozen; } catch (e) {}
+    Loader {
+        id: hostBridgeLoader
+        asynchronous: false
+        source: Qt.resolvedUrl("HostBridge.qml")
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                root.nativeGlFailed = true;
+            } else if (status === Loader.Ready) {
+                if (item && item.available === false) {
+                    root.nativeGlFailed = true;
+                }
+                root.resolvePrototypeRoot();
+                root.pollHostSettings();
             }
         }
     }
@@ -118,6 +193,14 @@ WallpaperItem {
         interval: 80
         repeat: false
         onTriggered: root.updateWindowPause()
+    }
+
+    Timer {
+        id: configPollTimer
+        interval: 1000
+        repeat: true
+        running: hostBridgeLoader.status === Loader.Ready
+        onTriggered: root.pollHostSettings()
     }
 
     TaskManager.ActivityInfo {
@@ -140,125 +223,126 @@ WallpaperItem {
         onModelReset: pauseEvalTimer.restart()
     }
 
-    Timer {
-        id: readyGraceTimer
-        interval: 800
-        repeat: false
-        onTriggered: {
-            root.pageReady = true;
-            root.updateWindowPause();
-            root.applyEffectivePause();
+    Loader {
+        id: engineLoader
+        anchors.fill: parent
+        asynchronous: false
+        source: !root.settingsLoaded
+                ? ""
+                : (root.wantNativeGl ? Qt.resolvedUrl("NativeGlLayer.qml") : Qt.resolvedUrl("WebEngineLayer.qml"))
+
+        onStatusChanged: {
+            if (status === Loader.Error && root.wantNativeGl) {
+                console.warn("DiyarDesk: NativeGlLayer yüklenemedi, QtWebEngine katmanına düşülüyor.");
+                root.nativeGlFailed = true;
+            }
+        }
+
+        onLoaded: {
+            if (!item) return;
+            if (root.wantNativeGl && item.available === false) {
+                console.warn("DiyarDesk: libdiyardesk_gl.so bulunamadı, QtWebEngine katmanına düşülüyor.");
+                root.nativeGlFailed = true;
+                return;
+            }
+            syncLayerProps();
+        }
+
+        function syncLayerProps() {
+            if (!item) return;
+            item.themeId = Qt.binding(function () { return root.theme; });
+            item.lowMode = Qt.binding(function () { return root.lowMode; });
+            if (root.wantNativeGl) {
+                item.hostPaused = Qt.binding(function () { return root.effectivePaused; });
+                item.themeParams = Qt.binding(function () { return root.themeParams; });
+                item.homeDir = Qt.binding(function () { return root.homeDir; });
+            } else {
+                item.prototypeRoot = Qt.binding(function () { return root.prototypeRoot; });
+                item.effectivePaused = Qt.binding(function () { return root.effectivePaused; });
+                item.iconMover = Qt.binding(function () { return root.iconMover; });
+                item.homeDir = Qt.binding(function () { return root.homeDir; });
+            }
         }
     }
 
-    Timer {
-        id: settingsSyncTimer
-        interval: 1000
-        repeat: true
-        running: root.pageReady && !root.effectivePaused
-        onTriggered: {
-            view.runJavaScript(
-                "[window.__desklandLowModeState ? '1' : '0', window.__desklandDisableAutoPause ? '1' : '0']",
-                function (res) {
-                    if (!res || res.length < 2) return;
-                    var nextLow = (res[0] === '1');
-                    if (nextLow !== root.lowMode) {
-                        root.lowMode = nextLow;
-                        root.updateWindowPause();
-                    }
-                    var nextDisable = (res[1] === '1');
-                    if (nextDisable !== root.disableAutoPause) {
-                        root.disableAutoPause = nextDisable;
-                        root.updateWindowPause();
-                    }
-                }
-            );
+    Binding {
+        target: engineLoader.item
+        property: "themeId"
+        value: root.theme
+        when: engineLoader.item !== null
+    }
+    Binding {
+        target: engineLoader.item
+        property: "lowMode"
+        value: root.lowMode
+        when: engineLoader.item !== null
+    }
+    Binding {
+        target: engineLoader.item
+        property: "homeDir"
+        value: root.homeDir
+        when: engineLoader.item !== null
+    }
+    Binding {
+        target: engineLoader.item
+        property: "hostPaused"
+        value: root.effectivePaused
+        when: engineLoader.item !== null && root.wantNativeGl
+    }
+    Binding {
+        target: engineLoader.item
+        property: "themeParams"
+        value: root.themeParams
+        when: engineLoader.item !== null && root.wantNativeGl
+    }
+    Binding {
+        target: engineLoader.item
+        property: "effectivePaused"
+        value: root.effectivePaused
+        when: engineLoader.item !== null && !root.wantNativeGl
+    }
+
+    Connections {
+        target: engineLoader.item
+        ignoreUnknownSignals: true
+        function onMoveIconsRequested(rawJson) {
+            var mover = root.iconMover;
+            if (mover && typeof mover.applyMoveIcons === "function") {
+                mover.applyMoveIcons(rawJson);
+            }
+        }
+        function onLowModeObserved(v) {
+            if (v !== root.lowMode) {
+                root.lowMode = v;
+                root.updateWindowPause();
+            }
+        }
+        function onDisableAutoPauseObserved(v) {
+            if (v !== root.disableAutoPause) {
+                root.disableAutoPause = v;
+                root.updateWindowPause();
+            }
+        }
+        function onRustOpenGlObserved(v, tid) {
+            if (tid && tid !== root.theme) {
+                root.theme = tid;
+            }
+            if (v !== root.rustOpenGl) {
+                root.rustOpenGl = v;
+            }
         }
     }
 
-    Timer {
-        id: iconMoveTimer
-        interval: root.lowMode ? (root.iconMoveActive ? 150 : 1200) : (root.iconMoveActive ? 40 : 480)
-        repeat: true
-        running: root.pageReady && !root.effectivePaused && root.iconMover !== null
-        onTriggered: {
-            view.runJavaScript(
-                "[window.__desklandLowModeState ? '1' : '0', window.__desklandDisableAutoPause ? '1' : '0', window.__desklandTakeMoveIcons ? window.__desklandTakeMoveIcons() : '']",
-                function (res) {
-                    if (!res || res.length < 3) return;
-                    var nextLow = (res[0] === '1');
-                    if (nextLow !== root.lowMode) {
-                        root.lowMode = nextLow;
-                        root.updateWindowPause();
-                    }
-                    var nextDisable = (res[1] === '1');
-                    if (nextDisable !== root.disableAutoPause) {
-                        root.disableAutoPause = nextDisable;
-                        root.updateWindowPause();
-                    }
-                    var raw = res[2];
-                    var mover = root.iconMover;
-                    if (!mover || typeof mover.applyMoveIcons !== "function") return;
-                    if (raw && raw.length > 0) {
-                        root.iconMoveActive = true;
-                        root.lastIconMoveAt = Date.now();
-                        mover.applyMoveIcons(raw);
-                    } else if (root.iconMoveActive && (Date.now() - root.lastIconMoveAt) > 1500) {
-                        root.iconMoveActive = false;
-                    }
-                }
-            );
-        }
+    Component.onCompleted: {
+        resolvePrototypeRoot();
+        pollHostSettings();
+        root.settingsLoaded = true;
+        updateWindowPause();
     }
 
     Component.onDestruction: {
         if (root.iconMover && typeof root.iconMover.resetMoveIcons === "function") {
             root.iconMover.resetMoveIcons(true);
-        }
-    }
-
-    WebEngineView {
-        id: view
-        anchors.fill: parent
-        url: ""
-        backgroundColor: "#000000"
-        settings.localContentCanAccessFileUrls: true
-        settings.localStorageEnabled: true
-        settings.playbackRequiresUserGesture: true
-        settings.errorPageEnabled: false
-
-        Component.onCompleted: {
-            var pageName = (root.theme === "beach" ? "flat" : root.theme) + ".html";
-            view.userScripts.collection = [
-                { name: "deskland-bridge",
-                  sourceUrl: Qt.resolvedUrl("inject.js"),
-                  injectionPoint: WebEngineScript.DocumentCreation,
-                  worldId: WebEngineScript.MainWorld },
-                { name: "deskland-low-mode",
-                  sourceUrl: root.prototypeRoot + "low-mode.js",
-                  injectionPoint: WebEngineScript.DocumentCreation,
-                  worldId: WebEngineScript.MainWorld }
-            ];
-            view.url = root.prototypeRoot + pageName
-                + "?wallpaper=1&vicons=0"
-                + "&v=" + Date.now()
-                + "&theme=" + encodeURIComponent(root.theme)
-                + "&home=" + encodeURIComponent(root.homeDir);
-        }
-
-        onLoadingChanged: function (loadingInfo) {
-            if (loadingInfo.status === WebEngineView.LoadStartedStatus) {
-                readyGraceTimer.stop();
-                root.pageReady = false;
-                root.iconMoveActive = false;
-                if (root.iconMover && typeof root.iconMover.resetMoveIcons === "function") {
-                    root.iconMover.resetMoveIcons(true);
-                }
-            } else if (loadingInfo.status === WebEngineView.LoadSucceededStatus) {
-                readyGraceTimer.restart();
-            } else if (loadingInfo.status === WebEngineView.LoadFailedStatus) {
-                console.warn("Deskland wallpaper: theme page failed to load");
-            }
         }
     }
 }

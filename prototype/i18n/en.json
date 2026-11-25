@@ -2005,6 +2005,104 @@
           ]
         }
       }
+    },
+    "cat-shore": {
+      "name": "Shore Cat · OpenGL (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 painterly pebble shoreline: a black cat standing in sunlit ripples tracks your cursor with its eyes, blinks naturally, and reacts to clicks, paired with a collapsible top productivity notch bar (tasks, 45-min dot-matrix focus timer, notepad, calendar & clips).",
+      "groups": [
+        "Top Notch Bar & Cat",
+        "Water Ripples & Lighting"
+      ],
+      "params": {
+        "notchMode": {
+          "label": "Top Notch Bar",
+          "hint": "Expand on hover/click, keep pinned open, show compact notch only, or hide",
+          "options": [
+            "Auto (Expandable)",
+            "Always Expanded",
+            "Compact Notch Only",
+            "Hidden"
+          ]
+        },
+        "catScale": {
+          "label": "Cat Size",
+          "hint": "Scale of the black cat standing in the shallow ripples"
+        },
+        "shoreTone": {
+          "label": "Shore Lighting",
+          "hint": "Switch between crisp daylight, warm golden hour, or calm twilight",
+          "options": [
+            "Daylight",
+            "Golden Hour",
+            "Twilight"
+          ]
+        },
+        "rippleStrength": {
+          "label": "Ripple Intensity",
+          "hint": "Strength of painterly concentric ripples around the cat and desktop icons"
+        },
+        "waterSpeed": {
+          "label": "Water Flow Speed",
+          "hint": "Speed of outward water ripples and gentle tail sway"
+        }
+      }
+    },
+    "persephone": {
+      "name": "Persephone · Silver Engraving (Rust GL)",
+      "desc": "Native Rust + OpenGL 3.3 spark-traced celestial engraving: thousands of silver-white contour lines draw outward from her glowing eyes with blazing star sparks, followed by a radial moonlight fill wave, volumetric god-rays, an iridescent pearl shimmer, and word-by-word poetry. Click to replay.",
+      "groups": [
+        "Atmosphere & Choreography",
+        "Sparks & Stardust"
+      ],
+      "params": {
+        "palette": {
+          "label": "Moonlight Palette",
+          "hint": "Original obsidian silver-violet, warm rose-gold pearl, or ethereal ice sapphire",
+          "options": [
+            "Obsidian Silver (Original)",
+            "Rose Pearl & Gold",
+            "Ice Sapphire"
+          ]
+        },
+        "playMode": {
+          "label": "Playback Mode",
+          "hint": "Hold gracefully after completion and loop, or trace once and stay luminous",
+          "options": [
+            "Seamless Loop",
+            "Trace Once"
+          ]
+        },
+        "quoteMode": {
+          "label": "Top Poetic Quote",
+          "hint": "Language for the word-by-word quote revealed above the lunar halo",
+          "options": [
+            "Original (Portuguese)",
+            "Turkish",
+            "English",
+            "Hidden"
+          ]
+        },
+        "showCodePanel": {
+          "label": "Live Code Sidebar",
+          "hint": "Show the split-screen live syntax-highlighted code panel on the right"
+        },
+        "traceSpeed": {
+          "label": "Trace Speed",
+          "hint": "Overall pacing of contour tracing, moonlight fill, and shimmer sweep"
+        },
+        "sparkIntensity": {
+          "label": "Spark Glow",
+          "hint": "Brightness of tracing tip sparks and the 45 four-point twinkle stars"
+        },
+        "dustDensity": {
+          "label": "Stardust Density",
+          "hint": "Density of the 140 floating iridescent stardust motes"
+        },
+        "parallax": {
+          "label": "Mouse Parallax",
+          "hint": "Subtle depth response following the cursor"
+        }
+      }
     }
   }
 }

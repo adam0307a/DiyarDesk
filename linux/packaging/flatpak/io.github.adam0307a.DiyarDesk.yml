@@ -39,7 +39,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/adam0307a/DiyarDesk.git
-        tag: v0.5.3
+        tag: v0.5.4
         commit: d9ac4be96036572f781942bb0af4f489944cf731
       - type: file
         path: io.github.adam0307a.DiyarDesk.metainfo.xml

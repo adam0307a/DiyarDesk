@@ -44,11 +44,18 @@ from .importer import SUPPORTED_EXTS, custom_themes_dir, import_theme_file, remo
 from .ipc import IpcServer
 from .lan_sync import LanPairingServer
 from .lockscreen import apply_linux_lockscreen, make_blurred_lockscreen
+from .native_gl import NativeGlLibrary, is_native_gl_theme
+from .native_settings import NativeSettingsWindow
 from .scheduler import PlaylistController
 from .server import LocalServer
-from .settings_window import SettingsWindow
 from .share import copy_files, copy_image, open_path, reveal_path, save_share
 from .tray import Tray
+from .virtual_icons import (
+    add_virtual_icons_batch,
+    clear_virtual_icons,
+    rename_virtual_icon as rename_virtual_icon_item,
+    shuffle_virtual_icons,
+)
 from .wallpaper import Wallpaper
 
 
@@ -108,7 +115,7 @@ class DesklandHost:
         )
         self._playlist_timeout = 0
         self.ipc_server = IpcServer(self._dispatch_ipc)
-        self.settings_window: SettingsWindow | None = None
+        self.settings_window: Any = None
         self.tray: Tray | None = None
         self.last_icons: dict[str, Any] | None = None
         self.last_share: Path | None = None
@@ -192,8 +199,9 @@ class DesklandHost:
                 adapter=icon_adapter,
                 monitor_info=span,
                 is_primary=True,
+                theme_id=self.settings.theme,
             )
-            self.wallpaper.load_page(self.current_page)
+            self.wallpaper.load_page(self.current_page, theme_id=self.settings.theme)
             return
 
         primary_mon = comp_monitors[0] if comp_monitors else None
@@ -216,8 +224,9 @@ class DesklandHost:
             monitor_info=primary_mon,
             gdk_monitor=primary_gdk,
             is_primary=True,
+            theme_id=self.settings.theme,
         )
-        self.wallpaper.load_page(self.current_page)
+        self.wallpaper.load_page(self.current_page, theme_id=self.settings.theme)
 
         if mode in ("independent", "duplicate") and self.wallpaper.backend in ("layer-shell", "x11"):
             extras: list[tuple[MonitorInfo | None, Any]] = []
@@ -246,8 +255,9 @@ class DesklandHost:
                         monitor_info=minfo,
                         gdk_monitor=gmon,
                         is_primary=False,
+                        theme_id=self.settings.theme,
                     )
-                    ewp.load_page(self.current_page)
+                    ewp.load_page(self.current_page, theme_id=self.settings.theme)
                     self.extra_wallpapers.append(ewp)
                 except Exception as exc:
                     self.log.exception("İkincil monitör duvar kağıdı başlatılamadı", exc)
@@ -286,9 +296,11 @@ class DesklandHost:
             on_autostart=self.set_autostart,
             on_exit=self.quit,
             on_low_mode=self.set_low_mode,
+            on_rust_opengl=self.set_rust_opengl,
         )
         self.tray.set_autostart(self.autostart_enabled())
         self.tray.set_low_mode(self.settings.low_mode)
+        self.tray.set_rust_opengl(self.settings.rust_opengl, NativeGlLibrary.is_available())
         self._apply_process_priority(self.settings.low_mode)
         if self.ipc_server.start():
             self.log.write(f"IPC soketi dinleniyor: {self.ipc_server.socket_path}")
@@ -332,12 +344,27 @@ class DesklandHost:
             self.log.write(message)
 
     # ---------------------------------------------------------------- windows
+    def _want_native_settings(self) -> bool:
+        return bool(self.settings.rust_opengl and NativeGlLibrary.is_available())
+
     def open_settings(self) -> None:
         if self._quitting:
             return
+        want_native = self._want_native_settings()
+        if self.settings_window is not None:
+            is_native = bool(getattr(self.settings_window, "is_native_gtk", False))
+            if is_native != want_native:
+                self.settings_window.destroy()
+                self.settings_window = None
         if self.settings_window is None:
-            url = self.server.url(f"settings.html?v={quote(self.version)}")
-            self.settings_window = SettingsWindow(self, url)
+            if want_native:
+                self.settings_window = NativeSettingsWindow(self)
+                self.log.write("Yerel GTK3 + Rust OpenGL ayar penceresi açıldı (WebKit yok)")
+            else:
+                from .settings_window import SettingsWindow
+
+                url = self.server.url(f"settings.html?v={quote(self.version)}")
+                self.settings_window = SettingsWindow(self, url)
         self.settings_window.show()
 
     def show_menu(self) -> None:
@@ -469,6 +496,59 @@ class DesklandHost:
         self._post_settings({"t": "preferMpv", "v": val})
         self.log.write("mpv donanım video arka ucu tercih ediliyor" if val else "WebView video oynatıcı aktif")
 
+    def set_rust_opengl(self, enabled: bool) -> None:
+        available = NativeGlLibrary.is_available()
+        val = bool(enabled) if available else False
+        self.settings.rust_opengl = val
+        theme_switched = False
+        if val and not is_native_gl_theme(self.settings.theme):
+            fallback = "papercut" if self.themes.allowed("papercut") else "meadow"
+            self.log.write(
+                f"Rust OpenGL aktif: özel HTML temasından yerleşik OpenGL temasına geçildi "
+                f"({self.settings.theme} -> {fallback})"
+            )
+            self.settings.theme = fallback
+            theme_switched = True
+        self.settings.save()
+        if self.tray is not None:
+            self.tray.set_rust_opengl(val, available)
+        page = self.current_page
+        for wp in self._all_wallpapers():
+            wp.load_page(page, theme_id=self.settings.theme)
+        if theme_switched:
+            self._post_settings({"t": "themeChanged", "id": self.settings.theme})
+        self._post_settings({"t": "rustOpenGl", "v": val})
+
+        # Swap SettingsWindow (WebKitGTK) <-> NativeSettingsWindow (zero-WebKit GTK3)
+        # on the next main-loop tick so active UI callbacks unwind cleanly first.
+        if self.settings_window is not None:
+            is_native = bool(getattr(self.settings_window, "is_native_gtk", False))
+            want_native = self._want_native_settings()
+            if is_native != want_native:
+                was_visible = False
+                try:
+                    was_visible = bool(self.settings_window.window.get_visible())
+                except Exception:
+                    was_visible = True
+
+                def _swap_settings() -> bool:
+                    if self._quitting:
+                        return False
+                    if self.settings_window is not None:
+                        self.settings_window.destroy()
+                        self.settings_window = None
+                    if was_visible:
+                        self.open_settings()
+                    return False
+
+                GLib.idle_add(_swap_settings)
+
+        self.log.write(
+            "Yerel Rust OpenGL 3.3 motoru etkinleştirildi"
+            if val
+            else "HTML/CSS/JS WebKitGTK motoruna geçildi"
+        )
+
     def sync_lockscreen(self) -> None:
         if self.wallpaper is None:
             self._post_settings({"t": "lockscreenSynced", "ok": False, "msg": self.i18n.t("errNotReady")})
@@ -551,6 +631,12 @@ class DesklandHost:
                 "theme": self.settings.theme,
                 "paused": self.manual_pause,
                 "lowMode": self.settings.low_mode,
+                "rustOpenGl": self.settings.rust_opengl,
+                "rustGlAvailable": NativeGlLibrary.is_available(),
+                "nativeSettings": bool(
+                    self.settings_window is not None
+                    and getattr(self.settings_window, "is_native_gtk", False)
+                ),
                 "displayMode": self.settings.display_mode,
                 "solarSync": self.settings.solar_sync,
                 "windowAware": self.settings.window_aware,
@@ -630,6 +716,79 @@ class DesklandHost:
             target = (not self.settings.prefer_mpv) if st == "toggle" else (st == "on")
             self.set_prefer_mpv(target)
             return {"ok": True, "preferMpv": target, "message": f"preferMpv={target}"}
+        if cmd == "rust-gl":
+            st = str(req.get("state") or "toggle").lower()
+            target = (not self.settings.rust_opengl) if st == "toggle" else (st == "on")
+            self.set_rust_opengl(target)
+            return {
+                "ok": True,
+                "rustOpenGl": self.settings.rust_opengl,
+                "rustGlAvailable": NativeGlLibrary.is_available(),
+                "nativeSettings": bool(
+                    self.settings_window is not None
+                    and getattr(self.settings_window, "is_native_gtk", False)
+                ),
+                "message": f"rustOpenGl={self.settings.rust_opengl}",
+            }
+        if cmd == "vicons":
+            action = str(req.get("action") or "status").lower()
+            if action == "add":
+                count = max(1, min(20, int(req.get("count") or 1)))
+                self.add_virtual_icons(count)
+            elif action == "shuffle":
+                self.shuffle_virtual_icons()
+            elif action == "clear":
+                self.clear_virtual_icons()
+            elif action == "mode":
+                mode = str(req.get("mode") or "auto").lower()
+                self.set_virtual_bar_mode(mode)
+            elif action == "rename":
+                try:
+                    idx = int(req.get("index"))
+                except (TypeError, ValueError):
+                    return {"ok": False, "error": "invalid icon index"}
+                new_name = str(req.get("name") or "").strip()
+                icon_type = req.get("type")
+                if not new_name:
+                    return {"ok": False, "error": "new name cannot be empty"}
+                if not self.rename_virtual_icon(
+                    idx, new_name, icon_type=str(icon_type) if isinstance(icon_type, str) and icon_type else None
+                ):
+                    return {"ok": False, "error": f"icon index out of range: {idx}"}
+                cur = self.settings.virtual_icons[idx]
+                return {
+                    "ok": True,
+                    "index": idx,
+                    "name": cur.get("name", ""),
+                    "type": cur.get("type", "folder"),
+                    "count": len(self.settings.virtual_icons),
+                    "message": f"vicon[{idx}]={cur.get('name', '')} ({cur.get('type', 'folder')})",
+                }
+            elif action == "list":
+                items = [
+                    {
+                        "index": i,
+                        "name": str(it.get("name") or ""),
+                        "type": str(it.get("type") or "folder"),
+                        "x": int(it.get("x", 0)),
+                        "y": int(it.get("y", 0)),
+                    }
+                    for i, it in enumerate(self.settings.virtual_icons)
+                ]
+                lines = [f"{it['index']}: {it['name']} ({it['type']})" for it in items]
+                return {
+                    "ok": True,
+                    "count": len(items),
+                    "mode": self.settings.virtual_bar_mode,
+                    "icons": items,
+                    "message": "\n".join(lines) if lines else "(no virtual icons)",
+                }
+            return {
+                "ok": True,
+                "count": len(self.settings.virtual_icons),
+                "mode": self.settings.virtual_bar_mode,
+                "message": f"virtualIcons={len(self.settings.virtual_icons)} mode={self.settings.virtual_bar_mode}",
+            }
         if cmd == "lockscreen-sync":
             self.sync_lockscreen()
             return {"ok": True, "message": "lockscreen sync requested"}
@@ -698,6 +857,27 @@ class DesklandHost:
             self._on_lang(message)
         elif kind == "virtualBarMode":
             self._on_virtual_bar_mode(message)
+        elif kind == "virtualIconsAction":
+            act = str(message.get("action") or "").lower()
+            if act == "add":
+                self.add_virtual_icons(max(1, min(20, int(message.get("count") or 1))))
+            elif act == "shuffle":
+                self.shuffle_virtual_icons()
+            elif act == "clear":
+                self.clear_virtual_icons()
+            elif act == "rename":
+                try:
+                    idx = int(message.get("index"))
+                except (TypeError, ValueError):
+                    idx = -1
+                new_name = str(message.get("name") or "").strip()
+                icon_type = message.get("type")
+                if idx >= 0 and new_name:
+                    self.rename_virtual_icon(
+                        idx,
+                        new_name,
+                        icon_type=str(icon_type) if isinstance(icon_type, str) and icon_type else None,
+                    )
         elif kind == "lowMode":
             self.set_low_mode(bool(message.get("v")))
         elif kind == "disableAutoPause":
@@ -721,6 +901,8 @@ class DesklandHost:
             self.set_system_bridge(bool(message.get("v")))
         elif kind == "preferMpv":
             self.set_prefer_mpv(bool(message.get("v")))
+        elif kind == "rustOpenGl":
+            self.set_rust_opengl(bool(message.get("v")))
         elif kind == "syncLockscreen":
             self.sync_lockscreen()
         elif kind == "startLanPair":
@@ -819,6 +1001,12 @@ class DesklandHost:
                 "playlistIntervalMin": self.settings.playlist_interval_min,
                 "systemBridge": self.settings.system_bridge,
                 "preferMpv": self.settings.prefer_mpv,
+                "rustOpenGl": self.settings.rust_opengl,
+                "rustGlAvailable": NativeGlLibrary.is_available(),
+                "nativeSettings": bool(
+                    self.settings_window is not None
+                    and getattr(self.settings_window, "is_native_gtk", False)
+                ),
                 "canSaveSnapshot": True,
             }
         )
@@ -928,7 +1116,7 @@ class DesklandHost:
         self.settings.theme = theme_obj["id"]
         self.schedule_save()
         if self.wallpaper is not None:
-            self.wallpaper.load_page(theme_obj["page"])
+            self.wallpaper.load_page(theme_obj["page"], theme_id=theme_obj["id"])
         self._post_settings({"t": "themeImported", "theme": theme_obj, "select": True})
         self.log.write(f"Tema içe aktarıldı: {theme_obj['id']}")
 
@@ -943,7 +1131,7 @@ class DesklandHost:
         if self.settings.theme == theme_id:
             self.choose_theme()
             if self.wallpaper is not None:
-                self.wallpaper.load_page(self.current_page)
+                self.wallpaper.load_page(self.current_page, theme_id=self.settings.theme)
         self.schedule_save()
         self._post_settings({"t": "themeRemoved", "id": theme_id, "active": self.settings.theme})
         self.log.write(f"Özel tema kaldırıldı: {theme_id}")
@@ -987,7 +1175,7 @@ class DesklandHost:
         self.settings.theme = theme_id
         self.schedule_save()
         for wp in self._all_wallpapers():
-            wp.load_page(page)
+            wp.load_page(page, theme_id=theme_id)
         self.log.write(f"Tema değişti: {theme_id}")
 
     def _on_lang(self, message: dict[str, Any]) -> None:
@@ -1010,20 +1198,101 @@ class DesklandHost:
             }
         )
 
-    def _on_virtual_bar_mode(self, message: dict[str, Any]) -> None:
-        value = message.get("v")
+    def _virtual_canvas_metrics(self) -> tuple[int, int, tuple[int, int, int, int]]:
+        wp = self.wallpaper
+        if wp is not None:
+            return (
+                max(320, int(wp.geo.width)),
+                max(240, int(wp.geo.height)),
+                tuple(getattr(wp, "_safe_insets", (0, 0, 0, 0))),
+            )
+        return (1280, 720, (0, 0, 0, 0))
+
+    def _broadcast_virtual_state(self, *, skip_wallpaper: Any = None) -> None:
+        for wp in self._all_wallpapers():
+            if wp is skip_wallpaper:
+                continue
+            wp.send_virtual_state()
+        self._post_settings(
+            {
+                "t": "virtualState",
+                "icons": self.settings.virtual_icons,
+                "mode": self.settings.virtual_bar_mode,
+                "collapsed": self.settings.virtual_bar_collapsed,
+            }
+        )
+
+    def set_virtual_bar_mode(self, value: str) -> None:
         if value not in ("auto", "always", "off"):
             return
         self.settings.virtual_bar_mode = value
         self.schedule_save()
-        if self.wallpaper is not None:
-            self.wallpaper.send_virtual_state()
+        self._broadcast_virtual_state()
 
-    def on_virtual_icons_saved(self, raw: Any) -> None:
+    def add_virtual_icons(self, count: int = 1) -> None:
+        if self.settings.virtual_bar_mode == "off":
+            self.settings.virtual_bar_mode = "auto"
+        lw, lh, insets = self._virtual_canvas_metrics()
+        self.settings.virtual_icons = add_virtual_icons_batch(
+            self.settings.virtual_icons, count, lw, lh, insets
+        )
+        self.schedule_save()
+        self._broadcast_virtual_state()
+        self.log.write(f"Sanal ikon eklendi (toplam={len(self.settings.virtual_icons)})")
+
+    def shuffle_virtual_icons(self) -> None:
+        if not self.settings.virtual_icons:
+            return
+        lw, lh, insets = self._virtual_canvas_metrics()
+        self.settings.virtual_icons = shuffle_virtual_icons(
+            self.settings.virtual_icons, lw, lh, insets
+        )
+        self.schedule_save()
+        self._broadcast_virtual_state()
+        self.log.write(f"Sanal ikonlar karıştırıldı ({len(self.settings.virtual_icons)} adet)")
+
+    def clear_virtual_icons(self) -> None:
+        self.settings.virtual_icons = clear_virtual_icons()
+        self.schedule_save()
+        self._broadcast_virtual_state()
+        self.log.write("Sanal ikonlar temizlendi")
+
+    def rename_virtual_icon(
+        self, index: int, new_name: str, *, icon_type: str | None = None
+    ) -> bool:
+        cleaned = str(new_name or "").strip()[:48]
+        if not cleaned or not (0 <= int(index) < len(self.settings.virtual_icons)):
+            return False
+        self.settings.virtual_icons = rename_virtual_icon_item(
+            self.settings.virtual_icons, int(index), cleaned, icon_type=icon_type
+        )
+        self.schedule_save()
+        self._broadcast_virtual_state()
+        self.log.write(f"Sanal ikon yeniden adlandırıldı: [{index}] -> {cleaned}")
+        return True
+
+    def update_virtual_icons(self, raw: Any) -> None:
         from .config import sanitize_virtual_icons
 
         self.settings.virtual_icons = sanitize_virtual_icons(raw)
         self.schedule_save()
+        self._broadcast_virtual_state()
+        self.log.write(f"Sanal ikonlar güncellendi ({len(self.settings.virtual_icons)} adet)")
+
+    def _on_virtual_bar_mode(self, message: dict[str, Any]) -> None:
+        value = message.get("v")
+        if isinstance(value, str):
+            self.set_virtual_bar_mode(value)
+
+    def on_virtual_icons_saved(
+        self, raw: Any, *, persist: bool = True, source_wallpaper: Any = None
+    ) -> None:
+        from .config import sanitize_virtual_icons
+
+        self.settings.virtual_icons = sanitize_virtual_icons(raw)
+        if persist:
+            self.schedule_save()
+        self._broadcast_virtual_state(skip_wallpaper=source_wallpaper)
 
     def on_virtual_bar_collapsed(self, value: Any) -> None:
         if isinstance(value, bool) or value is None:

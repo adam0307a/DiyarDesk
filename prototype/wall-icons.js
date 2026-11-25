@@ -37,7 +37,7 @@
 
   let realHost = null;
   const pageListeners = [];
-  let hostIcons = { vis: false, r: [] };
+  let hostIcons = { vis: false, r: [], n: [] };
   let addedIcons = [];
   let barMode = 'auto';        // 'auto' | 'always' | 'off'
   let userCollapsed = null;    // null (auto) | true | false
@@ -121,6 +121,9 @@
   function dispatchMergedIcons() {
     const k = window.devicePixelRatio || 1;
     const base = hostIcons.vis && Array.isArray(hostIcons.r) ? hostIcons.r : [];
+    const baseNames = base.map((_, i) =>
+      Array.isArray(hostIcons.n) && hostIcons.n[i] ? String(hostIcons.n[i]) : ''
+    );
     const virt = effectiveEnabled()
       ? addedIcons.map(ic => [
           Math.round(ic.x * k),
@@ -129,8 +132,12 @@
           Math.round((ic.y + ic.h) * k),
         ])
       : [];
+    const virtNames = effectiveEnabled() ? addedIcons.map(ic => String(ic.name || '')) : [];
     const merged = base.concat(virt);
-    const payload = JSON.stringify({ t: 'icons', vis: merged.length > 0, r: merged });
+    const mergedNames = baseNames.concat(virtNames);
+    const obj = { t: 'icons', vis: merged.length > 0, r: merged };
+    if (mergedNames.some(Boolean)) obj.n = mergedNames;
+    const payload = JSON.stringify(obj);
     const ev = { data: payload, source: window, origin: location.origin };
     pageListeners.slice().forEach(fn => {
       try { fn(ev); } catch (err) { console.error('wall-icons listener:', err); }
@@ -206,6 +213,55 @@
     };
   }
 
+  function inferIconType(name, fallback) {
+    const low = String(name || '').trim().toLowerCase();
+    if (low.endsWith('.pdf')) return 'pdf';
+    if (/\.(xlsx|xls|csv|ods)$/.test(low)) return 'xlsx';
+    if (/\.(png|jpe?g|webp|gif|svg|bmp)$/.test(low)) return 'png';
+    if (/\.(zip|tar|gz|xz|7z|rar|zst)$/.test(low)) return 'zip';
+    if (/\.(txt|md|docx?|rtf|odt|log)$/.test(low)) return 'txt';
+    return ICONS_SVG[fallback] ? fallback : 'folder';
+  }
+
+  function startInlineRename(el, item) {
+    const labelEl = el.querySelector('.dk-label');
+    if (!labelEl || el.querySelector('.dk-rename-input')) return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'dk-rename-input';
+    input.maxLength = 48;
+    input.value = item.name;
+    labelEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    const finish = commit => {
+      if (done) return;
+      done = true;
+      if (commit) {
+        const next = input.value.trim().slice(0, 48);
+        if (next) {
+          item.name = next;
+          if (next.includes('.')) item.type = inferIconType(next, item.type);
+        }
+      }
+      renderIconsDom();
+      syncBarUi();
+      dispatchMergedIcons();
+      if (commit) persistIconsNow();
+    };
+
+    input.addEventListener('pointerdown', ev => ev.stopPropagation());
+    input.addEventListener('dblclick', ev => ev.stopPropagation());
+    input.addEventListener('keydown', ev => {
+      ev.stopPropagation();
+      if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
   function renderIconsDom() {
     const layer = layerEl();
     if (!layer) return;
@@ -215,12 +271,13 @@
       item.x = p.x; item.y = p.y;
       const el = document.createElement('div');
       el.className = 'dk-wall-icon';
+      el.title = 'Sağ tık: Yeniden adlandır · Çift tık: Kaldır';
       el.style.left = item.x + 'px';
       el.style.top = item.y + 'px';
       el.innerHTML = `<div class="dk-glyph"><svg viewBox="0 0 48 48">${ICONS_SVG[item.type] || ICONS_SVG.folder}</svg></div><div class="dk-label">${esc(item.name)}</div>`;
       let dragging = false, ox = 0, oy = 0, moved = false;
       el.addEventListener('pointerdown', e => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || e.target.closest('.dk-rename-input')) return;
         e.stopPropagation();
         dragging = true;
         moved = false;
@@ -250,7 +307,13 @@
       };
       el.addEventListener('pointerup', finishDrag);
       el.addEventListener('pointercancel', finishDrag);
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        startInlineRename(el, item);
+      });
       el.addEventListener('dblclick', e => {
+        if (e.target.closest('.dk-rename-input')) return;
         e.stopPropagation();
         addedIcons = addedIcons.filter(x => x !== item);
         renderIconsDom();
@@ -279,7 +342,11 @@
       return;
     }
     if (msg.t === 'icons') {
-      hostIcons = { vis: !!msg.vis, r: Array.isArray(msg.r) ? msg.r : [] };
+      hostIcons = {
+        vis: !!msg.vis,
+        r: Array.isArray(msg.r) ? msg.r : [],
+        n: Array.isArray(msg.n) ? msg.n : [],
+      };
       if (domReady) syncBarUi();
       dispatchMergedIcons();
       return;
@@ -363,6 +430,7 @@
       .dk-wall-icon .dk-glyph{width:46px;height:46px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.55))}
       .dk-wall-icon .dk-glyph svg{width:100%;height:100%;display:block}
       .dk-wall-icon .dk-label{max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+      .dk-wall-icon .dk-rename-input{width:74px;padding:1px 4px;border-radius:4px;border:1px solid rgba(130,210,255,.78);background:rgba(12,22,32,.94);color:#fff;font:11px/1.25 "Segoe UI","Noto Sans",system-ui,sans-serif;text-align:center;outline:none;box-sizing:border-box}
       #dk-ctrl-bar{position:fixed;right:14px;bottom:64px;z-index:2147483000;display:flex;gap:8px;align-items:center;background:rgba(14,26,34,.84);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(180,225,255,.22);padding:7px 11px;border-radius:10px;color:#eaf4fb;font:12px/1.2 "Segoe UI","Noto Sans",system-ui,sans-serif;pointer-events:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)}
       #dk-ctrl-bar.collapsed{gap:6px;padding:6px 10px}
       #dk-ctrl-bar.collapsed .dk-ctrl-item{display:none}

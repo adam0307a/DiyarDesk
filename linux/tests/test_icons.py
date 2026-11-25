@@ -2,9 +2,14 @@ from pathlib import Path
 
 from deskland_linux.icons import (
     GioMetadataAdapter,
+    GnomeIconAdapter,
+    IconlessWaylandAdapter,
     PlasmaAdapter,
     XfceAdapter,
     grid_rect,
+    has_gnome_icon_extension,
+    make_adapter,
+    parse_gsettings_extension_list,
     parse_position,
     xfce_cell_rect,
 )
@@ -124,3 +129,58 @@ def test_xfce_adapter_reads_yaml_and_custom_icon_size(tmp_path, monkeypatch):
     expected = xfce_cell_rect(14, 7, 1, 1920, 1080, icon_size=64)
     assert (rects_big[0].x, rects_big[0].y) == (expected.x, expected.y)
     assert rects_big[0].w == expected.w > 103
+
+
+def test_gnome_adapter_hides_phantom_icons_without_ding(tmp_path, monkeypatch):
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    (desktop / "kde-file.txt").write_text("hi", encoding="utf-8")
+
+    # Vanilla GNOME with only DiyarDesk extension -> no desktop icons
+    exts = parse_gsettings_extension_list("['deskland@deskland.app']")
+    assert exts == ["deskland@deskland.app"]
+    assert not has_gnome_icon_extension(exts)
+    assert parse_gsettings_extension_list("@as []") == []
+
+    # With DING / gtk4-ding enabled -> desktop icons active
+    assert has_gnome_icon_extension(["deskland@deskland.app", "ding@rastersoft.com"])
+    assert has_gnome_icon_extension(["gtk4-ding@smedius.gitlab.com"])
+    assert not has_gnome_icon_extension(
+        ["ding@rastersoft.com"], user_extensions_disabled=True
+    )
+
+    # GnomeIconAdapter returns (False, []) when DING is absent even if ~/Desktop has files
+    ad_off = GnomeIconAdapter(
+        desktop=desktop, scale=1, screen_w=1920, screen_h=1080, detector=lambda: False
+    )
+    assert ad_off.read() == (False, [])
+
+    # GnomeIconAdapter delegates to GioMetadataAdapter when DING is enabled
+    ad_on = GnomeIconAdapter(
+        desktop=desktop, scale=1, screen_w=1920, screen_h=1080, detector=lambda: True
+    )
+    ad_on._read_metadata = lambda: {}
+    vis, rects = ad_on.read()
+    assert vis is True and len(rects) == 1
+
+    # make_adapter picks GnomeIconAdapter on GNOME and IconlessWaylandAdapter on Hyprland
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "GNOME")
+    monkeypatch.setenv("DESKTOP_SESSION", "gnome")
+    monkeypatch.delenv("DESKLAND_ICON_ADAPTER", raising=False)
+    assert isinstance(make_adapter(desktop, 1, 1920, 1080), GnomeIconAdapter)
+
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "Hyprland")
+    monkeypatch.setenv("DESKTOP_SESSION", "hyprland")
+    wm_ad = make_adapter(desktop, 1, 1920, 1080)
+    assert isinstance(wm_ad, IconlessWaylandAdapter)
+    wm_ad._daemon_check = lambda: False
+    assert wm_ad.read() == (False, [])
+
+    # Even when XDG_CURRENT_DESKTOP is unset (TTY launch), NIRI_SOCKET / HYPRLAND_INSTANCE_SIGNATURE is detected
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "")
+    monkeypatch.setenv("DESKTOP_SESSION", "")
+    monkeypatch.setenv("NIRI_SOCKET", "/run/user/1000/niri.sock")
+    niri_ad = make_adapter(desktop, 1, 1920, 1080)
+    assert isinstance(niri_ad, IconlessWaylandAdapter)
+    niri_ad._daemon_check = lambda: False
+    assert niri_ad.read() == (False, [])

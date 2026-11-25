@@ -55,32 +55,117 @@ pub fn pocket_hash(a: i32, b: i32, k: i32, seed: i32) -> f64 {
     (((h ^ ((h as u32 >> 16) as i32)) as u32) as f64) / 4294967296.0
 }
 
+const TR_STRONG: &[&str] = &[
+    "tr", "tur", "turk", "turkiye", "turkce", "turkish", "ankara", "istanbul", "izmir", "diyar",
+    "diyarbakir", "diyardesk", "bursa", "antalya", "adana", "konya", "gaziantep", "trabzon",
+    "samsun", "eskisehir", "kayseri", "mersin", "canakkale", "sakarya", "osmanli", "anadolu",
+    "cumhuriyet", "vatan", "ataturk", "ordu", "tugay", "tumen", "cephe", "sancak", "bayrak",
+    "hilal", "bozkurt", "mehmetcik", "karargah", "komutan", "komutanlik", "zafer",
+];
+
+const DE_STRONG: &[&str] = &[
+    "de", "deu", "ger", "deutsch", "deutschland", "german", "germany", "almanca", "almanya",
+    "alman", "berlin", "munchen", "muenchen", "munich", "hamburg", "koln", "koeln", "cologne",
+    "frankfurt", "stuttgart", "dresden", "leipzig", "nurnberg", "nuernberg", "hannover",
+    "dusseldorf", "duesseldorf", "bremen", "wien", "vienna", "zurich", "zuerich", "bayern",
+    "bavaria", "preussen", "prussia", "rhein", "ruhr", "panzer", "heer", "wehrmacht", "luftwaffe",
+    "kriegsmarine", "kompanie", "kaserne", "reich", "kaiser", "armee", "bunker", "festung",
+    "divisionen", "feldzug", "hauptquartier", "ostfront", "westfront", "blitzkrieg", "truppen",
+];
+
+const EN_STRONG: &[&str] = &[
+    "en", "eng", "uk", "gb", "gbr", "us", "usa", "english", "britain", "british", "england",
+    "ingilizce", "ingiltere", "ingiliz", "london", "manchester", "liverpool", "birmingham",
+    "oxford", "cambridge", "york", "edinburgh", "scotland", "wales", "commonwealth", "royal",
+    "crown", "empire", "navy", "raf", "brigade", "regiment", "battalion", "allies", "allied",
+    "headquarters", "hq", "churchill", "montgomery", "spitfire", "lancaster", "dunkirk",
+    "normandy",
+];
+
 const TR_WORDS: &[&str] = &[
-    "belge", "belgeler", "belgelerim", "indirilen", "indirilenler", "masaustu", "masaüstü",
-    "resim", "resimler", "resimlerim", "muzik", "müzik", "video", "videolar", "oyun", "oyunlar",
-    "proje", "projeler", "yedek", "yedekler", "yeni", "klasor", "klasör", "not", "notlar",
-    "odev", "ödev", "arsiv", "arşiv", "dosya", "dosyalar", "rapor", "raporlar", "fatura",
-    "fotograf", "fotoğraf", "calisma", "çalışma", "calismalar", "goruntu", "görüntü", "ekran",
-    "kurulum", "tasarim", "tasarım", "gunluk", "günlük", "hesap", "liste", "deneme", "cop",
-    "çöp", "sozlesme", "sözleşme", "ozgecmis", "özgeçmiş", "gider", "sunum", "bilgisayar",
-    "araclar", "araçlar", "onemli", "önemli", "kitap", "ders", "notlarim", "planlama",
+    "belge", "belgeler", "belgelerim", "belgesi", "indirilen", "indirilenler", "masaustu",
+    "resim", "resimler", "resimlerim", "muzik", "muzikler", "videolar", "oyun", "oyunlar",
+    "proje", "projeler", "projesi", "yedek", "yedekler", "yedegi", "yeni", "klasor", "klasorler",
+    "klasoru", "not", "notlar", "notlarim", "notu", "odev", "odevler", "arsiv", "arsivler",
+    "dosya", "dosyalar", "dosyasi", "rapor", "raporlar", "raporu", "fatura", "faturalar",
+    "fotograf", "fotograflar", "calisma", "calismalar", "calismalarim", "goruntu", "goruntuler",
+    "goruntusu", "ekran", "kurulum", "tasarim", "tasarimlar", "gunluk", "hesap", "hesaplar",
+    "liste", "listeler", "listesi", "deneme", "denemeler", "cop", "kutusu", "kutu", "sozlesme",
+    "ozgecmis", "gider", "giderler", "gelir", "sunum", "sunumlar", "bilgisayar", "araclar",
+    "arac", "onemli", "kitap", "kitaplar", "kitaplik", "ders", "dersler", "planlama", "yazilim",
+    "hatirlatma", "tablo", "tablolar", "sinav", "sinavlar", "butce", "kisisel", "ayar", "ayarlar",
+    "sifre", "sifreler", "duvar", "kagidi", "tema", "temalar", "simge", "simgeler", "ikon",
+    "ikonlar", "merhaba", "tatil", "egitim", "muhasebe", "vergi", "haber", "haberler", "iletisim",
+    "takvim", "gorev", "gorevler", "aile", "okul", "sinif", "ogrenci", "ogretmen", "sarki",
+    "sarkilar", "filmler", "sohbet", "kullanici", "sistem", "harita", "haritalar", "pusula",
+    "kale", "gemi", "ucak", "deniz", "dag", "orman", "bulut", "yagmur", "gunes", "yildiz",
+    "sehir", "kopru", "bahce", "kedi", "kopek", "kahve", "defter", "kalem", "masa", "asker",
+    "savas", "baris", "topcu", "piyade", "zirhli", "subay", "albay", "baslangic", "bitis",
+    "sonuc", "ozet", "kayit", "kayitlar", "veri", "veriler", "dokuman", "dokumanlar", "indir",
+    "yukle", "guncelleme", "acil", "gizli", "ozel", "genel", "ortak", "eski", "son", "ilk",
+    "hizli", "kolay", "guvenlik", "ag", "uygulama", "uygulamalar", "programlar", "icerik",
+    "makale", "yazi", "yazilar", "ceviri", "sozluk", "rehber", "kilavuz", "destek", "yardim",
+    "ev", "is", "isler", "evrak", "evraklar", "dilekce", "tutanak", "baski", "tarama",
 ];
 
 const DE_WORDS: &[&str] = &[
-    "ordner", "dokument", "dokumente", "bilder", "musik", "arbeitsplatz", "papierkorb",
-    "herunterladen", "entwurf", "entwurfe", "entwürfe", "projekt", "projekte", "bericht",
-    "berichte", "ubersicht", "übersicht", "buro", "büro", "rechnung", "rechnungen", "vertrag",
-    "sicherung", "notizen", "zusammenfassung", "schule", "arbeit", "datei", "dateien",
-    "karte", "karten", "spiel", "spiele", "foto", "fotos", "neu", "wichtig", "festung",
-    "plane", "pläne", "ablage", "studium", "urlaub", "schrift", "daten", "werkzeug",
+    "ordner", "dokument", "dokumente", "bilder", "bild", "musik", "arbeitsplatz", "papierkorb",
+    "herunterladen", "entwurf", "entwurfe", "entwuerfe", "projekt", "projekte", "bericht",
+    "berichte", "ubersicht", "uebersicht", "buro", "buero", "rechnung", "rechnungen", "vertrag",
+    "vertrage", "vertraege", "sicherung", "notizen", "notiz", "zusammenfassung", "schule",
+    "arbeit", "arbeiten", "datei", "dateien", "karte", "karten", "spiel", "spiele", "foto",
+    "fotos", "neu", "neue", "neuer", "neues", "wichtig", "festung", "plane", "plaene", "ablage",
+    "studium", "urlaub", "schrift", "schriften", "daten", "werkzeug", "werkzeuge", "strasse",
+    "strassen", "haus", "hauser", "haeuser", "stadt", "buch", "bucher", "buecher", "brief",
+    "briefe", "aufgabe", "aufgaben", "prufung", "pruefung", "ubung", "uebung", "bewerbung",
+    "lebenslauf", "steuer", "steuern", "einstellungen", "programm", "programme", "hilfe",
+    "tabelle", "tabellen", "vorlage", "vorlagen", "termin", "termine", "nachricht", "nachrichten",
+    "passwort", "passworter", "sicherheit", "netzwerk", "hallo", "mein", "meine", "meiner",
+    "und", "der", "die", "das", "fur", "fuer", "uber", "ueber", "mit", "von", "aus", "nach",
+    "bei", "zum", "zur", "verzeichnis", "bildschirm", "bildschirmfoto", "hintergrund", "systeme",
+    "anwendung", "anwendungen", "benutzer", "privat", "geheim", "familie", "freunde", "reise",
+    "reisen", "kalender", "einkauf", "haushalt", "finanzen", "konto", "kasse", "listen",
+    "protokoll", "handbuch", "anleitung", "quelle", "quellen", "beispiel", "beispiele", "losung",
+    "loesung", "ergebnis", "ergebnisse", "geschichte", "krieg", "frieden", "soldat", "soldaten",
+    "angriff", "verteidigung", "befehl", "befehle", "lager", "stutzpunkt", "stuetzpunkt",
+    "grenze", "flotte", "geschwader", "infanterie", "artillerie", "aufklarung", "aufklaerung",
+    "nachschub", "versorgung", "einsatz", "stellung", "frontlinie", "wald", "berg", "fluss",
+    "meer", "himmel", "wetter", "sonne", "mond", "stern", "sommer", "herbst", "fruhling",
+    "fruehling", "klasse", "lehrer", "schuler", "schueler", "universitat", "universitaet",
+    "vorlesung", "klausur", "hausarbeit", "forschung", "entwicklung", "zeitung", "magazin",
+    "filme", "spiegel", "zeit", "tag", "jahr", "monat", "woche", "heute", "morgen", "gestern",
 ];
 
 const EN_WORDS: &[&str] = &[
-    "documents", "downloads", "desktop", "pictures", "music", "videos", "projects", "project",
-    "screenshots", "screenshot", "backup", "backups", "archive", "archives", "games", "game",
-    "notes", "report", "reports", "invoice", "draft", "resume", "work", "study", "tools",
-    "folder", "new", "setup", "config", "test", "code", "server", "steam", "home", "trash",
-    "bin", "readme", "apps", "media", "assets", "files", "movies", "images", "plot", "misc",
+    "documents", "document", "downloads", "download", "desktop", "pictures", "picture", "photos",
+    "photo", "music", "videos", "video", "projects", "project", "screenshots", "screenshot",
+    "backup", "backups", "archive", "archives", "games", "game", "notes", "note", "report",
+    "reports", "invoice", "invoices", "draft", "drafts", "resume", "work", "study", "tools",
+    "tool", "folder", "folders", "new", "setup", "config", "configs", "test", "tests", "code",
+    "server", "steam", "home", "trash", "bin", "readme", "apps", "app", "media", "assets",
+    "files", "file", "movies", "movie", "images", "image", "plot", "misc", "application",
+    "applications", "final", "settings", "options", "manual", "guide", "help", "support",
+    "course", "courses", "homework", "exam", "exams", "book", "books", "budget", "tax", "taxes",
+    "family", "travel", "wallpaper", "wallpapers", "theme", "themes", "icons", "icon", "scripts",
+    "script", "build", "builds", "release", "releases", "install", "installer", "compiler",
+    "controller", "handler", "calendar", "tasks", "task", "todo", "ideas", "idea", "design",
+    "designs", "hello", "welcome", "my", "the", "and", "for", "with", "from", "private",
+    "personal", "public", "shared", "secret", "important", "urgent", "old", "latest", "quick",
+    "fast", "security", "password", "passwords", "network", "system", "user", "users", "account",
+    "accounts", "finance", "receipt", "receipts", "contract", "contracts", "letter", "letters",
+    "summary", "overview", "presentation", "slides", "spreadsheet", "sheet", "table", "template",
+    "templates", "schedule", "meeting", "meetings", "message", "messages", "mail", "email",
+    "inbox", "library", "reading", "research", "paper", "papers", "thesis", "lecture", "lectures",
+    "school", "college", "university", "class", "student", "teacher", "office", "company",
+    "business", "client", "clients", "sales", "marketing", "product", "products", "source",
+    "sources", "data", "database", "logs", "log", "cache", "temp", "tmp", "export", "exports",
+    "import", "imports", "update", "updates", "patch", "patches", "mod", "mods", "map", "maps",
+    "battle", "frontline", "siege", "fortress", "army", "infantry", "armor", "armour",
+    "artillery", "division", "divisions", "corps", "fleet", "squadron", "command", "orders",
+    "supply", "recon", "defense", "defence", "attack", "victory", "peace", "war", "soldier",
+    "soldiers", "general", "officer", "camp", "base", "border", "coast", "island", "forest",
+    "mountain", "river", "ocean", "weather", "summer", "winter", "spring", "autumn", "solar",
+    "modular", "trailer", "popular", "regular", "dollar",
 ];
 
 fn strip_ext(raw: &str) -> &str {
@@ -91,6 +176,65 @@ fn strip_ext(raw: &str) -> &str {
         }
     }
     raw
+}
+
+fn fold_to_ascii_lower(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            'İ' | 'I' | 'ı' => out.push('i'),
+            'ç' | 'Ç' => out.push('c'),
+            'ğ' | 'Ğ' => out.push('g'),
+            'ş' | 'Ş' => out.push('s'),
+            'ö' | 'Ö' => out.push('o'),
+            'ü' | 'Ü' => out.push('u'),
+            'ä' | 'Ä' => out.push('a'),
+            'ß' | 'ẞ' => out.push_str("ss"),
+            _ => {
+                for lc in c.to_lowercase() {
+                    out.push(lc);
+                }
+            }
+        }
+    }
+    out
+}
+
+fn split_camel_and_sep_tokens(stem: &str) -> Vec<String> {
+    let is_sep = |c: char| {
+        c.is_whitespace()
+            || matches!(
+                c,
+                '_' | '-' | '.' | '(' | ')' | '[' | ']' | '/' | '\\' | ':' | '&' | '+' | ',' | '\''
+            )
+            || c.is_ascii_digit()
+    };
+    let chars: Vec<char> = stem.chars().collect();
+    let mut tokens = Vec::new();
+    let mut cur = String::new();
+    for i in 0..chars.len() {
+        let c = chars[i];
+        if is_sep(c) {
+            if !cur.is_empty() {
+                tokens.push(fold_to_ascii_lower(&cur));
+                cur.clear();
+            }
+            continue;
+        }
+        if !cur.is_empty() && c.is_uppercase() {
+            let prev = chars[i - 1];
+            let next_is_lower = chars.get(i + 1).is_some_and(|nc| nc.is_lowercase());
+            if prev.is_lowercase() || (prev.is_uppercase() && next_is_lower) {
+                tokens.push(fold_to_ascii_lower(&cur));
+                cur.clear();
+            }
+        }
+        cur.push(c);
+    }
+    if !cur.is_empty() {
+        tokens.push(fold_to_ascii_lower(&cur));
+    }
+    tokens
 }
 
 pub fn detect_folder_nation(raw_name: &str, salt: i32, faction_mode: i32) -> usize {
@@ -108,81 +252,181 @@ pub fn detect_folder_nation(raw_name: &str, salt: i32, faction_mode: i32) -> usi
         return 2;
     }
     let stem = strip_ext(raw);
-    let lower: String = stem
-        .chars()
-        .flat_map(|c| {
-            if c == 'İ' || c == 'I' {
-                vec!['i']
-            } else {
-                c.to_lowercase().collect::<Vec<_>>()
-            }
-        })
-        .collect();
+    let folded_whole = fold_to_ascii_lower(stem);
+    let tokens = split_camel_and_sep_tokens(stem);
 
     let mut s_tr = 0.0f64;
     let mut s_de = 0.0f64;
     let mut s_en = 0.0f64;
 
-    if stem.chars().any(|c| matches!(c, 'ğ' | 'Ğ' | 'ş' | 'Ş' | 'ı' | 'İ')) {
-        s_tr += 8.0;
+    // 1. Character / diacritic cues on original stem
+    let tr_unique_cnt = stem
+        .chars()
+        .filter(|c| matches!(c, 'ğ' | 'Ğ' | 'ş' | 'Ş' | 'ı' | 'İ'))
+        .count();
+    if tr_unique_cnt > 0 {
+        s_tr += 8.5 + ((tr_unique_cnt - 1).min(2) as f64) * 1.5;
     }
-    if stem.chars().any(|c| matches!(c, 'ß' | 'ä' | 'Ä')) {
-        s_de += 8.0;
+    if stem.chars().any(|c| matches!(c, 'ç' | 'Ç')) {
+        // German & English do not use 'ç'
+        s_tr += 6.0;
     }
-    if stem.chars().any(|c| matches!(c, 'ç' | 'Ç' | 'ö' | 'Ö' | 'ü' | 'Ü')) {
-        s_tr += 2.5;
-        s_de += 2.2;
+    let de_unique_cnt = stem
+        .chars()
+        .filter(|c| matches!(c, 'ß' | 'ẞ' | 'ä' | 'Ä'))
+        .count();
+    if de_unique_cnt > 0 {
+        s_de += 8.5 + ((de_unique_cnt - 1).min(2) as f64) * 1.5;
+    }
+    if stem.chars().any(|c| matches!(c, 'ö' | 'Ö' | 'ü' | 'Ü')) {
+        s_tr += 2.4;
+        s_de += 2.4;
+    }
+    if stem.chars().any(|c| matches!(c, 'w' | 'W' | 'q' | 'Q' | 'x' | 'X')) {
+        s_de += 0.6;
+        s_en += 0.6;
     }
 
-    let is_sep = |c: char| {
-        c.is_whitespace() || matches!(c, '_' | '-' | '.' | '(' | ')' | '[' | ']') || c.is_ascii_digit()
-    };
-    for tok in lower.split(is_sep).filter(|s| !s.is_empty()) {
-        if TR_WORDS.contains(&tok) {
+    // 2. Token-level strong cues, dictionaries, morphology & digraphs
+    for tok in &tokens {
+        let t = tok.as_str();
+        let strong_tr = TR_STRONG.contains(&t);
+        let strong_de = DE_STRONG.contains(&t);
+        let strong_en = EN_STRONG.contains(&t);
+        if strong_tr {
+            s_tr += 11.0;
+        }
+        if strong_de {
+            s_de += 11.0;
+        }
+        if strong_en {
+            s_en += 11.0;
+        }
+
+        let word_tr = TR_WORDS.contains(&t);
+        let word_de = DE_WORDS.contains(&t);
+        let word_en = EN_WORDS.contains(&t);
+        if word_tr {
             s_tr += 6.0;
         }
-        if DE_WORDS.contains(&tok) {
+        if word_de {
             s_de += 6.0;
         }
-        if EN_WORDS.contains(&tok) {
+        if word_en {
             s_en += 6.0;
         }
-        if ["lar", "ler", "lari", "leri", "lik", "luk", "cim", "sim", "yor", "mis", "mus"]
-            .iter()
-            .any(|suf| tok.ends_with(suf))
-        {
-            s_tr += 2.5;
+
+        // Prefix stem checks for Turkish inflected country/language names like "Almanlar", "İngilizler", "Türkler"
+        if !strong_de && (t.starts_with("almany") || t.starts_with("alman")) {
+            s_de += 11.0;
         }
-        if ["ung", "heit", "keit", "schaft", "chen", "lein", "isch", "tsch"]
-            .iter()
-            .any(|suf| tok.ends_with(suf))
-            || tok.contains("sch")
-        {
-            s_de += 2.8;
+        if !strong_en && (t.starts_with("ingiliz") || t.starts_with("ingilter")) {
+            s_en += 11.0;
         }
-        if ["tion", "ment", "ness", "ing", "shot", "app"]
+        if !strong_tr && (t.starts_with("turkiy") || t.starts_with("turkce") || t.starts_with("turkler")) {
+            s_tr += 11.0;
+        }
+
+        let len = t.chars().count();
+        let any_tr = strong_tr || word_tr;
+        let any_de = strong_de || word_de;
+        let any_en = strong_en || word_en;
+
+        if len >= 4 && !any_de && !any_en {
+            if [
+                "lari", "leri", "larim", "lerim", "likler", "liklar", "lukler", "iyor", "ecek",
+                "acak", "mesi", "masi", "deki", "daki", "sizlik", "cilik", "culuk",
+            ]
             .iter()
-            .any(|suf| tok.ends_with(suf))
-        {
-            s_en += 2.4;
+            .any(|suf| t.ends_with(suf))
+            {
+                s_tr += 3.0;
+            } else {
+                let is_en_de_lar_ler = [
+                    "ular", "ilar", "olar", "ellar", "ller", "dler", "iler", "tler", "hler",
+                    "bler", "pler",
+                ]
+                .iter()
+                .any(|ex| t.ends_with(ex));
+                let tr_std_match = (!is_en_de_lar_ler && (t.ends_with("lar") || t.ends_with("ler")))
+                    || ["lik", "luk", "cim", "sim", "yor", "mis", "mus"]
+                        .iter()
+                        .any(|suf| t.ends_with(suf))
+                    || (len >= 5
+                        && ["mek", "mak", "siz", "suz", "cik", "cuk", "dir", "dur", "tir", "tur"]
+                            .iter()
+                            .any(|suf| t.ends_with(suf)));
+                if tr_std_match {
+                    s_tr += 2.4;
+                }
+            }
+        }
+
+        if len >= 4 && !any_tr && !any_en {
+            if [
+                "ung", "ungen", "heit", "keit", "schaft", "chen", "lein", "isch", "lich", "tsch",
+                "platz", "stadt", "strasse", "zeug", "karte", "lager", "ieren", "iert",
+            ]
+            .iter()
+            .any(|suf| t.ends_with(suf))
+                || (len >= 5
+                    && ["werk", "haus", "buch", "berg", "burg", "dorf", "amt"]
+                        .iter()
+                        .any(|suf| t.ends_with(suf)))
+            {
+                s_de += 3.2;
+            }
+            if t.contains("sch") {
+                s_de += 3.0;
+            } else if ["tz", "pf", "chs"].iter().any(|dg| t.contains(dg)) {
+                s_de += 2.0;
+            }
+            if len >= 5 && ["ae", "oe", "ue"].iter().any(|dg| t.contains(dg)) {
+                s_de += 1.5;
+            }
+        }
+
+        if len >= 4 && !any_tr && !any_de {
+            if [
+                "tion", "sion", "ment", "ness", "ing", "shot", "app", "able", "ible", "ful",
+                "less", "ware", "load", "sync", "ship", "ward", "ize", "ify", "ous", "ive",
+            ]
+            .iter()
+            .any(|suf| t.ends_with(suf))
+            {
+                s_en += 2.6;
+            }
+            if ["th", "wh", "sh", "gh", "ph", "qu", "oo", "ee", "igh", "ould"]
+                .iter()
+                .any(|dg| t.contains(dg))
+            {
+                s_en += 1.6;
+            }
         }
     }
 
-    for &w in TR_WORDS {
-        if w.chars().count() >= 4 && lower.contains(w) {
-            s_tr += 3.0;
+    // 3. Compound substring scan (for glued lowercase compounds like "ekrangoruntusu", "buroplan")
+    let mut sub_tr = 0.0f64;
+    let mut sub_de = 0.0f64;
+    let mut sub_en = 0.0f64;
+    for &w in TR_STRONG.iter().chain(TR_WORDS.iter()) {
+        if w.len() >= 4 && folded_whole.contains(w) {
+            sub_tr = (sub_tr + 3.0).min(9.0);
         }
     }
-    for &w in DE_WORDS {
-        if w.chars().count() >= 4 && lower.contains(w) {
-            s_de += 3.0;
+    for &w in DE_STRONG.iter().chain(DE_WORDS.iter()) {
+        if w.len() >= 4 && folded_whole.contains(w) {
+            sub_de = (sub_de + 3.0).min(9.0);
         }
     }
-    for &w in EN_WORDS {
-        if w.chars().count() >= 4 && lower.contains(w) {
-            s_en += 3.0;
+    for &w in EN_STRONG.iter().chain(EN_WORDS.iter()) {
+        if w.len() >= 4 && folded_whole.contains(w) {
+            sub_en = (sub_en + 3.0).min(9.0);
         }
     }
+    s_tr += sub_tr;
+    s_de += sub_de;
+    s_en += sub_en;
 
     if s_tr > s_de && s_tr > s_en && s_tr >= 2.0 {
         return 0;
@@ -192,6 +436,9 @@ pub fn detect_folder_nation(raw_name: &str, salt: i32, faction_mode: i32) -> usi
     }
     if s_en > 0.0 {
         return 2;
+    }
+    if s_tr >= 2.0 && s_tr == s_de {
+        return if salt.rem_euclid(2) == 0 { 0 } else { 1 };
     }
 
     if !stem.is_ascii() {
@@ -2072,6 +2319,84 @@ mod tests {
                 }
                 other => panic!("Unknown pocket test case: {other}"),
             }
+        }
+    }
+
+    #[test]
+    fn test_enhanced_folder_nation_detection() {
+        // Turkish (0): CamelCase, diacritic-free, cities, military, suffixes
+        for name in [
+            "YeniKlasor",
+            "AnkaraCephesi",
+            "Istanbul_Notlari.txt",
+            "Diyarbakir",
+            "yazilim_projesi",
+            "hatirlatma.txt",
+            "sinav_sonuclari.pdf",
+            "butce_tablosu.xlsx",
+            "kisisel_ayarlar",
+            "Çizim",
+            "Türkiye",
+            "Osmanlı_Ordusu",
+            "TR_Yedek",
+            "duvar_kagidi",
+            "ogrenci_listesi",
+            "kitaplarim",
+        ] {
+            assert_eq!(
+                detect_folder_nation(name, 7, 0),
+                0,
+                "Expected Turkish (0) for {name:?}"
+            );
+        }
+
+        // German (1): cities, military, ASCII ae/oe/ue, CamelCase, Turkish-written "Almanya"
+        for name in [
+            "Berlin_Karte.pdf",
+            "MeinOrdner",
+            "München_Reise",
+            "Muenchen_Plan",
+            "Panzer_Kompanie",
+            "Almanya",
+            "Alman_Ordusu",
+            "DE_Backup",
+            "Pruefung_2026.pdf",
+            "Bewerbung_Lebenslauf.docx",
+            "Einstellungen",
+            "Nachrichten",
+            "Wehrmacht_HQ",
+            "Kaserne_Nord",
+            "Strassenkarte.png",
+        ] {
+            assert_eq!(
+                detect_folder_nation(name, 7, 0),
+                1,
+                "Expected German (1) for {name:?}"
+            );
+        }
+
+        // British / English (2): cities, military, -ler/-lar false-positive guards, "İngiltere"
+        for name in [
+            "London_Briefing.pdf",
+            "MyProjects",
+            "Royal_Navy",
+            "İngiltere",
+            "Ingiliz_Filosu",
+            "UK_Reports",
+            "Installer_v2.exe",
+            "Calendar_2026.xlsx",
+            "Controller_Config",
+            "Compiler_Output",
+            "Wallpaper_Settings",
+            "Homework_Notes.txt",
+            "ScreenShot_01.png",
+            "Allied_Headquarters",
+        ] {
+            assert_eq!(
+                detect_folder_nation(name, 7, 0),
+                2,
+                "Expected English/British (2) for {name:?}"
+            );
         }
     }
 }

@@ -1,6 +1,7 @@
 use crate::ai_mascots::AiMascotsRenderer;
 use crate::aurora::AuroraRenderer;
 use crate::beach::BeachRenderer;
+use crate::cat_shore::CatShoreRenderer;
 use crate::claymorph::ClaymorphRenderer;
 use crate::neobrutalism::NeobrutalismRenderer;
 use crate::gl::*;
@@ -10,6 +11,7 @@ use crate::istanbul::IstanbulRenderer;
 use crate::meadow::MeadowRenderer;
 use crate::neumorph::NeumorphRenderer;
 use crate::papercut::PapercutRenderer;
+use crate::persephone::PersephoneRenderer;
 use crate::desert::DesertRenderer;
 use crate::voxelcraft::VoxelcraftRenderer;
 use crate::pocket::PocketRenderer;
@@ -115,6 +117,8 @@ pub struct Renderer {
     solar_system_renderer: Option<SolarSystemRenderer>,
     thinking_orbs_renderer: Option<ThinkingOrbsRenderer>,
     ai_mascots_renderer: Option<AiMascotsRenderer>,
+    cat_shore_renderer: Option<CatShoreRenderer>,
+    persephone_renderer: Option<PersephoneRenderer>,
     theme_progs: HashMap<String, GLuint>,
 }
 
@@ -179,6 +183,8 @@ impl Renderer {
             solar_system_renderer: None,
             thinking_orbs_renderer: None,
             ai_mascots_renderer: None,
+            cat_shore_renderer: None,
+            persephone_renderer: None,
             theme_progs: HashMap::new(),
         })
     }
@@ -264,6 +270,12 @@ impl Renderer {
         }
         if let Some(mut amr) = self.ai_mascots_renderer.take() {
             amr.destroy(gl);
+        }
+        if let Some(mut csr) = self.cat_shore_renderer.take() {
+            csr.destroy(gl);
+        }
+        if let Some(mut pr) = self.persephone_renderer.take() {
+            pr.destroy(gl);
         }
         self.scene_fbo.destroy(gl);
         self.blur_a.destroy(gl);
@@ -757,6 +769,28 @@ impl Renderer {
             }
             if let Some(amr) = self.ai_mascots_renderer.as_mut() {
                 amr.render(gl, st, &mut self.text);
+                return;
+            }
+        }
+        if st.is_cat_shore_theme() {
+            if self.cat_shore_renderer.is_none() {
+                if let Ok(csr) = CatShoreRenderer::new(gl) {
+                    self.cat_shore_renderer = Some(csr);
+                }
+            }
+            if let Some(csr) = self.cat_shore_renderer.as_mut() {
+                csr.render(gl, st, &mut self.text);
+                return;
+            }
+        }
+        if st.is_persephone_theme() {
+            if self.persephone_renderer.is_none() {
+                if let Ok(pr) = PersephoneRenderer::new(gl) {
+                    self.persephone_renderer = Some(pr);
+                }
+            }
+            if let Some(pr) = self.persephone_renderer.as_mut() {
+                pr.render(gl, st, &mut self.text);
                 return;
             }
         }

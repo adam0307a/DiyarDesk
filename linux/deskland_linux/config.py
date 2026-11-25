@@ -12,7 +12,7 @@ from typing import Any
 
 APP_NAME = "DiyarDesk"
 APP_ID = "app.deskland.Preview"
-VERSION = "0.5.3-linux.1"
+VERSION = "0.5.4-linux.1"
 
 THEME_DEFAULT = "papercut"
 LANG_DEFAULT = "auto"
@@ -192,6 +192,7 @@ class SettingsStore:
         self.playlist_themes: list[str] = []
         self.system_bridge: bool = False
         self.prefer_mpv: bool = False
+        self.rust_opengl: bool = False
         self._lock = threading.Lock()
 
     def load(self) -> None:
@@ -254,6 +255,9 @@ class SettingsStore:
             prefer_mpv = data.get("preferMpv")
             if isinstance(prefer_mpv, bool):
                 self.prefer_mpv = prefer_mpv
+            rust_opengl = data.get("rustOpenGl")
+            if isinstance(rust_opengl, bool):
+                self.rust_opengl = rust_opengl
         except (OSError, ValueError, TypeError):
             self.theme = THEME_DEFAULT
             self.lang = LANG_DEFAULT
@@ -272,6 +276,7 @@ class SettingsStore:
             self.playlist_themes = []
             self.system_bridge = False
             self.prefer_mpv = False
+            self.rust_opengl = False
 
     def save(self) -> None:
         with self._lock:
@@ -294,6 +299,7 @@ class SettingsStore:
                 "playlistThemes": self.playlist_themes,
                 "systemBridge": self.system_bridge,
                 "preferMpv": self.prefer_mpv,
+                "rustOpenGl": self.rust_opengl,
             }
             raw = json.dumps(payload, ensure_ascii=False, indent=1).encode("utf-8")
             try:

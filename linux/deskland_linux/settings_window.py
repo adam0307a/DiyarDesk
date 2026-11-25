@@ -116,6 +116,15 @@ class SettingsWindow:
 
     def destroy(self) -> None:
         try:
+            self.bridge.load_uri("about:blank")
+        except Exception:
+            pass
+        try:
+            if hasattr(self.bridge.webview, "terminate_web_process"):
+                self.bridge.webview.terminate_web_process()
+        except Exception:
+            pass
+        try:
             self.window.destroy()
         except Exception:
             pass

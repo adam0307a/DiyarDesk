@@ -6,8 +6,18 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LINUX=$(CDPATH= cd -- "$HERE/.." && pwd)
 ROOT=$(CDPATH= cd -- "$LINUX/.." && pwd)
-VERSION="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'] + '~linux1')" "$ROOT/tools/version.json" 2>/dev/null || echo "0.5.0~linux1")"
-ARCH="all"
+VERSION="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'] + '~linux1')" "$ROOT/tools/version.json" 2>/dev/null || echo "0.5.4~linux1")"
+NATIVE_GL_SO=""
+if [ -f "$ROOT/native/diyardesk-gl/target/release/libdiyardesk_gl.so" ]; then
+  NATIVE_GL_SO="$ROOT/native/diyardesk-gl/target/release/libdiyardesk_gl.so"
+elif [ -f "$LINUX/lib/libdiyardesk_gl.so" ]; then
+  NATIVE_GL_SO="$LINUX/lib/libdiyardesk_gl.so"
+fi
+if [ -n "$NATIVE_GL_SO" ]; then
+  ARCH="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+else
+  ARCH="all"
+fi
 PKG="diyardesk"
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
@@ -25,6 +35,9 @@ install -d "$STAGE/usr/share/doc/$PKG"
 
 cp -a "$LINUX/deskland_linux/." "$STAGE/usr/lib/deskland/linux/deskland_linux/"
 cp -a "$ROOT/prototype/." "$STAGE/usr/lib/deskland/prototype/"
+if [ -n "$NATIVE_GL_SO" ]; then
+  install -m 755 "$NATIVE_GL_SO" "$STAGE/usr/lib/deskland/libdiyardesk_gl.so"
+fi
 cp -a "$LINUX/plasma-wallpaper/org.deskland.preview" "$STAGE/usr/share/plasma/wallpapers/"
 cp -a "$LINUX/kde-iconspy/org.deskland.iconspy" "$STAGE/usr/share/plasma/plasmoids/"
 cp -a "$LINUX/gnome-extension/deskland@deskland.app" "$STAGE/usr/share/gnome-shell/extensions/"
@@ -46,6 +59,7 @@ export DESKLAND_PROTOTYPE="${DESKLAND_PROTOTYPE:-/usr/lib/deskland/prototype}"
 exec python3 -m deskland_linux "$@"
 EOF
 chmod 755 "$STAGE/usr/bin/deskland-linux"
+ln -sf /usr/bin/deskland-linux "$STAGE/usr/bin/diyardesk"
 install -m 755 "$LINUX/bin/diyardesk-ctl" "$STAGE/usr/bin/diyardesk-ctl"
 
 cat > "$STAGE/DEBIAN/control" <<EOF

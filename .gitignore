@@ -1,5 +1,7 @@
 /host/bin/
 /host/lib/
+/linux/lib/
+/linux/plasma-gl-plugin/build/
 /native/diyardesk-gl/target/
 /node_modules/
 /dist/

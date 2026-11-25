@@ -507,34 +507,157 @@ function initPocketAtlas() {
    - faction 1: 德意志部队 (DE)
    - faction 2: 英伦部队 (EN)
    ====================================================================== */
-const TR_UNIQUE_RE = /[ğĞşŞıİ]/;
-const TR_SOFT_RE = /[çÇöÖüÜ]/;
-const DE_UNIQUE_RE = /[ßäÄ]/;
+const TR_STRONG = new Set([
+  'tr', 'tur', 'turk', 'turkiye', 'turkce', 'turkish', 'ankara', 'istanbul', 'izmir', 'diyar',
+  'diyarbakir', 'diyardesk', 'bursa', 'antalya', 'adana', 'konya', 'gaziantep', 'trabzon',
+  'samsun', 'eskisehir', 'kayseri', 'mersin', 'canakkale', 'sakarya', 'osmanli', 'anadolu',
+  'cumhuriyet', 'vatan', 'ataturk', 'ordu', 'tugay', 'tumen', 'cephe', 'sancak', 'bayrak',
+  'hilal', 'bozkurt', 'mehmetcik', 'karargah', 'komutan', 'komutanlik', 'zafer',
+]);
+const DE_STRONG = new Set([
+  'de', 'deu', 'ger', 'deutsch', 'deutschland', 'german', 'germany', 'almanca', 'almanya',
+  'alman', 'berlin', 'munchen', 'muenchen', 'munich', 'hamburg', 'koln', 'koeln', 'cologne',
+  'frankfurt', 'stuttgart', 'dresden', 'leipzig', 'nurnberg', 'nuernberg', 'hannover',
+  'dusseldorf', 'duesseldorf', 'bremen', 'wien', 'vienna', 'zurich', 'zuerich', 'bayern',
+  'bavaria', 'preussen', 'prussia', 'rhein', 'ruhr', 'panzer', 'heer', 'wehrmacht', 'luftwaffe',
+  'kriegsmarine', 'kompanie', 'kaserne', 'reich', 'kaiser', 'armee', 'bunker', 'festung',
+  'divisionen', 'feldzug', 'hauptquartier', 'ostfront', 'westfront', 'blitzkrieg', 'truppen',
+]);
+const EN_STRONG = new Set([
+  'en', 'eng', 'uk', 'gb', 'gbr', 'us', 'usa', 'english', 'britain', 'british', 'england',
+  'ingilizce', 'ingiltere', 'ingiliz', 'london', 'manchester', 'liverpool', 'birmingham',
+  'oxford', 'cambridge', 'york', 'edinburgh', 'scotland', 'wales', 'commonwealth', 'royal',
+  'crown', 'empire', 'navy', 'raf', 'brigade', 'regiment', 'battalion', 'allies', 'allied',
+  'headquarters', 'hq', 'churchill', 'montgomery', 'spitfire', 'lancaster', 'dunkirk',
+  'normandy',
+]);
+
 const TR_WORDS = new Set([
-  'belge', 'belgeler', 'belgelerim', 'indirilen', 'indirilenler', 'masaustu', 'masaüstü',
-  'resim', 'resimler', 'resimlerim', 'muzik', 'müzik', 'video', 'videolar', 'oyun', 'oyunlar',
-  'proje', 'projeler', 'yedek', 'yedekler', 'yeni', 'klasor', 'klasör', 'not', 'notlar',
-  'odev', 'ödev', 'arsiv', 'arşiv', 'dosya', 'dosyalar', 'rapor', 'raporlar', 'fatura',
-  'fotograf', 'fotoğraf', 'calisma', 'çalışma', 'calismalar', 'goruntu', 'görüntü', 'ekran',
-  'kurulum', 'tasarim', 'tasarım', 'gunluk', 'günlük', 'hesap', 'liste', 'deneme', 'cop',
-  'çöp', 'sozlesme', 'sözleşme', 'ozgecmis', 'özgeçmiş', 'gider', 'sunum', 'bilgisayar',
-  'araclar', 'araçlar', 'onemli', 'önemli', 'kitap', 'ders', 'notlarim', 'resim', 'planlama',
+  'belge', 'belgeler', 'belgelerim', 'belgesi', 'indirilen', 'indirilenler', 'masaustu',
+  'resim', 'resimler', 'resimlerim', 'muzik', 'muzikler', 'videolar', 'oyun', 'oyunlar',
+  'proje', 'projeler', 'projesi', 'yedek', 'yedekler', 'yedegi', 'yeni', 'klasor', 'klasorler',
+  'klasoru', 'not', 'notlar', 'notlarim', 'notu', 'odev', 'odevler', 'arsiv', 'arsivler',
+  'dosya', 'dosyalar', 'dosyasi', 'rapor', 'raporlar', 'raporu', 'fatura', 'faturalar',
+  'fotograf', 'fotograflar', 'calisma', 'calismalar', 'calismalarim', 'goruntu', 'goruntuler',
+  'goruntusu', 'ekran', 'kurulum', 'tasarim', 'tasarimlar', 'gunluk', 'hesap', 'hesaplar',
+  'liste', 'listeler', 'listesi', 'deneme', 'denemeler', 'cop', 'kutusu', 'kutu', 'sozlesme',
+  'ozgecmis', 'gider', 'giderler', 'gelir', 'sunum', 'sunumlar', 'bilgisayar', 'araclar',
+  'arac', 'onemli', 'kitap', 'kitaplar', 'kitaplik', 'ders', 'dersler', 'planlama', 'yazilim',
+  'hatirlatma', 'tablo', 'tablolar', 'sinav', 'sinavlar', 'butce', 'kisisel', 'ayar', 'ayarlar',
+  'sifre', 'sifreler', 'duvar', 'kagidi', 'tema', 'temalar', 'simge', 'simgeler', 'ikon',
+  'ikonlar', 'merhaba', 'tatil', 'egitim', 'muhasebe', 'vergi', 'haber', 'haberler', 'iletisim',
+  'takvim', 'gorev', 'gorevler', 'aile', 'okul', 'sinif', 'ogrenci', 'ogretmen', 'sarki',
+  'sarkilar', 'filmler', 'sohbet', 'kullanici', 'sistem', 'harita', 'haritalar', 'pusula',
+  'kale', 'gemi', 'ucak', 'deniz', 'dag', 'orman', 'bulut', 'yagmur', 'gunes', 'yildiz',
+  'sehir', 'kopru', 'bahce', 'kedi', 'kopek', 'kahve', 'defter', 'kalem', 'masa', 'asker',
+  'savas', 'baris', 'topcu', 'piyade', 'zirhli', 'subay', 'albay', 'baslangic', 'bitis',
+  'sonuc', 'ozet', 'kayit', 'kayitlar', 'veri', 'veriler', 'dokuman', 'dokumanlar', 'indir',
+  'yukle', 'guncelleme', 'acil', 'gizli', 'ozel', 'genel', 'ortak', 'eski', 'son', 'ilk',
+  'hizli', 'kolay', 'guvenlik', 'ag', 'uygulama', 'uygulamalar', 'programlar', 'icerik',
+  'makale', 'yazi', 'yazilar', 'ceviri', 'sozluk', 'rehber', 'kilavuz', 'destek', 'yardim',
+  'ev', 'is', 'isler', 'evrak', 'evraklar', 'dilekce', 'tutanak', 'baski', 'tarama',
 ]);
 const DE_WORDS = new Set([
-  'ordner', 'dokument', 'dokumente', 'bilder', 'musik', 'arbeitsplatz', 'papierkorb',
-  'herunterladen', 'entwurf', 'entwurfe', 'entwürfe', 'projekt', 'projekte', 'bericht',
-  'berichte', 'ubersicht', 'übersicht', 'buro', 'büro', 'rechnung', 'rechnungen', 'vertrag',
-  'sicherung', 'notizen', 'zusammenfassung', 'schule', 'arbeit', 'datei', 'dateien',
-  'karte', 'karten', 'spiel', 'spiele', 'foto', 'fotos', 'neu', 'wichtig', 'festung',
-  'plane', 'pläne', 'ablage', 'studium', 'urlaub', 'schrift', 'daten', 'werkzeug',
+  'ordner', 'dokument', 'dokumente', 'bilder', 'bild', 'musik', 'arbeitsplatz', 'papierkorb',
+  'herunterladen', 'entwurf', 'entwurfe', 'entwuerfe', 'projekt', 'projekte', 'bericht',
+  'berichte', 'ubersicht', 'uebersicht', 'buro', 'buero', 'rechnung', 'rechnungen', 'vertrag',
+  'vertrage', 'vertraege', 'sicherung', 'notizen', 'notiz', 'zusammenfassung', 'schule',
+  'arbeit', 'arbeiten', 'datei', 'dateien', 'karte', 'karten', 'spiel', 'spiele', 'foto',
+  'fotos', 'neu', 'neue', 'neuer', 'neues', 'wichtig', 'festung', 'plane', 'plaene', 'ablage',
+  'studium', 'urlaub', 'schrift', 'schriften', 'daten', 'werkzeug', 'werkzeuge', 'strasse',
+  'strassen', 'haus', 'hauser', 'haeuser', 'stadt', 'buch', 'bucher', 'buecher', 'brief',
+  'briefe', 'aufgabe', 'aufgaben', 'prufung', 'pruefung', 'ubung', 'uebung', 'bewerbung',
+  'lebenslauf', 'steuer', 'steuern', 'einstellungen', 'programm', 'programme', 'hilfe',
+  'tabelle', 'tabellen', 'vorlage', 'vorlagen', 'termin', 'termine', 'nachricht', 'nachrichten',
+  'passwort', 'passworter', 'sicherheit', 'netzwerk', 'hallo', 'mein', 'meine', 'meiner',
+  'und', 'der', 'die', 'das', 'fur', 'fuer', 'uber', 'ueber', 'mit', 'von', 'aus', 'nach',
+  'bei', 'zum', 'zur', 'verzeichnis', 'bildschirm', 'bildschirmfoto', 'hintergrund', 'systeme',
+  'anwendung', 'anwendungen', 'benutzer', 'privat', 'geheim', 'familie', 'freunde', 'reise',
+  'reisen', 'kalender', 'einkauf', 'haushalt', 'finanzen', 'konto', 'kasse', 'listen',
+  'protokoll', 'handbuch', 'anleitung', 'quelle', 'quellen', 'beispiel', 'beispiele', 'losung',
+  'loesung', 'ergebnis', 'ergebnisse', 'geschichte', 'krieg', 'frieden', 'soldat', 'soldaten',
+  'angriff', 'verteidigung', 'befehl', 'befehle', 'lager', 'stutzpunkt', 'stuetzpunkt',
+  'grenze', 'flotte', 'geschwader', 'infanterie', 'artillerie', 'aufklarung', 'aufklaerung',
+  'nachschub', 'versorgung', 'einsatz', 'stellung', 'frontlinie', 'wald', 'berg', 'fluss',
+  'meer', 'himmel', 'wetter', 'sonne', 'mond', 'stern', 'sommer', 'herbst', 'fruhling',
+  'fruehling', 'klasse', 'lehrer', 'schuler', 'schueler', 'universitat', 'universitaet',
+  'vorlesung', 'klausur', 'hausarbeit', 'forschung', 'entwicklung', 'zeitung', 'magazin',
+  'filme', 'spiegel', 'zeit', 'tag', 'jahr', 'monat', 'woche', 'heute', 'morgen', 'gestern',
 ]);
 const EN_WORDS = new Set([
-  'documents', 'downloads', 'desktop', 'pictures', 'music', 'videos', 'projects', 'project',
-  'screenshots', 'screenshot', 'backup', 'backups', 'archive', 'archives', 'games', 'game',
-  'notes', 'report', 'reports', 'invoice', 'draft', 'resume', 'work', 'study', 'tools',
-  'folder', 'new', 'setup', 'config', 'test', 'code', 'server', 'steam', 'home', 'trash',
-  'bin', 'readme', 'apps', 'media', 'assets', 'files', 'movies', 'images', 'plot', 'misc',
+  'documents', 'document', 'downloads', 'download', 'desktop', 'pictures', 'picture', 'photos',
+  'photo', 'music', 'videos', 'video', 'projects', 'project', 'screenshots', 'screenshot',
+  'backup', 'backups', 'archive', 'archives', 'games', 'game', 'notes', 'note', 'report',
+  'reports', 'invoice', 'invoices', 'draft', 'drafts', 'resume', 'work', 'study', 'tools',
+  'tool', 'folder', 'folders', 'new', 'setup', 'config', 'configs', 'test', 'tests', 'code',
+  'server', 'steam', 'home', 'trash', 'bin', 'readme', 'apps', 'app', 'media', 'assets',
+  'files', 'file', 'movies', 'movie', 'images', 'image', 'plot', 'misc', 'application',
+  'applications', 'final', 'settings', 'options', 'manual', 'guide', 'help', 'support',
+  'course', 'courses', 'homework', 'exam', 'exams', 'book', 'books', 'budget', 'tax', 'taxes',
+  'family', 'travel', 'wallpaper', 'wallpapers', 'theme', 'themes', 'icons', 'icon', 'scripts',
+  'script', 'build', 'builds', 'release', 'releases', 'install', 'installer', 'compiler',
+  'controller', 'handler', 'calendar', 'tasks', 'task', 'todo', 'ideas', 'idea', 'design',
+  'designs', 'hello', 'welcome', 'my', 'the', 'and', 'for', 'with', 'from', 'private',
+  'personal', 'public', 'shared', 'secret', 'important', 'urgent', 'old', 'latest', 'quick',
+  'fast', 'security', 'password', 'passwords', 'network', 'system', 'user', 'users', 'account',
+  'accounts', 'finance', 'receipt', 'receipts', 'contract', 'contracts', 'letter', 'letters',
+  'summary', 'overview', 'presentation', 'slides', 'spreadsheet', 'sheet', 'table', 'template',
+  'templates', 'schedule', 'meeting', 'meetings', 'message', 'messages', 'mail', 'email',
+  'inbox', 'library', 'reading', 'research', 'paper', 'papers', 'thesis', 'lecture', 'lectures',
+  'school', 'college', 'university', 'class', 'student', 'teacher', 'office', 'company',
+  'business', 'client', 'clients', 'sales', 'marketing', 'product', 'products', 'source',
+  'sources', 'data', 'database', 'logs', 'log', 'cache', 'temp', 'tmp', 'export', 'exports',
+  'import', 'imports', 'update', 'updates', 'patch', 'patches', 'mod', 'mods', 'map', 'maps',
+  'battle', 'frontline', 'siege', 'fortress', 'army', 'infantry', 'armor', 'armour',
+  'artillery', 'division', 'divisions', 'corps', 'fleet', 'squadron', 'command', 'orders',
+  'supply', 'recon', 'defense', 'defence', 'attack', 'victory', 'peace', 'war', 'soldier',
+  'soldiers', 'general', 'officer', 'camp', 'base', 'border', 'coast', 'island', 'forest',
+  'mountain', 'river', 'ocean', 'weather', 'summer', 'winter', 'spring', 'autumn', 'solar',
+  'modular', 'trailer', 'popular', 'regular', 'dollar',
 ]);
+
+function foldToAsciiLower(s) {
+  let out = '';
+  for (const c of s) {
+    if (c === 'İ' || c === 'I' || c === 'ı') out += 'i';
+    else if (c === 'ç' || c === 'Ç') out += 'c';
+    else if (c === 'ğ' || c === 'Ğ') out += 'g';
+    else if (c === 'ş' || c === 'Ş') out += 's';
+    else if (c === 'ö' || c === 'Ö') out += 'o';
+    else if (c === 'ü' || c === 'Ü') out += 'u';
+    else if (c === 'ä' || c === 'Ä') out += 'a';
+    else if (c === 'ß' || c === 'ẞ') out += 'ss';
+    else out += c.toLowerCase();
+  }
+  return out;
+}
+
+function splitCamelAndSepTokens(stem) {
+  const isUpper = ch => ch !== ch.toLowerCase() && ch === ch.toUpperCase();
+  const isLower = ch => ch !== ch.toUpperCase() && ch === ch.toLowerCase();
+  const isSep = ch => /[\s_\-.()[\]/\\:&+,'0-9]/.test(ch);
+  const chars = Array.from(stem);
+  const tokens = [];
+  let cur = '';
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    if (isSep(c)) {
+      if (cur) { tokens.push(foldToAsciiLower(cur)); cur = ''; }
+      continue;
+    }
+    if (cur && isUpper(c)) {
+      const prev = chars[i - 1];
+      const next = chars[i + 1];
+      if (isLower(prev) || (isUpper(prev) && next && isLower(next))) {
+        tokens.push(foldToAsciiLower(cur));
+        cur = '';
+      }
+    }
+    cur += c;
+  }
+  if (cur) tokens.push(foldToAsciiLower(cur));
+  return tokens;
+}
 
 function detectFolderNation(rawName, salt) {
   const mode = Math.round(P.faction || 0);
@@ -544,39 +667,101 @@ function detectFolderNation(rawName, salt) {
 
   const raw = String(rawName || '').trim();
   if (!raw) return 2;
-  // Strip trailing file extension like .txt, .pdf, .docx, .png
   const stem = raw.replace(/\.[a-z0-9]{1,5}$/i, '');
-  const lower = stem.toLowerCase();
-  const tokens = lower.split(/[\s_\-.()[\]0-9]+/).filter(Boolean);
+  const foldedWhole = foldToAsciiLower(stem);
+  const tokens = splitCamelAndSepTokens(stem);
 
   let sTR = 0, sDE = 0, sEN = 0;
 
-  if (TR_UNIQUE_RE.test(stem)) sTR += 8;
-  if (DE_UNIQUE_RE.test(stem)) sDE += 8;
-  if (TR_SOFT_RE.test(stem)) { sTR += 2.5; sDE += 2.2; }
+  // 1. Character / diacritic cues on original stem
+  const trUniqueCnt = (stem.match(/[ğĞşŞıİ]/g) || []).length;
+  if (trUniqueCnt > 0) sTR += 8.5 + Math.min(2, trUniqueCnt - 1) * 1.5;
+  if (/[çÇ]/.test(stem)) sTR += 6.0;
+  const deUniqueCnt = (stem.match(/[ßẞäÄ]/g) || []).length;
+  if (deUniqueCnt > 0) sDE += 8.5 + Math.min(2, deUniqueCnt - 1) * 1.5;
+  if (/[öÖüÜ]/.test(stem)) { sTR += 2.4; sDE += 2.4; }
+  if (/[wWqQxX]/.test(stem)) { sDE += 0.6; sEN += 0.6; }
 
+  // 2. Token-level strong cues, dictionaries, morphology & digraphs
   for (const tok of tokens) {
-    if (TR_WORDS.has(tok)) sTR += 6;
-    if (DE_WORDS.has(tok)) sDE += 6;
-    if (EN_WORDS.has(tok)) sEN += 6;
+    const strongTR = TR_STRONG.has(tok);
+    const strongDE = DE_STRONG.has(tok);
+    const strongEN = EN_STRONG.has(tok);
+    if (strongTR) sTR += 11.0;
+    if (strongDE) sDE += 11.0;
+    if (strongEN) sEN += 11.0;
 
-    // Morphological suffix cues
-    if (/(lar|ler|lari|leri|lik|luk|cim|sim|yor|mis|mus)$/.test(tok)) sTR += 2.5;
-    if (/(ung|heit|keit|schaft|chen|lein|isch|tsch)$/.test(tok) || tok.includes('sch')) sDE += 2.8;
-    if (/(tion|ment|ness|ing|shot|app)$/.test(tok)) sEN += 2.4;
+    const wordTR = TR_WORDS.has(tok);
+    const wordDE = DE_WORDS.has(tok);
+    const wordEN = EN_WORDS.has(tok);
+    if (wordTR) sTR += 6.0;
+    if (wordDE) sDE += 6.0;
+    if (wordEN) sEN += 6.0;
+
+    if (!strongDE && (tok.startsWith('almany') || tok.startsWith('alman'))) sDE += 11.0;
+    if (!strongEN && (tok.startsWith('ingiliz') || tok.startsWith('ingilter'))) sEN += 11.0;
+    if (!strongTR && (tok.startsWith('turkiy') || tok.startsWith('turkce') || tok.startsWith('turkler'))) sTR += 11.0;
+
+    const len = tok.length;
+    const anyTR = strongTR || wordTR;
+    const anyDE = strongDE || wordDE;
+    const anyEN = strongEN || wordEN;
+
+    if (len >= 4 && !anyDE && !anyEN) {
+      if (/(lari|leri|larim|lerim|likler|liklar|lukler|iyor|ecek|acak|mesi|masi|deki|daki|sizlik|cilik|culuk)$/.test(tok)) {
+        sTR += 3.0;
+      } else {
+        const isEnDeLarLer = /(ular|ilar|olar|ellar|ller|dler|iler|tler|hler|bler|pler)$/.test(tok);
+        if (
+          (!isEnDeLarLer && /(lar|ler)$/.test(tok)) ||
+          /(lik|luk|cim|sim|yor|mis|mus)$/.test(tok) ||
+          (len >= 5 && /(mek|mak|siz|suz|cik|cuk|dir|dur|tir|tur)$/.test(tok))
+        ) {
+          sTR += 2.4;
+        }
+      }
+    }
+
+    if (len >= 4 && !anyTR && !anyEN) {
+      if (
+        /(ung|ungen|heit|keit|schaft|chen|lein|isch|lich|tsch|platz|stadt|strasse|zeug|karte|lager|ieren|iert)$/.test(tok) ||
+        (len >= 5 && /(werk|haus|buch|berg|burg|dorf|amt)$/.test(tok))
+      ) {
+        sDE += 3.2;
+      }
+      if (tok.includes('sch')) sDE += 3.0;
+      else if (/(tz|pf|chs)/.test(tok)) sDE += 2.0;
+      if (len >= 5 && /(ae|oe|ue)/.test(tok)) sDE += 1.5;
+    }
+
+    if (len >= 4 && !anyTR && !anyDE) {
+      if (/(tion|sion|ment|ness|ing|shot|app|able|ible|ful|less|ware|load|sync|ship|ward|ize|ify|ous|ive)$/.test(tok)) {
+        sEN += 2.6;
+      }
+      if (/(th|wh|sh|gh|ph|qu|oo|ee|igh|ould)/.test(tok)) {
+        sEN += 1.6;
+      }
+    }
   }
 
-  // Substring word hints inside compound names like "Ekran_Goruntusu" or "BuroPlan"
-  for (const w of TR_WORDS) if (w.length >= 4 && lower.includes(w)) sTR += 3;
-  for (const w of DE_WORDS) if (w.length >= 4 && lower.includes(w)) sDE += 3;
-  for (const w of EN_WORDS) if (w.length >= 4 && lower.includes(w)) sEN += 3;
+  // 3. Compound substring hints inside glued lowercase names
+  let subTR = 0, subDE = 0, subEN = 0;
+  for (const w of TR_STRONG) if (w.length >= 4 && foldedWhole.includes(w)) subTR = Math.min(9.0, subTR + 3.0);
+  for (const w of TR_WORDS) if (w.length >= 4 && foldedWhole.includes(w)) subTR = Math.min(9.0, subTR + 3.0);
+  for (const w of DE_STRONG) if (w.length >= 4 && foldedWhole.includes(w)) subDE = Math.min(9.0, subDE + 3.0);
+  for (const w of DE_WORDS) if (w.length >= 4 && foldedWhole.includes(w)) subDE = Math.min(9.0, subDE + 3.0);
+  for (const w of EN_STRONG) if (w.length >= 4 && foldedWhole.includes(w)) subEN = Math.min(9.0, subEN + 3.0);
+  for (const w of EN_WORDS) if (w.length >= 4 && foldedWhole.includes(w)) subEN = Math.min(9.0, subEN + 3.0);
+  sTR += subTR;
+  sDE += subDE;
+  sEN += subEN;
 
   if (sTR > sDE && sTR > sEN && sTR >= 2) return 0;
   if (sDE > sTR && sDE > sEN && sDE >= 2) return 1;
   if (sEN > 0) return 2;
+  if (sTR >= 2 && sTR === sDE) return (((salt | 0) % 2) + 2) % 2 === 0 ? 0 : 1;
 
-  // Non-Latin / non-Turkish/German fallback -> spread nicely by salt or English Commonwealth
-  return /[^\x00-\x7f]/.test(stem) ? ((salt | 0) % 3) : 2;
+  return /[^\x00-\x7f]/.test(stem) ? ((((salt | 0) % 3) + 3) % 3) : 2;
 }
 
 let forts = [];

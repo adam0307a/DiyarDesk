@@ -60,6 +60,16 @@
   </screenshots>
 
   <releases>
+    <release version="0.5.4" date="2026-11-25">
+      <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.4</url>
+      <description>
+        <ul>
+          <li>Ported the native Rust + OpenGL 3.3 Core wallpaper engine (libdiyardesk_gl.so) to Linux with zero-WebKit GTK3 settings, Wayland FrameClock pacing, and hybrid KDE Plasma 6 QML support</li>
+          <li>Added two new native Rust + OpenGL 3.3 themes: Shore Cat (cat-shore) with cursor-tracking cat and collapsible top productivity notch bar, and Persephone Silver Engraving (persephone) with real-time spark-traced contours</li>
+          <li>Added native Linux virtual desktop icons with renaming, iconless GNOME/Hyprland/Niri/Sway support, and upgraded TR/DE/EN language detection in Frontline Pocket</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.3" date="2026-11-24">
       <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.3</url>
       <description>

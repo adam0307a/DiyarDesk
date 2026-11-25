@@ -1,6 +1,7 @@
 mod ai_mascots;
 mod aurora;
 mod beach;
+mod cat_shore;
 mod claymorph;
 mod desert;
 mod gl;
@@ -11,6 +12,7 @@ mod meadow;
 mod neobrutalism;
 mod neumorph;
 mod papercut;
+mod persephone;
 mod pocket;
 mod polarnight;
 mod quiet_snow;
@@ -31,22 +33,120 @@ mod zen_archipelago;
 mod voxelcraft;
 mod winter;
 
-use gl::{GlFns, WglContext};
+use gl::{DefaultFboGuard, GlFns};
+#[cfg(not(target_os = "windows"))]
+use gl::EglHeadlessContext;
+#[cfg(target_os = "windows")]
+use gl::WglContext;
 use renderer::Renderer;
 use state::AppState;
-use std::ffi::{c_char, CStr};
+use std::ffi::{c_char, c_void, CStr};
+#[cfg(target_os = "windows")]
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+#[cfg(target_os = "windows")]
+use std::sync::Arc;
+#[cfg(target_os = "windows")]
 use std::thread::{self, JoinHandle};
+#[cfg(target_os = "windows")]
 use std::time::{Duration, Instant};
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::HWND;
 
+pub const NATIVE_GL_THEMES: &[&str] = &[
+    "material-impulse-gl",
+    "material-impulse",
+    "liquidglass",
+    "thinking-orbs",
+    "solar-system",
+    "studio-glass",
+    "beach",
+    "meadow",
+    "desert",
+    "rosebrook",
+    "glade",
+    "zen-archipelago",
+    "aurora",
+    "polarnight",
+    "quietsnow",
+    "winter",
+    "neumorph",
+    "claymorph",
+    "neobrutalism",
+    "voxelcraft",
+    "papercut",
+    "istanbul",
+    "software-world",
+    "rift",
+    "strike",
+    "pocket",
+    "roach",
+    "ai-mascots",
+    "cat-shore",
+    "persephone",
+];
+
+fn apply_low_mode_to_state(st: &mut AppState, is_low: bool) {
+    st.low_mode = is_low;
+    st.quiet_snow.set_low_mode(is_low);
+    st.claymorph.set_low_mode(is_low);
+    st.liquidglass.set_low_mode(is_low);
+    st.neobrutalism.set_low_mode(is_low);
+    st.solar_system.set_low_mode(is_low);
+    st.thinking_orbs.set_low_mode(is_low);
+    st.ai_mascots.set_low_mode(is_low);
+    st.cat_shore.set_low_mode(is_low);
+    st.persephone.set_low_mode(is_low);
+}
+
+fn flip_rgba_vertical(src: &[u8], dst: &mut [u8], width: usize, height: usize) {
+    let row_bytes = width * 4;
+    for y in 0..height {
+        let src_off = (height - 1 - y) * row_bytes;
+        let dst_off = y * row_bytes;
+        dst[dst_off..dst_off + row_bytes].copy_from_slice(&src[src_off..src_off + row_bytes]);
+    }
+}
+
+unsafe fn restore_host_gl_state(gl: &GlFns, target_fbo: gl::GLuint) {
+    (gl.Disable)(gl::GL_SCISSOR_TEST);
+    (gl.Disable)(gl::GL_DEPTH_TEST);
+    (gl.Disable)(gl::GL_CULL_FACE);
+    (gl.Disable)(gl::GL_BLEND);
+    (gl.DepthMask)(gl::GL_TRUE);
+    (gl.BindVertexArray)(0);
+    (gl.BindBuffer)(gl::GL_ARRAY_BUFFER, 0);
+    (gl.UseProgram)(0);
+    (gl.ActiveTexture)(gl::GL_TEXTURE0);
+    (gl.BindTexture)(gl::GL_TEXTURE_2D, 0);
+    (gl.PixelStorei)(gl::GL_UNPACK_ALIGNMENT, 4);
+    (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, target_fbo);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_is_native_theme(theme_id: *const c_char) -> i32 {
+    if theme_id.is_null() {
+        return 0;
+    }
+    let Ok(id) = CStr::from_ptr(theme_id).to_str() else {
+        return 0;
+    };
+    let clean = id.trim();
+    if NATIVE_GL_THEMES.iter().any(|t| t.eq_ignore_ascii_case(clean)) {
+        1
+    } else {
+        0
+    }
+}
+
+#[cfg(target_os = "windows")]
 pub struct GlEngine {
     state: Arc<Mutex<AppState>>,
     stop_flag: Arc<AtomicBool>,
     worker: Option<JoinHandle<()>>,
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_create(
     hwnd: isize,
@@ -133,6 +233,7 @@ pub unsafe extern "C" fn ddgl_create(
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_destroy(engine: *mut GlEngine) {
     if engine.is_null() {
@@ -145,6 +246,7 @@ pub unsafe extern "C" fn ddgl_destroy(engine: *mut GlEngine) {
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_resize(engine: *mut GlEngine, width: i32, height: i32, dpi_scale: f32) {
     if engine.is_null() { return; }
@@ -157,6 +259,7 @@ pub unsafe extern "C" fn ddgl_resize(engine: *mut GlEngine, width: i32, height: 
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_set_paused(engine: *mut GlEngine, paused: i32) {
     if engine.is_null() { return; }
@@ -166,23 +269,17 @@ pub unsafe extern "C" fn ddgl_set_paused(engine: *mut GlEngine, paused: i32) {
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_set_low_mode(engine: *mut GlEngine, low: i32) {
     if engine.is_null() { return; }
     let eng = &*engine;
     if let Ok(mut st) = eng.state.lock() {
-        let is_low = low != 0;
-        st.low_mode = is_low;
-        st.quiet_snow.set_low_mode(is_low);
-        st.claymorph.set_low_mode(is_low);
-        st.liquidglass.set_low_mode(is_low);
-        st.neobrutalism.set_low_mode(is_low);
-        st.solar_system.set_low_mode(is_low);
-        st.thinking_orbs.set_low_mode(is_low);
-        st.ai_mascots.set_low_mode(is_low);
+        apply_low_mode_to_state(&mut st, low != 0);
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_post_json(engine: *mut GlEngine, utf8_ptr: *const c_char) {
     if engine.is_null() || utf8_ptr.is_null() { return; }
@@ -193,6 +290,7 @@ pub unsafe extern "C" fn ddgl_post_json(engine: *mut GlEngine, utf8_ptr: *const 
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_mouse(engine: *mut GlEngine, kind: i32, css_x: f32, css_y: f32) -> i32 {
     if engine.is_null() { return 0; }
@@ -203,6 +301,7 @@ pub unsafe extern "C" fn ddgl_mouse(engine: *mut GlEngine, kind: i32, css_x: f32
     0
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_key(engine: *mut GlEngine, kind: i32, vk: i32, utf8_ptr: *const c_char) {
     if engine.is_null() { return; }
@@ -217,6 +316,7 @@ pub unsafe extern "C" fn ddgl_key(engine: *mut GlEngine, kind: i32, vk: i32, utf
     }
 }
 
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_poll_event(
     engine: *mut GlEngine,
@@ -237,7 +337,664 @@ pub unsafe extern "C" fn ddgl_poll_event(
     copy_len as i32
 }
 
-#[cfg(test)]
+// ---------------------------------------------------------------------------
+// Cross-platform Embedded OpenGL 3.3 Core Engine API (Gtk.GLArea, Qt6 FBO, etc.)
+// Caller owns the OpenGL 3.3 Core context and keeps it current during create,
+// render, read/png, and destroy calls.
+// ---------------------------------------------------------------------------
+
+pub struct GlEmbeddedEngine {
+    gl: GlFns,
+    renderer: Renderer,
+    state: AppState,
+    destroyed_gl: bool,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_create(
+    width: i32,
+    height: i32,
+    dpi_scale: f32,
+) -> *mut GlEmbeddedEngine {
+    let gl = match GlFns::load() {
+        Ok(g) => g,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let renderer = match Renderer::new(&gl) {
+        Ok(r) => r,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let state = AppState::new(width, height, dpi_scale);
+    Box::into_raw(Box::new(GlEmbeddedEngine {
+        gl,
+        renderer,
+        state,
+        destroyed_gl: false,
+    }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_destroy(engine: *mut GlEmbeddedEngine) {
+    if engine.is_null() {
+        return;
+    }
+    let mut eng = Box::from_raw(engine);
+    if !eng.destroyed_gl {
+        eng.renderer.destroy(&eng.gl);
+        eng.destroyed_gl = true;
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_resize(
+    engine: *mut GlEmbeddedEngine,
+    width: i32,
+    height: i32,
+    dpi_scale: f32,
+) {
+    if engine.is_null() {
+        return;
+    }
+    let eng = &mut *engine;
+    eng.state.width_px = width.max(64);
+    eng.state.height_px = height.max(64);
+    eng.state.dpi_scale = dpi_scale.max(0.5);
+    eng.state.recompute_layout();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_set_paused(engine: *mut GlEmbeddedEngine, paused: i32) {
+    if engine.is_null() {
+        return;
+    }
+    (&mut *engine).state.paused = paused != 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_set_low_mode(engine: *mut GlEmbeddedEngine, low: i32) {
+    if engine.is_null() {
+        return;
+    }
+    apply_low_mode_to_state(&mut (&mut *engine).state, low != 0);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_post_json(
+    engine: *mut GlEmbeddedEngine,
+    utf8_ptr: *const c_char,
+) {
+    if engine.is_null() || utf8_ptr.is_null() {
+        return;
+    }
+    let Ok(text) = CStr::from_ptr(utf8_ptr).to_str() else {
+        return;
+    };
+    (&mut *engine).state.handle_json(text);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_mouse(
+    engine: *mut GlEmbeddedEngine,
+    kind: i32,
+    css_x: f32,
+    css_y: f32,
+) -> i32 {
+    if engine.is_null() {
+        return 0;
+    }
+    if (&mut *engine).state.handle_mouse(kind, css_x, css_y) {
+        1
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_key(
+    engine: *mut GlEmbeddedEngine,
+    kind: i32,
+    vk: i32,
+    utf8_ptr: *const c_char,
+) {
+    if engine.is_null() {
+        return;
+    }
+    let text = if utf8_ptr.is_null() {
+        ""
+    } else {
+        CStr::from_ptr(utf8_ptr).to_str().unwrap_or("")
+    };
+    (&mut *engine).state.handle_key(kind, vk, text);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_poll_event(
+    engine: *mut GlEmbeddedEngine,
+    buf: *mut c_char,
+    buf_len: i32,
+) -> i32 {
+    if engine.is_null() || buf.is_null() || buf_len <= 1 {
+        return 0;
+    }
+    let Some(s) = (&mut *engine).state.outbox.pop_front() else {
+        return 0;
+    };
+    let bytes = s.as_bytes();
+    let copy_len = bytes.len().min((buf_len - 1) as usize);
+    std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf as *mut u8, copy_len);
+    *buf.add(copy_len) = 0;
+    copy_len as i32
+}
+
+/// Renders one frame into `target_fbo` (pass `u32::MAX` to auto-detect the currently bound FBO).
+/// Steps simulation by `dt` seconds when not paused and `dt > 0`.
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_render(
+    engine: *mut GlEmbeddedEngine,
+    dt: f32,
+    target_fbo: u32,
+) -> i32 {
+    if engine.is_null() {
+        return 0;
+    }
+    let eng = &mut *engine;
+    let resolved_fbo = if target_fbo == u32::MAX {
+        let mut cur: gl::GLint = 0;
+        (eng.gl.GetIntegerv)(gl::GL_FRAMEBUFFER_BINDING, &mut cur);
+        cur.max(0) as gl::GLuint
+    } else {
+        target_fbo
+    };
+
+    if !eng.state.paused && dt > 0.0 {
+        eng.state.step(dt.clamp(0.0, 0.08));
+    }
+
+    let _guard = DefaultFboGuard::new(resolved_fbo);
+    (eng.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+    // Reset host-inherited GL state (e.g. Gtk.GLArea enables GL_DEPTH_TEST when a
+    // depth buffer is attached, which would discard 2D themes that don't toggle depth).
+    (eng.gl.Disable)(gl::GL_DEPTH_TEST);
+    (eng.gl.Disable)(gl::GL_SCISSOR_TEST);
+    (eng.gl.Disable)(gl::GL_CULL_FACE);
+    (eng.gl.Disable)(gl::GL_BLEND);
+    (eng.gl.DepthMask)(gl::GL_TRUE);
+    eng.renderer.render(&eng.gl, &mut eng.state);
+    drop(_guard);
+    restore_host_gl_state(&eng.gl, resolved_fbo);
+    1
+}
+
+/// Reads top-down RGBA8 pixels from `target_fbo` (`u32::MAX` = currently bound FBO).
+/// Returns number of bytes written (`w * h * 4`), or 0 on error.
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_read_rgba(
+    engine: *mut GlEmbeddedEngine,
+    target_fbo: u32,
+    out_rgba: *mut u8,
+    buf_len: i32,
+) -> i32 {
+    if engine.is_null() || out_rgba.is_null() || buf_len <= 0 {
+        return 0;
+    }
+    let eng = &mut *engine;
+    let w = eng.state.width_px.max(1) as usize;
+    let h = eng.state.height_px.max(1) as usize;
+    let needed = w.saturating_mul(h).saturating_mul(4);
+    if (buf_len as usize) < needed {
+        return 0;
+    }
+    let resolved_fbo = if target_fbo == u32::MAX {
+        let mut cur: gl::GLint = 0;
+        (eng.gl.GetIntegerv)(gl::GL_FRAMEBUFFER_BINDING, &mut cur);
+        cur.max(0) as gl::GLuint
+    } else {
+        target_fbo
+    };
+    let _guard = DefaultFboGuard::new(resolved_fbo);
+    (eng.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+    (eng.gl.Finish)();
+    let mut raw = vec![0u8; needed];
+    (eng.gl.ReadPixels)(
+        0,
+        0,
+        w as gl::GLsizei,
+        h as gl::GLsizei,
+        gl::GL_RGBA,
+        gl::GL_UNSIGNED_BYTE,
+        raw.as_mut_ptr() as *mut c_void,
+    );
+    drop(_guard);
+    let dst = std::slice::from_raw_parts_mut(out_rgba, needed);
+    flip_rgba_vertical(&raw, dst, w, h);
+    needed as i32
+}
+
+/// Captures the current `target_fbo` (`u32::MAX` = currently bound FBO) and writes a PNG file.
+/// Returns 1 on success, 0 on failure.
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_embedded_render_png(
+    engine: *mut GlEmbeddedEngine,
+    target_fbo: u32,
+    out_path: *const c_char,
+) -> i32 {
+    if engine.is_null() || out_path.is_null() {
+        return 0;
+    }
+    let Ok(path) = CStr::from_ptr(out_path).to_str() else {
+        return 0;
+    };
+    let eng = &mut *engine;
+    let w = eng.state.width_px.max(1) as usize;
+    let h = eng.state.height_px.max(1) as usize;
+    let mut rgba = vec![0u8; w * h * 4];
+    let n = ddgl_embedded_read_rgba(engine, target_fbo, rgba.as_mut_ptr(), rgba.len() as i32);
+    if n <= 0 {
+        return 0;
+    }
+    if image::save_buffer(path, &rgba, w as u32, h as u32, image::ColorType::Rgba8).is_ok() {
+        1
+    } else {
+        0
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Linux Headless EGL Offscreen Engine API
+// Used by Linux static fallback, offscreen snapshots, Qt6 non-GL RHI fallback,
+// and Linux GPU unit tests.
+// ---------------------------------------------------------------------------
+
+#[cfg(not(target_os = "windows"))]
+struct HeadlessInner {
+    ctx: EglHeadlessContext,
+    gl: GlFns,
+    renderer: Renderer,
+    state: AppState,
+    fbo: gl::GLuint,
+    color_tex: gl::GLuint,
+    depth_rb: gl::GLuint,
+    fbo_w: i32,
+    fbo_h: i32,
+    scratch: Vec<u8>,
+}
+
+#[cfg(not(target_os = "windows"))]
+impl HeadlessInner {
+    unsafe fn ensure_fbo(&mut self, w: i32, h: i32) -> bool {
+        let w = w.max(64);
+        let h = h.max(64);
+        if self.fbo != 0 && self.fbo_w == w && self.fbo_h == h {
+            return true;
+        }
+        self.destroy_fbo();
+
+        let mut fbo = 0;
+        let mut tex = 0;
+        let mut depth_rb = 0;
+        (self.gl.GenFramebuffers)(1, &mut fbo);
+        (self.gl.GenTextures)(1, &mut tex);
+        (self.gl.BindTexture)(gl::GL_TEXTURE_2D, tex);
+        (self.gl.TexImage2D)(
+            gl::GL_TEXTURE_2D,
+            0,
+            gl::GL_RGBA8 as gl::GLint,
+            w,
+            h,
+            0,
+            gl::GL_RGBA,
+            gl::GL_UNSIGNED_BYTE,
+            std::ptr::null(),
+        );
+        (self.gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
+        (self.gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
+        (self.gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_WRAP_S, gl::GL_CLAMP_TO_EDGE);
+        (self.gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_WRAP_T, gl::GL_CLAMP_TO_EDGE);
+
+        (self.gl.GenRenderbuffers)(1, &mut depth_rb);
+        (self.gl.BindRenderbuffer)(gl::GL_RENDERBUFFER, depth_rb);
+        (self.gl.RenderbufferStorage)(gl::GL_RENDERBUFFER, gl::GL_DEPTH_COMPONENT24, w, h);
+
+        let _zero = DefaultFboGuard::new(0);
+        (self.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+        (self.gl.FramebufferTexture2D)(
+            gl::GL_FRAMEBUFFER,
+            gl::GL_COLOR_ATTACHMENT0,
+            gl::GL_TEXTURE_2D,
+            tex,
+            0,
+        );
+        (self.gl.FramebufferRenderbuffer)(
+            gl::GL_FRAMEBUFFER,
+            gl::GL_DEPTH_ATTACHMENT,
+            gl::GL_RENDERBUFFER,
+            depth_rb,
+        );
+        let status = (self.gl.CheckFramebufferStatus)(gl::GL_FRAMEBUFFER);
+        (self.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+
+        if status != gl::GL_FRAMEBUFFER_COMPLETE {
+            (self.gl.DeleteRenderbuffers)(1, &depth_rb);
+            (self.gl.DeleteTextures)(1, &tex);
+            (self.gl.DeleteFramebuffers)(1, &fbo);
+            return false;
+        }
+        self.fbo = fbo;
+        self.color_tex = tex;
+        self.depth_rb = depth_rb;
+        self.fbo_w = w;
+        self.fbo_h = h;
+        true
+    }
+
+    unsafe fn destroy_fbo(&mut self) {
+        if self.depth_rb != 0 {
+            (self.gl.DeleteRenderbuffers)(1, &self.depth_rb);
+            self.depth_rb = 0;
+        }
+        if self.color_tex != 0 {
+            (self.gl.DeleteTextures)(1, &self.color_tex);
+            self.color_tex = 0;
+        }
+        if self.fbo != 0 {
+            (self.gl.DeleteFramebuffers)(1, &self.fbo);
+            self.fbo = 0;
+        }
+        self.fbo_w = 0;
+        self.fbo_h = 0;
+    }
+
+    unsafe fn render_to_scratch(&mut self, dt: f32) -> Option<(usize, usize)> {
+        if !self.ctx.make_current() {
+            return None;
+        }
+        let w = self.state.width_px.max(64);
+        let h = self.state.height_px.max(64);
+        if !self.ensure_fbo(w, h) {
+            self.ctx.release_current();
+            return None;
+        }
+        if !self.state.paused && dt > 0.0 {
+            self.state.step(dt.clamp(0.0, 0.08));
+        }
+        let _guard = DefaultFboGuard::new(self.fbo);
+        (self.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+        self.renderer.render(&self.gl, &mut self.state);
+        (self.gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+        (self.gl.Finish)();
+
+        let needed = (w as usize) * (h as usize) * 4;
+        if self.scratch.len() != needed {
+            self.scratch.resize(needed, 0);
+        }
+        (self.gl.ReadPixels)(
+            0,
+            0,
+            w,
+            h,
+            gl::GL_RGBA,
+            gl::GL_UNSIGNED_BYTE,
+            self.scratch.as_mut_ptr() as *mut c_void,
+        );
+        drop(_guard);
+        self.ctx.release_current();
+        Some((w as usize, h as usize))
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub struct GlHeadlessEngine {
+    inner: Mutex<HeadlessInner>,
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_create(
+    width: i32,
+    height: i32,
+    dpi_scale: f32,
+) -> *mut GlHeadlessEngine {
+    let ctx = match EglHeadlessContext::create() {
+        Ok(c) => c,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    if !ctx.make_current() {
+        return std::ptr::null_mut();
+    }
+    let gl = match GlFns::load() {
+        Ok(g) => g,
+        Err(_) => {
+            ctx.release_current();
+            return std::ptr::null_mut();
+        }
+    };
+    let renderer = match Renderer::new(&gl) {
+        Ok(r) => r,
+        Err(_) => {
+            ctx.release_current();
+            return std::ptr::null_mut();
+        }
+    };
+    let state = AppState::new(width, height, dpi_scale);
+    let mut inner = HeadlessInner {
+        ctx,
+        gl,
+        renderer,
+        state,
+        fbo: 0,
+        color_tex: 0,
+        depth_rb: 0,
+        fbo_w: 0,
+        fbo_h: 0,
+        scratch: Vec::new(),
+    };
+    let ok = inner.ensure_fbo(width, height);
+    inner.ctx.release_current();
+    if !ok {
+        if inner.ctx.make_current() {
+            inner.destroy_fbo();
+            inner.renderer.destroy(&inner.gl);
+            inner.ctx.release_current();
+        }
+        return std::ptr::null_mut();
+    }
+    Box::into_raw(Box::new(GlHeadlessEngine {
+        inner: Mutex::new(inner),
+    }))
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_destroy(engine: *mut GlHeadlessEngine) {
+    if engine.is_null() {
+        return;
+    }
+    let eng = Box::from_raw(engine);
+    if let Ok(mut inner) = eng.inner.into_inner() {
+        if inner.ctx.make_current() {
+            inner.destroy_fbo();
+            let HeadlessInner { ref gl, ref mut renderer, ref ctx, .. } = inner;
+            renderer.destroy(gl);
+            ctx.release_current();
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_resize(
+    engine: *mut GlHeadlessEngine,
+    width: i32,
+    height: i32,
+    dpi_scale: f32,
+) {
+    if engine.is_null() {
+        return;
+    }
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        inner.state.width_px = width.max(64);
+        inner.state.height_px = height.max(64);
+        inner.state.dpi_scale = dpi_scale.max(0.5);
+        inner.state.recompute_layout();
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_set_paused(engine: *mut GlHeadlessEngine, paused: i32) {
+    if engine.is_null() {
+        return;
+    }
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        inner.state.paused = paused != 0;
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_set_low_mode(engine: *mut GlHeadlessEngine, low: i32) {
+    if engine.is_null() {
+        return;
+    }
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        apply_low_mode_to_state(&mut inner.state, low != 0);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_post_json(
+    engine: *mut GlHeadlessEngine,
+    utf8_ptr: *const c_char,
+) {
+    if engine.is_null() || utf8_ptr.is_null() {
+        return;
+    }
+    let Ok(text) = CStr::from_ptr(utf8_ptr).to_str() else {
+        return;
+    };
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        inner.state.handle_json(text);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_mouse(
+    engine: *mut GlHeadlessEngine,
+    kind: i32,
+    css_x: f32,
+    css_y: f32,
+) -> i32 {
+    if engine.is_null() {
+        return 0;
+    }
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        return if inner.state.handle_mouse(kind, css_x, css_y) { 1 } else { 0 };
+    }
+    0
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_key(
+    engine: *mut GlHeadlessEngine,
+    kind: i32,
+    vk: i32,
+    utf8_ptr: *const c_char,
+) {
+    if engine.is_null() {
+        return;
+    }
+    let text = if utf8_ptr.is_null() {
+        ""
+    } else {
+        CStr::from_ptr(utf8_ptr).to_str().unwrap_or("")
+    };
+    if let Ok(mut inner) = (&*engine).inner.lock() {
+        inner.state.handle_key(kind, vk, text);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_poll_event(
+    engine: *mut GlHeadlessEngine,
+    buf: *mut c_char,
+    buf_len: i32,
+) -> i32 {
+    if engine.is_null() || buf.is_null() || buf_len <= 1 {
+        return 0;
+    }
+    let msg = {
+        let Ok(mut inner) = (&*engine).inner.lock() else {
+            return 0;
+        };
+        inner.state.outbox.pop_front()
+    };
+    let Some(s) = msg else { return 0 };
+    let bytes = s.as_bytes();
+    let copy_len = bytes.len().min((buf_len - 1) as usize);
+    std::ptr::copy_nonoverlapping(bytes.as_ptr(), buf as *mut u8, copy_len);
+    *buf.add(copy_len) = 0;
+    copy_len as i32
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_render_rgba(
+    engine: *mut GlHeadlessEngine,
+    dt: f32,
+    out_rgba: *mut u8,
+    buf_len: i32,
+) -> i32 {
+    if engine.is_null() || out_rgba.is_null() || buf_len <= 0 {
+        return 0;
+    }
+    let Ok(mut inner) = (&*engine).inner.lock() else {
+        return 0;
+    };
+    let Some((w, h)) = inner.render_to_scratch(dt) else {
+        return 0;
+    };
+    let needed = w * h * 4;
+    if (buf_len as usize) < needed {
+        return 0;
+    }
+    let dst = std::slice::from_raw_parts_mut(out_rgba, needed);
+    flip_rgba_vertical(&inner.scratch, dst, w, h);
+    needed as i32
+}
+
+#[cfg(not(target_os = "windows"))]
+#[no_mangle]
+pub unsafe extern "C" fn ddgl_headless_render_png(
+    engine: *mut GlHeadlessEngine,
+    dt: f32,
+    out_path: *const c_char,
+) -> i32 {
+    if engine.is_null() || out_path.is_null() {
+        return 0;
+    }
+    let Ok(path) = CStr::from_ptr(out_path).to_str() else {
+        return 0;
+    };
+    let Ok(mut inner) = (&*engine).inner.lock() else {
+        return 0;
+    };
+    let Some((w, h)) = inner.render_to_scratch(dt) else {
+        return 0;
+    };
+    let mut flipped = vec![0u8; w * h * 4];
+    flip_rgba_vertical(&inner.scratch, &mut flipped, w, h);
+    if image::save_buffer(path, &flipped, w as u32, h as u32, image::ColorType::Rgba8).is_ok() {
+        1
+    } else {
+        0
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
     use crate::shaders::{
@@ -1844,6 +2601,188 @@ mod tests {
             .expect("save png");
             r.destroy(&gl);
             DestroyWindow(hwnd);
+        }
+    }
+}
+
+#[cfg(all(test, not(target_os = "windows")))]
+pub(crate) static LINUX_EGL_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+#[cfg(all(test, not(target_os = "windows")))]
+mod linux_tests {
+    use super::*;
+    use crate::shaders::{
+        BACKDROP_FRAG, BLIT_FRAG, BLUR_FRAG, FULLSCREEN_VERT, SDF_UI_FRAG, SDF_UI_VERT, TEXT_FRAG,
+        TEXT_VERT,
+    };
+    use crate::themes::resolve_shader_and_params;
+    use std::ffi::CString;
+
+    #[test]
+    fn native_theme_registry_matches_expected() {
+        unsafe {
+            for &tid in NATIVE_GL_THEMES {
+                let c = CString::new(tid).unwrap();
+                assert_eq!(ddgl_is_native_theme(c.as_ptr()), 1, "expected native theme: {tid}");
+            }
+            for unknown in ["", "custom-html", "video-123", "my_zip_theme"] {
+                let c = CString::new(unknown).unwrap();
+                assert_eq!(ddgl_is_native_theme(c.as_ptr()), 0, "unexpected native theme: {unknown}");
+            }
+            assert_eq!(ddgl_is_native_theme(std::ptr::null()), 0);
+        }
+    }
+
+    #[test]
+    fn linux_egl_compiles_all_shaders_and_renders_all_native_themes() {
+        let _guard = LINUX_EGL_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            let ctx = EglHeadlessContext::create().expect("Linux EGL headless context failed");
+            assert!(ctx.make_current(), "EGL make_current failed");
+            let gl = GlFns::load().expect("Linux GlFns::load failed");
+
+            // 1. Core shaders
+            for (name, vert, frag) in [
+                ("backdrop", FULLSCREEN_VERT, BACKDROP_FRAG),
+                ("blur", FULLSCREEN_VERT, BLUR_FRAG),
+                ("blit", FULLSCREEN_VERT, BLIT_FRAG),
+                ("sdf_ui", SDF_UI_VERT, SDF_UI_FRAG),
+                ("text", TEXT_VERT, TEXT_FRAG),
+            ] {
+                let p = gl
+                    .compile_program(vert, frag)
+                    .unwrap_or_else(|e| panic!("Core shader '{name}' GLSL failed on Linux: {e}"));
+                (gl.DeleteProgram)(p);
+            }
+
+            // 2. Resolved theme fragment shaders
+            let mut st = AppState::new(640, 360, 1.0);
+            for &tid in NATIVE_GL_THEMES {
+                st.set_theme(tid);
+                let (frag, _) = resolve_shader_and_params(&st);
+                let p = gl
+                    .compile_program(FULLSCREEN_VERT, &frag)
+                    .unwrap_or_else(|e| panic!("Theme '{tid}' fallback shader failed on Linux: {e}"));
+                (gl.DeleteProgram)(p);
+            }
+
+            // 3. Test ddgl_embedded_* into a non-zero offscreen FBO (same path as Gtk.GLArea / Qt6)
+            let mut fbo = 0u32;
+            let mut tex = 0u32;
+            let mut depth_rb = 0u32;
+            let (ew, eh) = (320i32, 180i32);
+            (gl.GenFramebuffers)(1, &mut fbo);
+            (gl.GenTextures)(1, &mut tex);
+            (gl.BindTexture)(gl::GL_TEXTURE_2D, tex);
+            (gl.TexImage2D)(
+                gl::GL_TEXTURE_2D,
+                0,
+                gl::GL_RGBA8 as gl::GLint,
+                ew,
+                eh,
+                0,
+                gl::GL_RGBA,
+                gl::GL_UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
+            (gl.GenRenderbuffers)(1, &mut depth_rb);
+            (gl.BindRenderbuffer)(gl::GL_RENDERBUFFER, depth_rb);
+            (gl.RenderbufferStorage)(gl::GL_RENDERBUFFER, gl::GL_DEPTH_COMPONENT24, ew, eh);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+            (gl.FramebufferTexture2D)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_COLOR_ATTACHMENT0,
+                gl::GL_TEXTURE_2D,
+                tex,
+                0,
+            );
+            (gl.FramebufferRenderbuffer)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_DEPTH_ATTACHMENT,
+                gl::GL_RENDERBUFFER,
+                depth_rb,
+            );
+            assert_eq!(
+                (gl.CheckFramebufferStatus)(gl::GL_FRAMEBUFFER),
+                gl::GL_FRAMEBUFFER_COMPLETE,
+                "Test offscreen FBO incomplete"
+            );
+            assert!(fbo != 0, "Expected non-zero test FBO id");
+
+            let eng = ddgl_embedded_create(ew, eh, 1.0);
+            assert!(!eng.is_null(), "ddgl_embedded_create failed");
+            let icons_msg = CString::new(
+                r#"{"t":"icons","vis":true,"r":[[24,24,72,84],[24,104,72,164],[140,48,188,108]]}"#,
+            )
+            .unwrap();
+            ddgl_embedded_post_json(eng, icons_msg.as_ptr());
+
+            let mut rgba = vec![0u8; (ew * eh * 4) as usize];
+            for &tid in NATIVE_GL_THEMES {
+                let theme_msg = CString::new(format!(r#"{{"t":"theme","id":"{tid}"}}"#)).unwrap();
+                ddgl_embedded_post_json(eng, theme_msg.as_ptr());
+                // Simulate Gtk.GLArea enabling GL_DEPTH_TEST before render callback
+                (gl.Enable)(gl::GL_DEPTH_TEST);
+                // Bind our non-zero FBO and pass u32::MAX to test GL_FRAMEBUFFER_BINDING auto-detect
+                (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+                assert_eq!(ddgl_embedded_render(eng, 0.033, u32::MAX), 1);
+                assert_eq!(ddgl_embedded_render(eng, 0.033, u32::MAX), 1);
+            }
+            // Verify actual non-zero pixels rendered into the non-zero FBO
+            let papercut_msg = CString::new(r#"{"t":"theme","id":"papercut"}"#).unwrap();
+            ddgl_embedded_post_json(eng, papercut_msg.as_ptr());
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+            assert_eq!(ddgl_embedded_render(eng, 0.033, u32::MAX), 1);
+            let n = ddgl_embedded_read_rgba(eng, fbo, rgba.as_mut_ptr(), rgba.len() as i32);
+            assert_eq!(n, rgba.len() as i32);
+            let non_zero_rgb = rgba
+                .chunks_exact(4)
+                .filter(|px| px[0] > 8 || px[1] > 8 || px[2] > 8)
+                .count();
+            assert!(
+                non_zero_rgb > (ew * eh / 4) as usize,
+                "Expected visible rendered pixels in non-zero FBO, got {non_zero_rgb}"
+            );
+
+            ddgl_embedded_destroy(eng);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+            (gl.DeleteRenderbuffers)(1, &depth_rb);
+            (gl.DeleteTextures)(1, &tex);
+            (gl.DeleteFramebuffers)(1, &fbo);
+            drop(ctx);
+        }
+    }
+
+    #[test]
+    fn linux_headless_renders_png_and_rgba() {
+        let _guard = LINUX_EGL_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            let eng = ddgl_headless_create(320, 180, 1.0);
+            assert!(!eng.is_null(), "ddgl_headless_create failed");
+            let theme = CString::new(r#"{"t":"theme","id":"meadow"}"#).unwrap();
+            let icons = CString::new(r#"{"t":"icons","vis":true,"r":[[20,20,76,86]]}"#).unwrap();
+            ddgl_headless_post_json(eng, theme.as_ptr());
+            ddgl_headless_post_json(eng, icons.as_ptr());
+            ddgl_headless_set_low_mode(eng, 1);
+            ddgl_headless_set_low_mode(eng, 0);
+            let _ = ddgl_headless_mouse(eng, 0, 100.0, 90.0);
+
+            let mut buf = vec![0u8; 320 * 180 * 4];
+            let n = ddgl_headless_render_rgba(eng, 0.033, buf.as_mut_ptr(), buf.len() as i32);
+            assert_eq!(n, buf.len() as i32);
+            assert!(buf.chunks_exact(4).any(|px| px[0] > 10 || px[1] > 10 || px[2] > 10));
+
+            let tmp_png = std::env::temp_dir().join("diyardesk_gl_linux_test.png");
+            let cpath = CString::new(tmp_png.to_string_lossy().as_ref()).unwrap();
+            assert_eq!(ddgl_headless_render_png(eng, 0.033, cpath.as_ptr()), 1);
+            assert!(tmp_png.is_file());
+            let meta = std::fs::metadata(&tmp_png).unwrap();
+            assert!(meta.len() > 1000, "PNG unexpectedly tiny: {} bytes", meta.len());
+            let _ = std::fs::remove_file(&tmp_png);
+
+            ddgl_headless_destroy(eng);
         }
     }
 }

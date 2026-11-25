@@ -30,11 +30,18 @@ from .desktop_env import (  # noqa: E402
 from .displays import MonitorInfo, detect_compositor_monitors  # noqa: E402
 from .icons import make_adapter  # noqa: E402
 from .mpv_player import MpvVideoBackend, find_theme_video_file  # noqa: E402
+from .native_gl import (  # noqa: E402
+    NativeGlArea,
+    NativeGlHeadless,
+    NativeGlLibrary,
+    should_use_native_gl,
+)
 from .pause import PauseMonitor  # noqa: E402
 from .power import PowerMonitor, PowerState  # noqa: E402
 from .scheduler import compute_solar_phase, detect_os_dark_mode  # noqa: E402
 from .static_wallpaper import StaticWallpaper  # noqa: E402
 from .sysbridge import LocalAudioMeter, SystemStatsSampler  # noqa: E402
+from .virtual_icons import VirtualIconsOverlay, merge_host_and_virtual_icons  # noqa: E402
 from .watchdog import ResourceWatchdog, find_webkit_child_pids, sample_processes  # noqa: E402
 from .windows import detect_active_windows, detect_workspace_state  # noqa: E402
 
@@ -327,11 +334,22 @@ class Wallpaper:
         monitor_info: MonitorInfo | None = None,
         gdk_monitor: Any = None,
         is_primary: bool = True,
+        theme_id: str | None = None,
     ) -> None:
         self.host = host
         self.server = server
         self.log = log
         self._page = page
+        self._theme_id = str(
+            theme_id
+            or getattr(getattr(self.host, "settings", None), "theme", "")
+            or ""
+        )
+        self._native_gl: NativeGlArea | None = None
+        self._native_headless: NativeGlHeadless | None = None
+        self._virtual_overlay: VirtualIconsOverlay | None = None
+        self._real_icons_raw: tuple[bool, list[list[int]], list[str]] = (False, [], [])
+        self._ui_rects: list[tuple[int, int, int, int]] = []
         self._adapter_lock = threading.Lock()
         self._adapter = adapter
         self._last_icons: str | None = None
@@ -422,7 +440,9 @@ class Wallpaper:
 
         self.bridge: BridgeWebView | None = None
         self.web = None
-        if self.backend != "plasma-plugin":
+        if self.backend != "plasma-plugin" and not self._should_use_native_gl(
+            self._page, self._theme_id
+        ):
             self._init_bridge()
         self.window: Gtk.Window | None = None
         self._ui_rect: tuple[int, int, int, int] | None = None
@@ -665,6 +685,8 @@ class Wallpaper:
             self.log.write("KDE Plasma duvar kağıdı eklentisi aktif: org.deskland.preview")
             return
         if self.backend == "static":
+            if self._should_use_native_gl(self._page, self._theme_id):
+                return
             self._create_hidden_render_surface(
                 "Statik fallback: GNOME/KWin Wayland veya --static"
             )
@@ -700,7 +722,8 @@ class Wallpaper:
             window.move(self.geo.x, self.geo.y)
             window.resize(self.geo.width, self.geo.height)
 
-        window.add(self.web)
+        if self.web is not None:
+            window.add(self.web)
         window.show_all()
         self.window = window
         if self.backend == "gnome-shell":
@@ -725,14 +748,21 @@ class Wallpaper:
                     cairo.RectangleInt(0, 0, max(1, self.geo.width), max(1, self.geo.height))
                 )
                 pass_through = False
-            elif (
-                self.backend == "x11"
-                and self._ui_rect is not None
-                and self._ui_rect[2] > 0
-                and self._ui_rect[3] > 0
+            elif self.backend == "x11" and (
+                getattr(self, "_ui_rects", None)
+                or (
+                    self._ui_rect is not None
+                    and self._ui_rect[2] > 0
+                    and self._ui_rect[3] > 0
+                )
             ):
-                x, y, w, h = self._ui_rect
-                region = cairo.Region(cairo.RectangleInt(x, y, w, h))
+                region = cairo.Region()
+                ui_rects = list(getattr(self, "_ui_rects", []) or [])
+                if not ui_rects and self._ui_rect is not None:
+                    ui_rects = [self._ui_rect]
+                for x, y, w, h in ui_rects:
+                    if w > 0 and h > 0:
+                        region.union(cairo.RectangleInt(x, y, w, h))
                 pass_through = False
             else:
                 region = cairo.Region()
@@ -740,8 +770,16 @@ class Wallpaper:
 
             targets: list[tuple[Any, Any]] = [
                 (self.window, gdk_window),
-                (self.web, self.web.get_window()),
             ]
+            v_overlay = getattr(self, "_virtual_overlay", None)
+            native_gl = getattr(self, "_native_gl", None)
+            active_widget = (
+                v_overlay.widget
+                if v_overlay is not None
+                else (native_gl.widget if native_gl is not None else self.web)
+            )
+            if active_widget is not None:
+                targets.append((active_widget, active_widget.get_window()))
             try:
                 for child_gw in gdk_window.get_children():
                     targets.append((None, child_gw))
@@ -812,6 +850,247 @@ class Wallpaper:
                 pass
         return True
 
+    # ---------------------------------------------------------------- native GL
+    @property
+    def native_gl_active(self) -> bool:
+        native_gl = getattr(self, "_native_gl", None)
+        native_hl = getattr(self, "_native_headless", None)
+        return bool(
+            (native_gl is not None and native_gl.is_running)
+            or (native_hl is not None and native_hl.is_running)
+            or native_gl is not None
+        )
+
+    def _should_use_native_gl(self, page: str, theme_id: str) -> bool:
+        if self.backend == "plasma-plugin":
+            return False
+        settings = getattr(self.host, "settings", None)
+        rust_opengl = bool(getattr(settings, "rust_opengl", False))
+        return should_use_native_gl(
+            page,
+            theme_id,
+            rust_opengl=rust_opengl,
+            available=NativeGlLibrary.is_available(),
+        )
+
+    def _post_active(self, payload: Any) -> None:
+        native_gl = getattr(self, "_native_gl", None)
+        native_hl = getattr(self, "_native_headless", None)
+        if native_gl is not None:
+            native_gl.post_json(payload)
+        elif native_hl is not None:
+            native_hl.post_json(payload)
+        elif self.bridge is not None:
+            self.bridge.post(payload)
+
+    def _attach_window_child(self, widget: Any) -> None:
+        if self.window is None or widget is None:
+            return
+        try:
+            for child in list(self.window.get_children()):
+                if child is not widget:
+                    self.window.remove(child)
+        except Exception:
+            pass
+        if widget.get_parent() is None:
+            self.window.add(widget)
+        self.window.show_all()
+        self._apply_input_region()
+
+    def _release_webview(self) -> None:
+        if self.bridge is not None:
+            try:
+                self.bridge.load_uri("about:blank")
+            except Exception:
+                pass
+        if self.web is not None:
+            try:
+                parent = self.web.get_parent()
+                if parent is not None:
+                    parent.remove(self.web)
+            except Exception:
+                pass
+            try:
+                self.web.destroy()
+            except Exception:
+                pass
+        self.bridge = None
+        self.web = None
+        if self.backend == "static" and self.window is not None:
+            try:
+                self.window.destroy()
+            except Exception:
+                pass
+            self.window = None
+
+    def _stop_native_gl(self) -> None:
+        v_overlay = getattr(self, "_virtual_overlay", None)
+        if v_overlay is not None:
+            try:
+                parent = v_overlay.widget.get_parent()
+                if parent is not None:
+                    parent.remove(v_overlay.widget)
+            except Exception:
+                pass
+            try:
+                v_overlay.destroy()
+            except Exception:
+                pass
+            self._virtual_overlay = None
+        native_gl = getattr(self, "_native_gl", None)
+        if native_gl is not None:
+            try:
+                parent = native_gl.widget.get_parent()
+                if parent is not None:
+                    parent.remove(native_gl.widget)
+            except Exception:
+                pass
+            try:
+                native_gl.destroy()
+            except Exception:
+                pass
+            self._native_gl = None
+        native_hl = getattr(self, "_native_headless", None)
+        if native_hl is not None:
+            try:
+                native_hl.destroy()
+            except Exception:
+                pass
+            self._native_headless = None
+
+    def _merged_native_icons_message(self) -> dict[str, Any]:
+        real_vis, real_rects, real_labels = getattr(
+            self, "_real_icons_raw", (False, [], [])
+        )
+        settings = getattr(self.host, "settings", None)
+        v_icons = list(getattr(settings, "virtual_icons", []) or [])
+        v_mode = str(getattr(settings, "virtual_bar_mode", "auto") or "auto")
+        scale = float(getattr(self, "scale", 1.0) or 1.0)
+        vis, rects, labels = merge_host_and_virtual_icons(
+            real_vis, real_rects, real_labels, v_icons, scale, mode=v_mode
+        )
+        msg: dict[str, Any] = {"t": "icons", "vis": vis, "r": rects}
+        if any(labels):
+            msg["n"] = labels
+        return msg
+
+    def push_merged_native_icons(self) -> None:
+        if self._closed:
+            return
+        native_gl = getattr(self, "_native_gl", None)
+        native_hl = getattr(self, "_native_headless", None)
+        if native_gl is None and native_hl is None:
+            return
+        msg = self._merged_native_icons_message()
+        encoded = json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+        if native_gl is not None:
+            native_gl.post_json(encoded)
+        if native_hl is not None:
+            native_hl.post_json(encoded)
+            if self.backend == "static":
+                self._schedule_static_render(180)
+        self.host.on_icons_message(msg)
+
+    def _on_overlay_virtual_icons_changed(
+        self, icons: list[dict[str, Any]], persist: bool
+    ) -> None:
+        self.host.on_virtual_icons_saved(icons, persist=persist, source_wallpaper=self)
+        self.push_merged_native_icons()
+
+    def _on_overlay_ui_rects(self, rects: list[tuple[int, int, int, int]]) -> None:
+        self._ui_rects = list(rects)
+        self._apply_input_region()
+
+    def _sync_native_gl_state(self, theme_id: str) -> None:
+        low = self._is_low_mode()
+        target = self._native_gl or self._native_headless
+        if target is None:
+            return
+        target.set_low_mode(low)
+        target.post_json({"t": "lowMode", "v": low})
+        target.post_json({"t": "theme", "id": theme_id})
+        settings = getattr(self.host, "settings", None)
+        solar_sync = bool(getattr(settings, "solar_sync", False))
+        target.post_json(compute_solar_phase(dark_mode=detect_os_dark_mode(), solar_sync=solar_sync))
+        target.post_json(self.host.wallpaper_settings_message())
+        self.push_merged_native_icons()
+        if getattr(self, "_last_windows", None) is not None:
+            target.post_json(self._last_windows)
+        if getattr(self, "_last_workspace", None) is not None:
+            target.post_json(self._last_workspace)
+        v_overlay = getattr(self, "_virtual_overlay", None)
+        if v_overlay is not None and settings is not None:
+            real_vis, real_rects, _ = getattr(self, "_real_icons_raw", (False, [], []))
+            v_overlay.set_state(
+                list(getattr(settings, "virtual_icons", []) or []),
+                mode=str(getattr(settings, "virtual_bar_mode", "auto") or "auto"),
+                collapsed=getattr(settings, "virtual_bar_collapsed", None),
+                has_real_icons=bool(real_vis and real_rects),
+            )
+
+    def _start_native_gl(self, theme_id: str) -> bool:
+        if self._closed or not NativeGlLibrary.is_available():
+            return False
+        if self.backend == "static":
+            if self._native_headless is None:
+                try:
+                    self._native_headless = NativeGlHeadless(
+                        self.screen_w, self.screen_h, self.scale, log=self.log
+                    )
+                except Exception as exc:
+                    self.log.exception("Headless Rust OpenGL başlatılamadı; WebKitGTK kullanılacak", exc)
+                    self._native_headless = None
+                    return False
+            self._release_webview()
+            self._ready = True
+            self._sync_native_gl_state(theme_id)
+            self._sync_native_audio()
+            self._last_icons = None
+            self._last_pause = -1
+            self._kick_polls()
+            self._schedule_static_render(120)
+            return True
+
+        if self.window is None:
+            return False
+        if self._native_gl is None:
+            try:
+                self._native_gl = NativeGlArea(
+                    self.screen_w,
+                    self.screen_h,
+                    self.scale,
+                    on_message=self._on_message,
+                    log=self.log,
+                )
+            except Exception as exc:
+                self.log.exception("Gtk.GLArea Rust OpenGL başlatılamadı; WebKitGTK kullanılacak", exc)
+                self._native_gl = None
+                return False
+            try:
+                self._virtual_overlay = VirtualIconsOverlay(
+                    self._native_gl.widget,
+                    logical_w=self.geo.width,
+                    logical_h=self.geo.height,
+                    safe_insets=self._safe_insets,
+                    on_icons_changed=self._on_overlay_virtual_icons_changed,
+                    on_collapsed_changed=self.host.on_virtual_bar_collapsed,
+                    on_pass_mouse=self._native_gl.dispatch_mouse,
+                    on_ui_rects_changed=self._on_overlay_ui_rects,
+                )
+                self._attach_window_child(self._virtual_overlay.widget)
+            except Exception as exc:
+                self.log.exception("Sanal ikon katmanı başlatılamadı; doğrudan GL kullanılacak", exc)
+                self._virtual_overlay = None
+                self._attach_window_child(self._native_gl.widget)
+        self._release_webview()
+        self._ready = True
+        self._sync_native_gl_state(theme_id)
+        self._sync_native_audio()
+        self._last_icons = None
+        self._last_pause = -1
+        self._kick_polls()
+        return True
+
     # ---------------------------------------------------------------- pages
     @property
     def page(self) -> str:
@@ -832,13 +1111,35 @@ class Wallpaper:
         low = "&low=1" if self._is_low_mode() else ""
         return self.server.url(f"{page}?wallpaper=1{mute}{vicons}{safe}{low}&v={self.host.version}")
 
-    def load_page(self, page: str) -> None:
+    def load_page(self, page: str, theme_id: str | None = None) -> None:
         self._native_audio.stop()
         self._ui_rect = None
         self._apply_input_region()
         self._page = page
+        self._theme_id = str(
+            theme_id
+            or getattr(getattr(self.host, "settings", None), "theme", "")
+            or getattr(self, "_theme_id", "")
+        )
         self._ready = False
         self._last_pause = -1
+
+        if self._should_use_native_gl(page, self._theme_id) and self._start_native_gl(self._theme_id):
+            self.log.write(f"Yerel Rust OpenGL teması yüklendi: {self._theme_id}")
+            return
+
+        self._stop_native_gl()
+        if self.backend == "plasma-plugin":
+            return
+        if self.bridge is None:
+            self._init_bridge()
+            if self.backend == "static":
+                if self.window is None:
+                    self._create_hidden_render_surface(
+                        "Statik fallback: GNOME/KWin Wayland veya --static"
+                    )
+            elif self.window is not None and self.web is not None:
+                self._attach_window_child(self.web)
         if self.bridge is None:
             return
         self._last_icons = None
@@ -852,6 +1153,11 @@ class Wallpaper:
             self._write_plasma_pause(self._manual_pause)
             if self.bridge is None:
                 return
+        if getattr(self, "_native_gl", None) is not None or getattr(self, "_native_headless", None) is not None:
+            self._sync_native_gl_state(getattr(self, "_theme_id", ""))
+            if self.backend == "static":
+                self._schedule_static_render(120)
+            return
         self._ready = False
         self._last_icons = None
         self._last_pause = -1
@@ -894,14 +1200,30 @@ class Wallpaper:
             self.host.on_virtual_bar_collapsed(message.get("v"))
 
     def send_virtual_state(self) -> None:
-        if self._closed or not self._ready or self.bridge is None:
+        if self._closed:
+            return
+        settings = getattr(self.host, "settings", None)
+        if settings is None:
+            return
+        v_overlay = getattr(self, "_virtual_overlay", None)
+        if v_overlay is not None:
+            real_vis, real_rects, _ = getattr(self, "_real_icons_raw", (False, [], []))
+            v_overlay.set_state(
+                list(settings.virtual_icons),
+                mode=settings.virtual_bar_mode,
+                collapsed=settings.virtual_bar_collapsed,
+                has_real_icons=bool(real_vis and real_rects),
+            )
+        if getattr(self, "_native_gl", None) is not None or getattr(self, "_native_headless", None) is not None:
+            self.push_merged_native_icons()
+        if not self._ready or self.bridge is None:
             return
         self.bridge.post(
             {
                 "t": "virtualState",
-                "icons": self.host.settings.virtual_icons,
-                "collapsed": self.host.settings.virtual_bar_collapsed,
-                "mode": self.host.settings.virtual_bar_mode,
+                "icons": settings.virtual_icons,
+                "collapsed": settings.virtual_bar_collapsed,
+                "mode": settings.virtual_bar_mode,
             }
         )
 
@@ -967,19 +1289,17 @@ class Wallpaper:
 
     def set_settings(self, values: dict[str, Any]) -> None:
         if values:
-            if self.bridge is not None:
-                self.bridge.post({"t": "settings", "v": values})
+            self._post_active({"t": "settings", "v": values})
             if "audioPlay" in values or "audioFile" in values:
                 self._sync_native_audio()
             if self.backend == "static":
-                self._schedule_static_render(400)
+                self._schedule_static_render(160 if getattr(self, "_native_headless", None) is not None else 400)
 
     def reset(self) -> None:
-        if self.bridge is not None:
-            self.bridge.post({"t": "reset"})
+        self._post_active({"t": "reset"})
         self._sync_native_audio()
         if self.backend == "static":
-            self._schedule_static_render(400)
+            self._schedule_static_render(160 if getattr(self, "_native_headless", None) is not None else 400)
 
     def set_manual_pause(self, value: bool) -> None:
         self._manual_pause = bool(value)
@@ -992,8 +1312,13 @@ class Wallpaper:
         self._low_mode = bool(enabled)
         self.pause_monitor.low_mode = self._low_mode
         self._reschedule_poll_timers()
-        if self.bridge is not None:
-            self.bridge.post({"t": "lowMode", "v": self._low_mode})
+        native_gl = getattr(self, "_native_gl", None)
+        if native_gl is not None:
+            native_gl.set_low_mode(self._low_mode)
+        native_hl = getattr(self, "_native_headless", None)
+        if native_hl is not None:
+            native_hl.set_low_mode(self._low_mode)
+        self._post_active({"t": "lowMode", "v": self._low_mode})
         self._last_pause = -1
         self._poll_pause_once()
         if self.backend == "static":
@@ -1072,27 +1397,44 @@ class Wallpaper:
             w_enc = json.dumps(win_message, ensure_ascii=False, separators=(",", ":"))
             if w_enc != getattr(self, "_last_windows", None):
                 self._last_windows = w_enc
-                if self._ready and self.bridge is not None:
-                    self.bridge.post(w_enc)
+                if self._ready:
+                    self._post_active(w_enc)
         if ws_message is not None:
             ws_enc = json.dumps(ws_message, ensure_ascii=False, separators=(",", ":"))
             if ws_enc != getattr(self, "_last_workspace", None):
                 self._last_workspace = ws_enc
-                if self._ready and self.bridge is not None:
-                    self.bridge.post(ws_enc)
+                if self._ready:
+                    self._post_active(ws_enc)
         if message is None:
             return False
+        self._real_icons_raw = (
+            bool(message.get("vis")),
+            list(message.get("r") or []),
+            list(message.get("n") or []),
+        )
+        v_overlay = getattr(self, "_virtual_overlay", None)
+        if v_overlay is not None:
+            v_overlay.set_has_real_icons(bool(self._real_icons_raw[0] and self._real_icons_raw[1]))
         encoded = json.dumps(message, ensure_ascii=False, separators=(",", ":"))
         if encoded == self._last_icons:
             return False
         self._last_icons = encoded
-        if self._ready and self.bridge is not None:
-            self.bridge.post(encoded)
-        self.host.on_icons_message(message)
+        if self._ready:
+            if getattr(self, "_native_gl", None) is not None or getattr(self, "_native_headless", None) is not None:
+                self.push_merged_native_icons()
+            elif self.bridge is not None:
+                self.bridge.post(encoded)
+                self.host.on_icons_message(message)
+        else:
+            self.host.on_icons_message(message)
         if self.backend == "static":
             # Static themes snap morph transitions immediately while paused, so a
             # short debounce avoids extra redraw bursts without keeping WebGL active.
-            delay = 900 if self._static_file is None else 500
+            delay = (
+                220
+                if getattr(self, "_native_headless", None) is not None
+                else (900 if self._static_file is None else 500)
+            )
             self._schedule_static_render(delay)
         self.log.write(f"Simge değişimi: {len(message['r'])} adet")
         return False
@@ -1166,7 +1508,13 @@ class Wallpaper:
 
     def push_environment(self, force: bool = False) -> None:
         host = getattr(self, "host", None)
-        if host is None or self._closed or not self._ready or self.bridge is None:
+        if host is None or self._closed or not self._ready:
+            return
+        if (
+            self.bridge is None
+            and getattr(self, "_native_gl", None) is None
+            and getattr(self, "_native_headless", None) is None
+        ):
             return
         settings = getattr(host, "settings", None)
         solar_sync = bool(getattr(settings, "solar_sync", False))
@@ -1179,7 +1527,7 @@ class Wallpaper:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         if force or encoded != getattr(self, "_last_env", None):
             self._last_env = encoded
-            self.bridge.post(encoded)
+            self._post_active(encoded)
 
     def sync_mpv_video(self) -> None:
         mpv = getattr(self, "mpv_backend", None)
@@ -1265,11 +1613,19 @@ class Wallpaper:
             return False
         self._last_pause = value
         self._sync_native_audio()
+        native_gl = getattr(self, "_native_gl", None)
+        native_hl = getattr(self, "_native_headless", None)
         if pause and getattr(self, "_pointer_active", False):
             self._pointer_active = False
             self._last_pointer = None
-            if self._ready and self.bridge is not None:
+            if native_gl is not None:
+                native_gl.dispatch_mouse(3, -1.0, -1.0)
+            elif self._ready and self.bridge is not None:
                 self.bridge.post({"t": "pointer", "kind": "leave"})
+        if native_gl is not None:
+            native_gl.set_paused(pause)
+        if native_hl is not None:
+            native_hl.set_paused(pause)
         if self._ready and self.bridge is not None:
             self.bridge.post({"t": "pause", "v": pause})
         self.log.write("Duraklatıldı" if pause else "Devam ediyor")
@@ -1309,7 +1665,10 @@ class Wallpaper:
         if self._closed or self.backend != "x11":
             self._pointer_timeout = 0
             return False
-        if not self._ready or self._last_pause != 0 or self.bridge is None:
+        if not self._ready or self._last_pause != 0:
+            return True
+        native_gl = getattr(self, "_native_gl", None)
+        if self.bridge is None and native_gl is None:
             return True
         try:
             display = Gdk.Display.get_default()
@@ -1330,11 +1689,17 @@ class Wallpaper:
                 if not self._pointer_active or last is None or abs(lx - last[0]) + abs(ly - last[1]) >= 2:
                     self._pointer_active = True
                     self._last_pointer = (lx, ly)
-                    self.bridge.post({"t": "pointer", "kind": "hover", "x": lx, "y": ly})
+                    if native_gl is not None:
+                        native_gl.dispatch_mouse(0, float(lx), float(ly))
+                    elif self.bridge is not None:
+                        self.bridge.post({"t": "pointer", "kind": "hover", "x": lx, "y": ly})
             elif self._pointer_active:
                 self._pointer_active = False
                 self._last_pointer = None
-                self.bridge.post({"t": "pointer", "kind": "leave"})
+                if native_gl is not None:
+                    native_gl.dispatch_mouse(3, -1.0, -1.0)
+                elif self.bridge is not None:
+                    self.bridge.post({"t": "pointer", "kind": "leave"})
         except Exception:
             pass
         return True
@@ -1346,7 +1711,37 @@ class Wallpaper:
         if self._snapshot_done is not None:
             done(None, None, self.host.i18n.t("errBusyImage"))
             return
+        native_gl = getattr(self, "_native_gl", None)
+        if native_gl is not None:
+            native_gl.request_snapshot(done)
+            return
+        native_hl = getattr(self, "_native_headless", None)
+        if native_hl is not None:
+            thumb, full, err = native_hl.render_snapshot_data_urls(dt=0.033)
+            done(thumb, full, err)
+            return
         if self.backend == "plasma-plugin":
+            settings = getattr(self.host, "settings", None)
+            theme_id = str(getattr(settings, "theme", "") or getattr(self, "_theme_id", ""))
+            if should_use_native_gl(
+                self._page,
+                theme_id,
+                rust_opengl=bool(getattr(settings, "rust_opengl", False)),
+                available=NativeGlLibrary.is_available(),
+            ):
+                try:
+                    headless = NativeGlHeadless(self.screen_w, self.screen_h, self.scale, log=self.log)
+                    headless.post_json({"t": "theme", "id": theme_id})
+                    headless.post_json(self.host.wallpaper_settings_message())
+                    if self._last_icons is not None:
+                        headless.post_json(self._last_icons)
+                    thumb, full, err = headless.render_snapshot_data_urls(dt=0.033)
+                    headless.destroy()
+                    if not err and full:
+                        done(thumb, full, None)
+                        return
+                except Exception as exc:
+                    self.log.exception("Plasma headless OpenGL snapshot hatası; WebKit fallback", exc)
             self._snapshot_done = done
             self._snapshot_timeout = GLib.timeout_add_seconds(
                 20, self._snapshot_timed_out
@@ -1465,6 +1860,28 @@ class Wallpaper:
         self._static_timeout = 0
         if self._closed:
             return False
+        native_hl = getattr(self, "_native_headless", None)
+        if native_hl is not None:
+            target = config_dir() / f"render-{int(time.time() * 1000)}.png"
+            try:
+                was_paused = self._last_pause == 1
+                native_hl.set_paused(False)
+                ok = native_hl.render_to_png(target, dt=0.033)
+                if was_paused:
+                    native_hl.set_paused(True)
+                if ok and self.static_wallpaper.apply(target):
+                    previous = self._static_file
+                    self._static_file = target
+                    if previous is not None and previous != target:
+                        try:
+                            previous.unlink()
+                        except OSError:
+                            pass
+            except Exception as exc:
+                self.log.exception("Headless Rust OpenGL statik kare oluşturulamadı", exc)
+            return False
+        if self.web is None or self.bridge is None:
+            return False
         if self._last_pause == 1 and self._ready and not self._static_snapshot_pending:
             # WebKitGTK only composites WebGL canvas updates inside a
             # requestAnimationFrame tick; briefly unpause so one frame paints.
@@ -1558,6 +1975,7 @@ class Wallpaper:
             GLib.source_remove(self._watchdog_timeout)
             self._watchdog_timeout = 0
         self.static_wallpaper.restore()
+        self._stop_native_gl()
         if self._static_file is not None:
             try:
                 self._static_file.unlink()

@@ -19,6 +19,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -610,6 +611,167 @@ class GridAdapter(IconAdapter):
         return True, [self._grid_for(p, i, used) for i, p in enumerate(self._entries)]
 
 
+class NullIconAdapter(IconAdapter):
+    name = "none"
+
+    def read(self) -> tuple[bool, list[Rect]]:
+        return False, []
+
+
+GNOME_ICON_EXTENSION_HINTS = (
+    "ding",
+    "desktop-icons",
+    "desktopicons",
+)
+
+_ICON_DAEMON_COMMS = frozenset(
+    {
+        "nemo-desktop",
+        "caja",
+        "pcmanfm",
+        "pcmanfm-qt",
+        "xfdesktop",
+    }
+)
+
+_ICONLESS_WMS = (
+    "hyprland",
+    "sway",
+    "niri",
+    "river",
+    "wayfire",
+    "labwc",
+    "mangowc",
+    "i3",
+    "bspwm",
+    "dwm",
+    "awesome",
+    "qtile",
+    "xmonad",
+    "openbox",
+    "fluxbox",
+    "herbstluftwm",
+)
+
+
+def parse_gsettings_extension_list(raw: str) -> list[str]:
+    """Parse `gsettings get org.gnome.shell enabled-extensions` output."""
+    text = (raw or "").strip()
+    if not text or text == "@as []":
+        return []
+    return re.findall(r"'([^']+)'|\"([^\"]+)\"", text) and [
+        a or b for a, b in re.findall(r"'([^']+)'|\"([^\"]+)\"", text)
+    ]
+
+
+def has_gnome_icon_extension(
+    enabled_extensions: list[str],
+    *,
+    user_extensions_disabled: bool = False,
+) -> bool:
+    if user_extensions_disabled:
+        return False
+    for ext_id in enabled_extensions:
+        low = ext_id.lower()
+        if any(hint in low for hint in GNOME_ICON_EXTENSION_HINTS):
+            return True
+    return False
+
+
+def _has_running_icon_daemon() -> bool:
+    proc_root = Path("/proc")
+    try:
+        for entry in proc_root.iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                comm = (entry / "comm").read_text(encoding="utf-8", errors="ignore").strip().lower()
+                if comm in _ICON_DAEMON_COMMS:
+                    return True
+            except OSError:
+                continue
+    except OSError:
+        pass
+    return False
+
+
+def detect_gnome_desktop_icons() -> bool:
+    """Return True only when GNOME actually displays desktop icons (DING/etc. or icon daemon)."""
+    if _has_running_icon_daemon():
+        return True
+    try:
+        dis = subprocess.run(
+            ["gsettings", "get", "org.gnome.shell", "disable-user-extensions"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if dis.returncode == 0 and dis.stdout.strip().lower() == "true":
+            return False
+        ext = subprocess.run(
+            ["gsettings", "get", "org.gnome.shell", "enabled-extensions"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if ext.returncode == 0:
+            enabled = parse_gsettings_extension_list(ext.stdout)
+            return has_gnome_icon_extension(enabled, user_extensions_disabled=False)
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return False
+
+
+class GnomeIconAdapter(GioMetadataAdapter):
+    """GNOME desktop icon adapter: avoids phantom ~/Desktop icons when DING is absent."""
+
+    name = "gnome-ding"
+
+    def __init__(self, *args, detector=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._detector = detector or detect_gnome_desktop_icons
+        self._cached_visible: bool | None = None
+        self._cached_at: float = 0.0
+
+    def _icons_enabled(self) -> bool:
+        now = time.monotonic()
+        if self._cached_visible is None or (now - self._cached_at) >= 5.0:
+            self._cached_visible = bool(self._detector())
+            self._cached_at = now
+        return self._cached_visible
+
+    def read(self) -> tuple[bool, list[Rect]]:
+        if not self._icons_enabled():
+            return False, []
+        return super().read()
+
+
+class IconlessWaylandAdapter(GioMetadataAdapter):
+    """Tiling Wayland WMs (Hyprland/Sway/Niri/River): report no icons unless a daemon runs."""
+
+    name = "wayland-auto"
+
+    def __init__(self, *args, daemon_check=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._daemon_check = daemon_check or _has_running_icon_daemon
+        self._cached_daemon: bool | None = None
+        self._cached_at: float = 0.0
+
+    def _has_daemon(self) -> bool:
+        now = time.monotonic()
+        if self._cached_daemon is None or (now - self._cached_at) >= 5.0:
+            self._cached_daemon = bool(self._daemon_check())
+            self._cached_at = now
+        return self._cached_daemon
+
+    def read(self) -> tuple[bool, list[Rect]]:
+        if not self._has_daemon():
+            return False, []
+        return super().read()
+
+
 def make_adapter(
     desktop: Path,
     scale: int,
@@ -633,10 +795,23 @@ def make_adapter(
         origin_x=origin_x,
         origin_y=origin_y,
     )
+    if forced == "none":
+        return NullIconAdapter(**common)
     if forced == "grid":
         return GridAdapter(**common)
+    if forced == "gio":
+        return GioMetadataAdapter(**common)
     if forced == "xfce" or "xfce" in desktop_env:
         return XfceAdapter(**common)
     if forced == "plasma" or "kde" in desktop_env or "plasma" in desktop_env:
         return PlasmaAdapter(**common)
+    if forced == "gnome" or "gnome" in desktop_env:
+        return GnomeIconAdapter(**common)
+    if (
+        any(wm in desktop_env for wm in _ICONLESS_WMS)
+        or os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+        or os.environ.get("NIRI_SOCKET")
+        or os.environ.get("SWAYSOCK")
+    ):
+        return IconlessWaylandAdapter(**common)
     return GioMetadataAdapter(**common)

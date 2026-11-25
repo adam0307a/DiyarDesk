@@ -232,10 +232,13 @@ def test_plasma_bridge_honors_disable_auto_pause() -> None:
         / "ui"
     )
     main_qml = (ui_dir / "main.qml").read_text(encoding="utf-8")
+    web_qml = (ui_dir / "WebEngineLayer.qml").read_text(encoding="utf-8")
+    native_qml = (ui_dir / "NativeGlLayer.qml").read_text(encoding="utf-8")
     inject_js = (ui_dir / "inject.js").read_text(encoding="utf-8")
     assert "property bool disableAutoPause: false" in main_qml
     assert "!disableAutoPause" in main_qml
-    assert "window.__desklandDisableAutoPause" in main_qml
+    assert "window.__desklandDisableAutoPause" in web_qml
+    assert "DiyarDeskGlItem" in native_qml
     assert "window.__desklandDisableAutoPause" in inject_js
     assert "(hostPaused && !disableAutoPause) || filePaused" in inject_js
 

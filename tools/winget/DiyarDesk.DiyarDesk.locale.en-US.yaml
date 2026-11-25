@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 PackageIdentifier: DiyarDesk.DiyarDesk
-PackageVersion: 0.5.3
+PackageVersion: 0.5.4
 PackageLocale: en-US
 Publisher: DiyarDesk contributors
 PublisherUrl: https://github.com/adam0307a/DiyarDesk
@@ -25,6 +25,6 @@ Tags:
   - adaptive-wallpaper
   - desktop
   - open-source
-ReleaseNotesUrl: https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.3
+ReleaseNotesUrl: https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.4
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
