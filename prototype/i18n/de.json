@@ -258,7 +258,7 @@
           "label": "Widget-Layout",
           "hint": "Voreinstellung wählen (oder Karten per Kopfzeile frei verschieben)",
           "options": [
-            "Impulse Split",
+            "Impulse-Teilung",
             "Rechte Leiste",
             "Bento-Mitte",
             "Minimal-Uhr"
@@ -276,7 +276,7 @@
           "label": "Uhrstil",
           "hint": "Zwischen gewellter 12-Lappen-Cookie-Hybriduhr und At-a-Glance-Karte wechseln",
           "options": [
-            "Cookie Hybrid",
+            "Cookie-Hybrid",
             "At-a-Glance-Karte"
           ]
         },
@@ -917,7 +917,7 @@
       "desc": "Eine Polarnacht an einem zugefrorenen See: Die Aurora wallt über den Himmel und spiegelt sich im Eis, und deine Symbole ruhen in einer Lichtung des verschneiten Kiefernwaldes",
       "groups": [
         "Um die Symbole",
-        "Aurora",
+        "Nordlicht",
         "Winternacht"
       ],
       "params": {
@@ -1599,7 +1599,7 @@
           "hint": "Dunkelheit der zwischen den Papierschichten geworfenen Schatten"
         },
         "palette": {
-          "label": "Palette",
+          "label": "Farbpalette",
           "hint": "Farbfamilie für Papierschichten und Blumen",
           "options": [
             "Rosengarten",
@@ -1782,7 +1782,7 @@
           "hint": "Umgebender Kernhof und Lumineszenz der aktiven Punkte"
         },
         "palette": {
-          "label": "Palette",
+          "label": "Farbpalette",
           "options": [
             "Obsidian-Mono",
             "Papier-Mono",
@@ -1857,7 +1857,7 @@
           "label": "Widget-Layout",
           "hint": "Voreinstellung wählen (oder Karten per Kopfzeile frei verschieben)",
           "options": [
-            "Impulse Split",
+            "Impulse-Teilung",
             "Rechte Leiste",
             "Bento-Mitte",
             "Minimal-Uhr"
@@ -1875,7 +1875,7 @@
           "label": "Uhrstil",
           "hint": "Zwischen gewellter 12-Lappen-Cookie-Hybriduhr und At-a-Glance-Karte wechseln",
           "options": [
-            "Cookie Hybrid",
+            "Cookie-Hybrid",
             "At-a-Glance-Karte"
           ]
         },
