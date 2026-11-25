@@ -258,7 +258,7 @@
           "label": "Disposition des widgets",
           "hint": "Choisissez un préréglage (ou glissez librement chaque carte par son en-tête)",
           "options": [
-            "Impulse Split",
+            "Fractionnement Impulsion",
             "Barre droite",
             "Bento centré",
             "Horloge min."
@@ -1857,7 +1857,7 @@
           "label": "Disposition des widgets",
           "hint": "Choisissez un préréglage (ou glissez librement chaque carte par son en-tête)",
           "options": [
-            "Impulse Split",
+            "Fractionnement Impulsion",
             "Barre droite",
             "Bento centré",
             "Horloge min."
