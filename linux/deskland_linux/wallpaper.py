@@ -44,7 +44,11 @@ from .static_wallpaper import StaticWallpaper  # noqa: E402
 from .sysbridge import LocalAudioMeter, SystemStatsSampler  # noqa: E402
 from .virtual_icons import VirtualIconsOverlay, merge_host_and_virtual_icons  # noqa: E402
 from .watchdog import ResourceWatchdog, find_webkit_child_pids, sample_processes  # noqa: E402
-from .windows import detect_active_windows, detect_workspace_state  # noqa: E402
+from .windows import (  # noqa: E402
+    detect_active_windows,
+    detect_workspace_state,
+    query_gnome_shell_windows_async,
+)
 
 
 def plasma_pause_path() -> Path:
@@ -370,6 +374,8 @@ class Wallpaper:
         self._static_snapshot_pending = False
         self._icon_timeout = 0
         self._pause_timeout = 0
+        self._window_timeout = 0
+        self._win_busy = False
         self._pointer_timeout = 0
         self._pointer_active = False
         self._last_pointer: tuple[int, int] | None = None
@@ -468,6 +474,9 @@ class Wallpaper:
         if getattr(self, "_pause_timeout", 0):
             GLib.source_remove(self._pause_timeout)
             self._pause_timeout = 0
+        if getattr(self, "_window_timeout", 0):
+            GLib.source_remove(self._window_timeout)
+            self._window_timeout = 0
         if getattr(self, "_pointer_timeout", 0):
             GLib.source_remove(self._pointer_timeout)
             self._pointer_timeout = 0
@@ -481,6 +490,10 @@ class Wallpaper:
         pause_interval = 1000 if low else 500
         self._icon_timeout = GLib.timeout_add(icon_interval, self._poll_icons)
         self._pause_timeout = GLib.timeout_add(pause_interval, self._poll_pause)
+        if self.backend != "plasma-plugin":
+            gnome_fast = "gnome" in (os.environ.get("XDG_CURRENT_DESKTOP") or "").lower()
+            win_interval = (120 if low else 33) if gnome_fast else (200 if low else 90)
+            self._window_timeout = GLib.timeout_add(win_interval, self._poll_windows_fast)
         if self.backend == "x11":
             pointer_interval = 80 if low else 40
             self._pointer_timeout = GLib.timeout_add(pointer_interval, self._poll_x11_pointer)
@@ -1531,15 +1544,14 @@ class Wallpaper:
             window_aware = bool(getattr(settings, "window_aware", False))
             is_quiet_snow = getattr(self, "_theme_id", "") == "quietsnow"
             if window_aware or is_quiet_snow:
-                wins = detect_active_windows()
+                wins: list[Any] = []
+                if window_aware and not is_quiet_snow and not raw_rects:
+                    wins = detect_active_windows()
                 ws_id, panels = detect_workspace_state()
                 ox = getattr(getattr(self, "geo", None), "x", 0)
                 oy = getattr(getattr(self, "geo", None), "y", 0)
                 sc = float(getattr(self, "scale", 1.0) or 1.0)
-                win_message = {
-                    "t": "windows",
-                    "r": [w.as_wire_list(scale=sc, offset_x=ox, offset_y=oy) for w in wins],
-                }
+                # Live window rectangles are streamed by the fast `_poll_windows_fast` timer.
                 ws_message = {
                     "t": "workspace",
                     "id": ws_id,
@@ -1565,6 +1577,58 @@ class Wallpaper:
     def _poll_icons_once(self) -> bool:
         if not self._icon_busy:
             self._poll_icons()
+        return False
+
+    # ------------------------------------------------------- live window stream
+    def _wants_live_windows(self) -> bool:
+        if self._closed or self.backend == "plasma-plugin":
+            return False
+        if getattr(self, "_native_gl", None) is None and getattr(self, "_native_headless", None) is None:
+            return False
+        settings = getattr(getattr(self, "host", None), "settings", None)
+        return bool(getattr(settings, "window_aware", False)) or getattr(self, "_theme_id", "") == "quietsnow"
+
+    def _poll_windows_fast(self) -> bool:
+        if self._closed:
+            self._window_timeout = 0
+            return False
+        if not self._ready or getattr(self, "_win_busy", False) or not self._wants_live_windows():
+            return True
+        self._win_busy = True
+        desktop = (os.environ.get("XDG_CURRENT_DESKTOP") or "").lower()
+        if "gnome" in desktop and not any(
+            os.environ.get(k) for k in ("HYPRLAND_INSTANCE_SIGNATURE", "SWAYSOCK", "NIRI_SOCKET")
+        ):
+            if query_gnome_shell_windows_async(self._on_live_windows):
+                return True
+            self._win_busy = False
+            return True
+
+        def _worker() -> None:
+            try:
+                wins = detect_active_windows()
+            except Exception:
+                wins = None
+            GLib.idle_add(self._on_live_windows, wins)
+
+        threading.Thread(target=_worker, daemon=True).start()
+        return True
+
+    def _on_live_windows(self, wins: list[Any] | None) -> bool:
+        self._win_busy = False
+        if self._closed or wins is None or not self._ready:
+            return False
+        ox = getattr(getattr(self, "geo", None), "x", 0)
+        oy = getattr(getattr(self, "geo", None), "y", 0)
+        sc = float(getattr(self, "scale", 1.0) or 1.0)
+        msg = {
+            "t": "windows",
+            "r": [w.as_wire_list(scale=sc, offset_x=ox, offset_y=oy) for w in wins],
+        }
+        enc = json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+        if enc != getattr(self, "_last_windows", None):
+            self._last_windows = enc
+            self._post_active(enc)
         return False
 
     def _apply_icons(
@@ -2151,6 +2215,9 @@ class Wallpaper:
         if getattr(self, "_pause_timeout", 0):
             GLib.source_remove(self._pause_timeout)
             self._pause_timeout = 0
+        if getattr(self, "_window_timeout", 0):
+            GLib.source_remove(self._window_timeout)
+            self._window_timeout = 0
         if getattr(self, "_pointer_timeout", 0):
             GLib.source_remove(self._pointer_timeout)
             self._pointer_timeout = 0

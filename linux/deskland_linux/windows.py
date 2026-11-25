@@ -305,6 +305,45 @@ def _query_gnome_shell_windows() -> list[WindowRect]:
     return []
 
 
+def query_gnome_shell_windows_async(callback: Any) -> bool:
+    """Non-blocking `ListWindows` D-Bus call; `callback(list[WindowRect] | None)` runs on the GLib main loop."""
+    try:
+        import gi
+
+        gi.require_version("Gio", "2.0")
+        from gi.repository import Gio
+
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
+        def _done(source: Any, result: Any, _data: Any = None) -> None:
+            try:
+                res = source.call_finish(result)
+                unpacked = res.unpack() if res is not None else None
+                if unpacked and isinstance(unpacked[0], str):
+                    callback(parse_gnome_shell_windows(unpacked[0]))
+                    return
+            except Exception:
+                pass
+            callback(None)
+
+        bus.call(
+            "org.deskland.GnomeShell",
+            "/org/deskland/GnomeShell",
+            "org.deskland.GnomeShell",
+            "ListWindows",
+            None,
+            None,
+            Gio.DBusCallFlags.NONE,
+            200,
+            None,
+            _done,
+            None,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def detect_active_windows() -> list[WindowRect]:
     if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
         ws_id = None

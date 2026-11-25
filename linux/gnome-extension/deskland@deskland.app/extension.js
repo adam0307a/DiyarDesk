@@ -284,6 +284,17 @@ export default class DiyarDeskExtension extends Extension {
             obj: Main.layoutManager,
             id: Main.layoutManager.connect('monitors-changed', () => this._queueRestack()),
         });
+        this._signals.push({
+            obj: Main.overview,
+            id: Main.overview.connect('hiding', () => this._lowerAllActorsSync()),
+        });
+        this._signals.push({
+            obj: Main.overview,
+            id: Main.overview.connect('hidden', () => {
+                this._lowerAllSync();
+                this._queueRestack();
+            }),
+        });
     }
 
     _scanExistingWindows() {
@@ -400,7 +411,8 @@ export default class DiyarDeskExtension extends Extension {
                 win.unminimize();
 
             const mon = Main.layoutManager.primaryMonitor;
-            if (mon) {
+            const actor = win.get_compositor_private();
+            if (mon && actor) {
                 const rect = win.get_frame_rect();
                 if (
                     rect.x !== mon.x ||
