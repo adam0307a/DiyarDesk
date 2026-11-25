@@ -204,13 +204,13 @@ jobs:
               useradd -m -s /bin/bash builder
               chown -R builder:builder /tmp/pkgbuild
               su - builder -c "cd /tmp/pkgbuild && SOURCE_DATE_EPOCH=$(date +%s) makepkg -d --noconfirm"
-              cp /tmp/pkgbuild/diyardesk-*.pkg.tar.zst /out/
-              chown "$PKG_UID:$PKG_GID" /out/diyardesk-*.pkg.tar.zst
+              cp /tmp/pkgbuild/diyardesk-[0-9]*.pkg.tar.zst /out/
+              chown "$PKG_UID:$PKG_GID" /out/diyardesk-[0-9]*.pkg.tar.zst
             '
 
           (
             cd out-arch
-            PKG=$(find . -maxdepth 1 -type f -name 'diyardesk-*.pkg.tar.zst' -printf '%f\n' | head -n 1)
+            PKG=$(find . -maxdepth 1 -type f -name 'diyardesk-[0-9]*.pkg.tar.zst' -printf '%f\n' | head -n 1)
             test -n "$PKG"
             sha256sum "$PKG" > "${PKG}.sha256"
           )

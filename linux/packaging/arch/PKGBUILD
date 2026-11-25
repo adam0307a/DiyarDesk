@@ -6,6 +6,7 @@ pkgdesc="DiyarDesk — native Rust OpenGL 3.3 & HTML/CSS/JS adaptive wallpaper t
 arch=('x86_64' 'aarch64')
 url="https://github.com/adam0307a/DiyarDesk"
 license=('GPL-3.0-only')
+options=('!debug')
 makedepends=('gettext' 'cargo' 'cmake')
 provides=('deskland-preview')
 conflicts=('deskland-preview')
