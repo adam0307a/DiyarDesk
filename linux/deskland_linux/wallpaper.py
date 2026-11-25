@@ -34,6 +34,7 @@ from .native_gl import (  # noqa: E402
     NativeGlArea,
     NativeGlHeadless,
     NativeGlLibrary,
+    build_custom_gl_message,
     should_use_native_gl,
 )
 from .pause import PauseMonitor  # noqa: E402
@@ -866,11 +867,14 @@ class Wallpaper:
             return False
         settings = getattr(self.host, "settings", None)
         rust_opengl = bool(getattr(settings, "rust_opengl", False))
+        themes = getattr(self.host, "themes", None)
+        theme_meta = themes.find(theme_id) if themes is not None else None
         return should_use_native_gl(
             page,
             theme_id,
             rust_opengl=rust_opengl,
             available=NativeGlLibrary.is_available(),
+            theme_meta=theme_meta,
         )
 
     def _post_active(self, payload: Any) -> None:
@@ -1009,6 +1013,11 @@ class Wallpaper:
         target.set_low_mode(low)
         target.post_json({"t": "lowMode", "v": low})
         target.post_json({"t": "theme", "id": theme_id})
+        themes = getattr(self.host, "themes", None)
+        theme_meta = themes.find(theme_id) if themes is not None else None
+        custom_gl_msg = build_custom_gl_message(theme_meta)
+        if custom_gl_msg is not None:
+            target.post_json(custom_gl_msg)
         settings = getattr(self.host, "settings", None)
         solar_sync = bool(getattr(settings, "solar_sync", False))
         target.post_json(compute_solar_phase(dark_mode=detect_os_dark_mode(), solar_sync=solar_sync))
@@ -1198,6 +1207,179 @@ class Wallpaper:
             self.host.on_virtual_icons_saved(message.get("v"))
         elif kind == "saveVirtualBarCollapsed":
             self.host.on_virtual_bar_collapsed(message.get("v"))
+        elif kind == "catShoreCopy":
+            self._handle_cat_shore_copy(str(message.get("text") or ""))
+        elif kind == "catShoreNotify":
+            self._handle_cat_shore_notify(
+                str(message.get("title") or "DiyarDesk"),
+                str(message.get("body") or ""),
+            )
+        elif kind == "catShorePrompt":
+            GLib.idle_add(self._handle_cat_shore_prompt, dict(message))
+
+    def _handle_cat_shore_copy(self, text: str) -> None:
+        if not text:
+            return
+        try:
+            cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            cb.set_text(text, -1)
+            cb.store()
+        except Exception as exc:
+            self.log.exception("Pano kopyalama hatası", exc)
+
+    def _handle_cat_shore_notify(self, title: str, body: str) -> None:
+        try:
+            import shutil
+            import subprocess
+
+            notify = shutil.which("notify-send")
+            if notify:
+                subprocess.Popen(
+                    [notify, "-a", "DiyarDesk", title, body],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+        except Exception:
+            pass
+
+    def _handle_cat_shore_prompt(self, msg: dict[str, Any]) -> bool:
+        if self._closed:
+            return False
+        kind = str(msg.get("kind") or "")
+        try:
+            if kind == "pasteClip":
+                cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+                clip_txt = (cb.wait_for_text() or "").strip()
+                if clip_txt:
+                    self._post_active({"t": "catShoreAction", "op": "addClip", "body": clip_txt})
+                    return False
+
+            title_map = {
+                "addTask": "Yeni Görev Ekle",
+                "editNote": "Not Defteri",
+                "addEvent": f"Takvim Etkinliği ({msg.get('date', '')})",
+                "pasteClip": "Pano Klibi Ekle",
+            }
+            dlg = Gtk.Dialog(title=title_map.get(kind, "DiyarDesk"))
+            dlg.set_modal(True)
+            dlg.set_keep_above(True)
+            dlg.set_position(Gtk.WindowPosition.CENTER)
+            dlg.set_default_size(400, 260 if kind in ("editNote", "pasteClip") else 160)
+            dlg.add_buttons(
+                Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                Gtk.STOCK_OK, Gtk.ResponseType.OK,
+            )
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            box = dlg.get_content_area()
+            box.set_spacing(8)
+            box.set_border_width(12)
+
+            if kind == "addTask":
+                e_title = Gtk.Entry()
+                e_title.set_placeholder_text("Görev başlığı (ör. Sunumu hazırla)")
+                e_title.set_activates_default(True)
+                e_meta = Gtk.Entry()
+                e_meta.set_placeholder_text("Not / saat (ör. Odak · 30 dk)")
+                e_meta.set_activates_default(True)
+                box.pack_start(Gtk.Label(label="Görev:", xalign=0.0), False, False, 0)
+                box.pack_start(e_title, False, False, 0)
+                box.pack_start(Gtk.Label(label="Detay / Saat:", xalign=0.0), False, False, 0)
+                box.pack_start(e_meta, False, False, 0)
+                dlg.show_all()
+                e_title.grab_focus()
+                resp = dlg.run()
+                t_val = e_title.get_text().strip()
+                m_val = e_meta.get_text().strip()
+                dlg.destroy()
+                if resp == Gtk.ResponseType.OK and t_val:
+                    self._post_active({"t": "catShoreAction", "op": "addTask", "title": t_val, "meta": m_val})
+
+            elif kind == "editNote":
+                e_title = Gtk.Entry()
+                e_title.set_text(str(msg.get("title") or "Notepad"))
+                tv = Gtk.TextView()
+                tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+                buf = tv.get_buffer()
+                buf.set_text(str(msg.get("text") or ""))
+                sc = Gtk.ScrolledWindow()
+                sc.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+                sc.set_min_content_height(150)
+                sc.add(tv)
+                box.pack_start(Gtk.Label(label="Başlık:", xalign=0.0), False, False, 0)
+                box.pack_start(e_title, False, False, 0)
+                box.pack_start(Gtk.Label(label="Notlarınız:", xalign=0.0), False, False, 0)
+                box.pack_start(sc, True, True, 0)
+                dlg.show_all()
+                tv.grab_focus()
+                resp = dlg.run()
+                t_val = e_title.get_text().strip()
+                start_it, end_it = buf.get_bounds()
+                txt_val = buf.get_text(start_it, end_it, True)
+                dlg.destroy()
+                if resp == Gtk.ResponseType.OK:
+                    self._post_active({"t": "catShoreAction", "op": "setNote", "title": t_val, "text": txt_val})
+
+            elif kind == "addEvent":
+                e_time = Gtk.Entry()
+                e_time.set_text("14:00")
+                e_time.set_activates_default(True)
+                e_title = Gtk.Entry()
+                e_title.set_placeholder_text("Etkinlik başlığı")
+                e_title.set_activates_default(True)
+                e_meta = Gtk.Entry()
+                e_meta.set_placeholder_text("Etiket / süre (ör. İş · 45 dk)")
+                e_meta.set_activates_default(True)
+                box.pack_start(Gtk.Label(label="Saat (SS:DD):", xalign=0.0), False, False, 0)
+                box.pack_start(e_time, False, False, 0)
+                box.pack_start(Gtk.Label(label="Etkinlik:", xalign=0.0), False, False, 0)
+                box.pack_start(e_title, False, False, 0)
+                box.pack_start(Gtk.Label(label="Etiket:", xalign=0.0), False, False, 0)
+                box.pack_start(e_meta, False, False, 0)
+                dlg.show_all()
+                e_title.grab_focus()
+                resp = dlg.run()
+                tm_val = e_time.get_text().strip()
+                t_val = e_title.get_text().strip()
+                m_val = e_meta.get_text().strip()
+                dlg.destroy()
+                if resp == Gtk.ResponseType.OK and t_val:
+                    self._post_active({
+                        "t": "catShoreAction",
+                        "op": "addEvent",
+                        "date": str(msg.get("date") or ""),
+                        "time": tm_val,
+                        "title": t_val,
+                        "meta": m_val,
+                    })
+
+            elif kind == "pasteClip":
+                e_title = Gtk.Entry()
+                e_title.set_placeholder_text("Klip başlığı (isteğe bağlı)")
+                tv = Gtk.TextView()
+                tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+                buf = tv.get_buffer()
+                sc = Gtk.ScrolledWindow()
+                sc.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+                sc.set_min_content_height(130)
+                sc.add(tv)
+                box.pack_start(Gtk.Label(label="Başlık:", xalign=0.0), False, False, 0)
+                box.pack_start(e_title, False, False, 0)
+                box.pack_start(Gtk.Label(label="Metin / Pano Klibi:", xalign=0.0), False, False, 0)
+                box.pack_start(sc, True, True, 0)
+                dlg.show_all()
+                tv.grab_focus()
+                resp = dlg.run()
+                t_val = e_title.get_text().strip()
+                start_it, end_it = buf.get_bounds()
+                b_val = buf.get_text(start_it, end_it, True).strip()
+                dlg.destroy()
+                if resp == Gtk.ResponseType.OK and b_val:
+                    self._post_active({"t": "catShoreAction", "op": "addClip", "title": t_val, "body": b_val})
+            else:
+                dlg.destroy()
+        except Exception as exc:
+            self.log.exception("Cat Shore widget penceresi hatası", exc)
+        return False
 
     def send_virtual_state(self) -> None:
         if self._closed:
@@ -1347,7 +1529,8 @@ class Wallpaper:
             raw_rects = [rect.as_array() for rect in rects]
             settings = getattr(getattr(self, "host", None), "settings", None)
             window_aware = bool(getattr(settings, "window_aware", False))
-            if window_aware:
+            is_quiet_snow = getattr(self, "_theme_id", "") == "quietsnow"
+            if window_aware or is_quiet_snow:
                 wins = detect_active_windows()
                 ws_id, panels = detect_workspace_state()
                 ox = getattr(getattr(self, "geo", None), "x", 0)
@@ -1362,7 +1545,7 @@ class Wallpaper:
                     "id": ws_id,
                     "panels": [p.as_rect(scale=sc, offset_x=ox, offset_y=oy) for p in panels],
                 }
-                if not raw_rects and wins:
+                if window_aware and not is_quiet_snow and not raw_rects and wins:
                     # On iconless tiling Wayland desktops (Hyprland/Sway/niri), let themes
                     # react seamlessly to open windows when window-aware scenery is enabled.
                     raw_rects = [w.as_icon_rect(scale=sc, offset_x=ox, offset_y=oy) for w in wins]

@@ -24,6 +24,9 @@ const DBUS_IFACE_XML = `
     <method name="LowerWallpaper">
       <arg type="b" direction="out" name="ok"/>
     </method>
+    <method name="ListWindows">
+      <arg type="s" direction="out" name="windowsJson"/>
+    </method>
   </interface>
 </node>`;
 
@@ -145,6 +148,46 @@ export default class DiyarDeskExtension extends Extension {
         return found;
     }
 
+    ListWindows() {
+        const workspace = global.workspace_manager.get_active_workspace();
+        if (!workspace)
+            return '[]';
+        const primary = Main.layoutManager.primaryIndex;
+        const out = [];
+        for (const win of workspace.list_windows()) {
+            if (!win || win.minimized || isWallpaperWindow(win))
+                continue;
+            const wtype = win.get_window_type();
+            if (
+                wtype === Meta.WindowType.DESKTOP ||
+                wtype === Meta.WindowType.DOCK ||
+                wtype === Meta.WindowType.SPLASHSCREEN ||
+                wtype === Meta.WindowType.TOOLTIP ||
+                wtype === Meta.WindowType.NOTIFICATION
+            ) {
+                continue;
+            }
+            if (win.is_override_redirect?.() || win.is_fullscreen?.())
+                continue;
+            if (win.get_monitor() !== primary || !win.showing_on_its_workspace())
+                continue;
+            const rect = win.get_frame_rect();
+            if (rect.width < 60 || rect.height < 40)
+                continue;
+            const wid = typeof win.get_id === 'function' ? Number(win.get_id()) : out.length + 1;
+            const cls = (win.get_wm_class?.() || win.get_title?.() || '').toString();
+            out.push([
+                wid & 0x7fffffff,
+                Math.round(rect.x),
+                Math.round(rect.y),
+                Math.round(rect.x + rect.width),
+                Math.round(rect.y + rect.height),
+                cls,
+            ]);
+        }
+        return JSON.stringify(out);
+    }
+
     // -------------------------------------------------------------- overrides
     _installOverrides() {
         this._injectionManager.overrideMethod(
@@ -208,7 +251,34 @@ export default class DiyarDeskExtension extends Extension {
         });
         this._signals.push({
             obj: global.display,
-            id: global.display.connect('restacked', () => this._queueRestack()),
+            id: global.display.connect('restacked', () => {
+                this._lowerAllActorsSync();
+                this._queueRestack();
+            }),
+        });
+        this._signals.push({
+            obj: global.display,
+            id: global.display.connect('notify::focus-window', () => {
+                const focused = global.display.get_focus_window();
+                if (isWallpaperWindow(focused)) {
+                    this._placeWallpaperWindow(focused);
+                    this._queueRestack();
+                }
+            }),
+        });
+        this._signals.push({
+            obj: global.workspace_manager,
+            id: global.workspace_manager.connect('active-workspace-changed', () => {
+                this._lowerAllSync();
+                this._queueRestack();
+            }),
+        });
+        this._signals.push({
+            obj: global.window_manager,
+            id: global.window_manager.connect('switch-workspace', () => {
+                this._lowerAllSync();
+                this._queueRestack();
+            }),
         });
         this._signals.push({
             obj: Main.layoutManager,
@@ -247,15 +317,24 @@ export default class DiyarDeskExtension extends Extension {
         this._trackedWindows.set(win, true);
 
         win.connectObject(
-            'shown', () => this._queueRestack(),
-            'raised', () => this._queueRestack(),
+            'shown', () => {
+                this._placeWallpaperWindow(win);
+                this._queueRestack();
+            },
+            'raised', () => {
+                this._placeWallpaperWindow(win);
+                this._queueRestack();
+            },
             'notify::appears-focused', () => {
-                if (win.appears_focused)
+                if (win.appears_focused) {
+                    this._placeWallpaperWindow(win);
                     this._queueRestack();
+                }
             },
             'notify::minimized', () => {
                 if (win.minimized)
                     win.unminimize();
+                this._placeWallpaperWindow(win);
                 this._queueRestack();
             },
             'unmanaged', () => {
@@ -267,6 +346,34 @@ export default class DiyarDeskExtension extends Extension {
 
         this._placeWallpaperWindow(win);
         this._queueRestack();
+    }
+
+    _lowerActorSync(win) {
+        if (!win)
+            return;
+        try {
+            const actor = win.get_compositor_private();
+            const bgGroup = Main.layoutManager._backgroundGroup;
+            if (actor) {
+                const parent = actor.get_parent();
+                if (parent && bgGroup && parent === bgGroup.get_parent())
+                    parent.set_child_above_sibling(actor, bgGroup);
+                else if (parent)
+                    parent.set_child_below_sibling(actor, null);
+            }
+        } catch {
+            // ignore transient compositor state
+        }
+    }
+
+    _lowerAllActorsSync() {
+        for (const win of this._trackedWindows.keys())
+            this._lowerActorSync(win);
+    }
+
+    _lowerAllSync() {
+        for (const win of this._trackedWindows.keys())
+            this._placeWallpaperWindow(win);
     }
 
     _queueRestack() {
@@ -305,16 +412,8 @@ export default class DiyarDeskExtension extends Extension {
                 }
             }
 
-            const actor = win.get_compositor_private();
-            const bgGroup = Main.layoutManager._backgroundGroup;
-            if (actor) {
-                const parent = actor.get_parent();
-                if (parent && bgGroup && parent === bgGroup.get_parent())
-                    parent.set_child_above_sibling(actor, bgGroup);
-                else if (parent)
-                    parent.set_child_below_sibling(actor, null);
-            }
             win.lower();
+            this._lowerActorSync(win);
         } catch (err) {
             logError(err, 'DiyarDesk: failed to position wallpaper window');
         } finally {

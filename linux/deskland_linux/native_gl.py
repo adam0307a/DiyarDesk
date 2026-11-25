@@ -69,6 +69,60 @@ NATIVE_GL_ONLY_PAGES: frozenset[str] = frozenset(
     }
 )
 
+CUSTOM_GL_ENGINES: frozenset[str] = frozenset({"opengl-glsl", "opengl-rust"})
+
+
+def is_custom_gl_theme(theme_meta: dict[str, Any] | None) -> bool:
+    if not isinstance(theme_meta, dict):
+        return False
+    eng = str(theme_meta.get("engine") or "").strip().lower()
+    return eng in CUSTOM_GL_ENGINES
+
+
+def build_custom_gl_message(theme_meta: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Build the `customGl` JSON payload sent to `libdiyardesk_gl` for custom GL themes."""
+    if not is_custom_gl_theme(theme_meta) or not isinstance(theme_meta, dict):
+        return None
+    engine = str(theme_meta.get("engine") or "").strip().lower()
+    tdir = str(theme_meta.get("themeDir") or "").strip()
+    entry = str(theme_meta.get("entry") or "").strip()
+    if not tdir or not entry:
+        return None
+    msg: dict[str, Any] = {
+        "t": "customGl",
+        "engine": engine,
+        "dir": tdir,
+        "entry": entry,
+    }
+    vert = str(theme_meta.get("vert") or "").strip()
+    if vert:
+        msg["vert"] = vert
+    textures = theme_meta.get("textures")
+    if isinstance(textures, list) and textures:
+        msg["textures"] = [str(x) for x in textures[:4] if isinstance(x, str) and x.strip()]
+    param_order: list[str] = []
+    color_order: list[str] = []
+    groups = theme_meta.get("groups")
+    if isinstance(groups, list):
+        for grp in groups:
+            if not isinstance(grp, dict):
+                continue
+            for p in grp.get("params") or []:
+                if not isinstance(p, dict) or not p.get("key"):
+                    continue
+                key = str(p["key"])
+                if str(p.get("type") or "").lower() == "color":
+                    if len(color_order) < 8:
+                        color_order.append(key)
+                else:
+                    if len(param_order) < 16:
+                        param_order.append(key)
+    if param_order:
+        msg["paramOrder"] = param_order
+    if color_order:
+        msg["colorOrder"] = color_order
+    return msg
+
 
 def is_native_gl_page(page: str | None) -> bool:
     if not page:
@@ -77,7 +131,9 @@ def is_native_gl_page(page: str | None) -> bool:
     return name in NATIVE_GL_ONLY_PAGES
 
 
-def is_native_gl_theme(theme_id: str | None) -> bool:
+def is_native_gl_theme(theme_id: str | None, theme_meta: dict[str, Any] | None = None) -> bool:
+    if is_custom_gl_theme(theme_meta):
+        return True
     if not theme_id:
         return False
     return theme_id.strip().lower() in NATIVE_GL_THEMES
@@ -89,10 +145,13 @@ def should_use_native_gl(
     *,
     rust_opengl: bool,
     available: bool,
+    theme_meta: dict[str, Any] | None = None,
 ) -> bool:
     """Return True when the native Rust OpenGL 3.3 engine should render this theme."""
     if not available:
         return False
+    if is_custom_gl_theme(theme_meta):
+        return True
     if is_native_gl_page(page):
         return True
     if not rust_opengl:

@@ -40,11 +40,17 @@ from .config import (
 from .crash_sentinel import DEFAULT_STABLE_SECONDS, SAFE_FALLBACK_ORDER, StartupCrashSentinel
 from .diagnostics import export_diagnostics
 from .displays import MonitorInfo, compute_span_rect, detect_compositor_monitors
-from .importer import SUPPORTED_EXTS, custom_themes_dir, import_theme_file, remove_custom_theme
+from .importer import (
+    SUPPORTED_EXTS,
+    custom_themes_dir,
+    import_theme_file,
+    inspect_theme_archive,
+    remove_custom_theme,
+)
 from .ipc import IpcServer
 from .lan_sync import LanPairingServer
 from .lockscreen import apply_linux_lockscreen, make_blurred_lockscreen
-from .native_gl import NativeGlLibrary, is_native_gl_theme
+from .native_gl import NativeGlLibrary, is_custom_gl_theme, is_native_gl_theme
 from .native_settings import NativeSettingsWindow
 from .scheduler import PlaylistController
 from .server import LocalServer
@@ -501,7 +507,7 @@ class DesklandHost:
         val = bool(enabled) if available else False
         self.settings.rust_opengl = val
         theme_switched = False
-        if val and not is_native_gl_theme(self.settings.theme):
+        if val and not is_native_gl_theme(self.settings.theme, self.themes.find(self.settings.theme)):
             fallback = "papercut" if self.themes.allowed("papercut") else "meadow"
             self.log.write(
                 f"Rust OpenGL aktif: özel HTML temasından yerleşik OpenGL temasına geçildi "
@@ -1106,8 +1112,74 @@ class DesklandHost:
         if resp != Gtk.ResponseType.OK or not chosen:
             return
         try:
+            scan = inspect_theme_archive(Path(chosen))
+        except Exception as exc:
+            self.log.exception("Tema paketi incelenemedi", exc)
+            self._post_settings({"t": "importError", "msg": str(exc)})
+            return
+
+        chosen_engine: str = scan["engines"][0]
+        if scan.get("kind") == "dual":
+            gl_engine = next((e for e in scan["engines"] if e != "web"), "opengl-glsl")
+            choice_dlg = Gtk.MessageDialog(
+                transient_for=parent,
+                flags=Gtk.DialogFlags.MODAL,
+                message_type=Gtk.MessageType.QUESTION,
+                buttons=Gtk.ButtonsType.NONE,
+                text=f"'{scan.get('name', 'Tema')}' hem OpenGL hem Web sürümü içeriyor",
+            )
+            choice_dlg.format_secondary_text(
+                "Bu temayı hangi motor ve arayüzle içe aktarmak istersiniz?"
+            )
+            choice_dlg.add_button("İptal", Gtk.ResponseType.CANCEL)
+            choice_dlg.add_button("Web (HTML/JS)", 2)
+            gl_btn_lbl = "Rust + OpenGL 3.3 (Önerilen)" if gl_engine == "opengl-rust" else "OpenGL 3.3 GLSL (Önerilen)"
+            choice_dlg.add_button(gl_btn_lbl, 1)
+            choice_dlg.set_default_response(1)
+            choice_resp = choice_dlg.run()
+            choice_dlg.destroy()
+            if choice_resp == 1:
+                chosen_engine = gl_engine
+            elif choice_resp == 2:
+                chosen_engine = "web"
+            else:
+                return
+
+        allow_native = False
+        if chosen_engine == "opengl-rust":
+            sec_dlg = Gtk.MessageDialog(
+                transient_for=parent,
+                flags=Gtk.DialogFlags.MODAL,
+                message_type=Gtk.MessageType.WARNING,
+                buttons=Gtk.ButtonsType.NONE,
+                text=f"Yerel Rust + OpenGL Eklentisi Güvenlik Onayı: {scan.get('name', '')}",
+            )
+            detail = (
+                "Bu paket yerel Rust kaynak kodu (Cargo.toml) içeriyor ve içe aktarma sırasında "
+                "`cargo build --release` ile derlenip native eklenti (.so) olarak çalıştırılacak."
+                if scan.get("has_rust_source") and not scan.get("has_prebuilt_binary")
+                else "Bu paket derlenmiş yerel makine kodu (.so/.dll) içeren bir Rust + OpenGL eklentisidir."
+            )
+            sec_dlg.format_secondary_text(
+                detail + "\n\nYalnızca güvendiğiniz kaynaklardan gelen eklentileri onaylayın."
+            )
+            sec_dlg.add_button("İptal", Gtk.ResponseType.CANCEL)
+            sec_dlg.add_button("Güveniyorum, Derle ve İçe Aktar", Gtk.ResponseType.OK)
+            sec_resp = sec_dlg.run()
+            sec_dlg.destroy()
+            if sec_resp != Gtk.ResponseType.OK:
+                return
+            allow_native = True
+
+        try:
             reserved = {str(t.get("id")) for t in self.themes.base_themes if t.get("id")}
-            theme_obj = import_theme_file(Path(chosen), custom_dir=self.custom_themes_dir, reserved_ids=reserved)
+            theme_obj = import_theme_file(
+                Path(chosen),
+                custom_dir=self.custom_themes_dir,
+                reserved_ids=reserved,
+                preferred_engine=chosen_engine,
+                allow_native_code=allow_native,
+            )
         except Exception as exc:
             self.log.exception("Tema içe aktarılamadı", exc)
             self._post_settings({"t": "importError", "msg": str(exc)})
@@ -1115,10 +1187,17 @@ class DesklandHost:
         self.themes.load()
         self.settings.theme = theme_obj["id"]
         self.schedule_save()
-        if self.wallpaper is not None:
-            self.wallpaper.load_page(theme_obj["page"], theme_id=theme_obj["id"])
+
+        # Automatically switch engine & settings UI to match the imported theme type
+        is_gl_custom = is_custom_gl_theme(theme_obj)
+        want_gl = is_gl_custom and NativeGlLibrary.is_available()
+        if want_gl != bool(self.settings.rust_opengl):
+            self.set_rust_opengl(want_gl)
+        else:
+            for wp in self._all_wallpapers():
+                wp.load_page(theme_obj["page"], theme_id=theme_obj["id"])
         self._post_settings({"t": "themeImported", "theme": theme_obj, "select": True})
-        self.log.write(f"Tema içe aktarıldı: {theme_obj['id']}")
+        self.log.write(f"Tema içe aktarıldı: {theme_obj['id']} (engine={theme_obj.get('engine', 'web')})")
 
     def _on_remove_theme(self, message: dict[str, Any]) -> None:
         theme_id = message.get("id")
@@ -1130,8 +1209,8 @@ class DesklandHost:
         self.themes.load()
         if self.settings.theme == theme_id:
             self.choose_theme()
-            if self.wallpaper is not None:
-                self.wallpaper.load_page(self.current_page, theme_id=self.settings.theme)
+            for wp in self._all_wallpapers():
+                wp.load_page(self.current_page, theme_id=self.settings.theme)
         self.schedule_save()
         self._post_settings({"t": "themeRemoved", "id": theme_id, "active": self.settings.theme})
         self.log.write(f"Özel tema kaldırıldı: {theme_id}")

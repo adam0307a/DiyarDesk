@@ -124,7 +124,7 @@
     "importHelpSubtitle": "Click + Import theme… to pick a local file. All of the following formats are supported and validated automatically:",
     "importHelpHowTitle": "Supported Formats & Behavior",
     "importHelpZipTitle": "Theme Packages (.zip, .deskland)",
-    "importHelpZipDesc": "Multi-file HTML/JS/CSS/asset themes. If manifest.json or theme.json is present, it reads metadata, entry HTML, thumbnail, and parameters automatically; otherwise it falls back to index.html or the first .html file, auto-detects thumb/preview images (including .svg), and blocks zip-slip traversal paths or symlinks.",
+    "importHelpZipDesc": "Multi-file HTML/JS/CSS Web themes, native OpenGL 3.3 GLSL shader packages (manifest.json + main.frag), and security-approved Rust + OpenGL cdylib plugins (Cargo.toml + src/lib.rs). Engine type is detected automatically with seamless UI switching; zip-slip paths and symlinks are blocked.",
     "importHelpHtmlTitle": "Single Web Page (.html, .htm)",
     "importHelpHtmlDesc": "Single-file interactive shader or HTML themes (uses the <title> tag as the theme name).",
     "importHelpImageTitle": "Image Wallpapers (.png, .jpg, .jpeg, .webp, .gif, .svg, .avif, .bmp)",

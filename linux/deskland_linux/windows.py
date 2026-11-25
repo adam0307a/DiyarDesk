@@ -251,6 +251,60 @@ def detect_workspace_state() -> tuple[int | None, list[PanelRect]]:
     return None, []
 
 
+def parse_gnome_shell_windows(raw_json: str) -> list[WindowRect]:
+    """Parse `org.deskland.GnomeShell.ListWindows` JSON payload."""
+    try:
+        data = json.loads(raw_json)
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(data, list):
+        return []
+    out: list[WindowRect] = []
+    for idx, item in enumerate(data):
+        if not isinstance(item, (list, tuple)) or len(item) < 5:
+            continue
+        try:
+            wid = _stable_id(item[0], idx + 1)
+            l, t, r, b = int(item[1]), int(item[2]), int(item[3]), int(item[4])
+        except (TypeError, ValueError):
+            continue
+        if (r - l) < 60 or (b - t) < 40:
+            continue
+        cls = str(item[5]) if len(item) >= 6 else ""
+        if "diyardesk" in cls.lower() or "deskland" in cls.lower():
+            continue
+        out.append(WindowRect(wid, l, t, r, b, cls))
+    return out
+
+
+def _query_gnome_shell_windows() -> list[WindowRect]:
+    try:
+        import gi
+
+        gi.require_version("Gio", "2.0")
+        from gi.repository import Gio
+
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        res = bus.call_sync(
+            "org.deskland.GnomeShell",
+            "/org/deskland/GnomeShell",
+            "org.deskland.GnomeShell",
+            "ListWindows",
+            None,
+            None,
+            Gio.DBusCallFlags.NONE,
+            250,
+            None,
+        )
+        if res is not None:
+            unpacked = res.unpack()
+            if unpacked and isinstance(unpacked[0], str):
+                return parse_gnome_shell_windows(unpacked[0])
+    except Exception:
+        pass
+    return []
+
+
 def detect_active_windows() -> list[WindowRect]:
     if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
         ws_id = None
@@ -273,5 +327,11 @@ def detect_active_windows() -> list[WindowRect]:
         raw = _run_cmd(["niri", "msg", "-j", "windows"])
         if raw:
             return parse_niri_windows(raw)
+
+    desktop = (os.environ.get("XDG_CURRENT_DESKTOP") or "").lower()
+    if "gnome" in desktop or os.environ.get("GNOME_DESKTOP_SESSION_ID"):
+        wins = _query_gnome_shell_windows()
+        if wins:
+            return wins
 
     return []

@@ -3,6 +3,8 @@ mod aurora;
 mod beach;
 mod cat_shore;
 mod claymorph;
+mod custom_glsl;
+mod custom_plugin;
 mod desert;
 mod gl;
 mod glade;

@@ -3,6 +3,7 @@ use crate::aurora::{AuroraParams, AuroraState};
 use crate::beach::{BeachParams, BeachState};
 use crate::cat_shore::{CatShoreParams, CatShoreState};
 use crate::claymorph::{ClaymorphParams, ClaymorphState};
+use crate::custom_glsl::CustomGlSpec;
 use crate::desert::{DesertParams, DesertState};
 use crate::glade::{GladeParams, GladeState};
 use crate::istanbul::{IstanbulParams, IstanbulState};
@@ -484,6 +485,8 @@ pub struct AppState {
     pub ai_mascots: AiMascotsState,
     pub cat_shore: CatShoreState,
     pub persephone: PersephoneState,
+    pub custom_gl: CustomGlSpec,
+    pub custom_plugin_inbox: VecDeque<String>,
     pub windows: Vec<WindowInput>,
     pub outbox: VecDeque<String>,
     pub last_ui_rects_sig: String,
@@ -635,6 +638,8 @@ impl AppState {
             ai_mascots: AiMascotsState::default(),
             cat_shore: CatShoreState::default(),
             persephone: PersephoneState::default(),
+            custom_gl: CustomGlSpec::default(),
+            custom_plugin_inbox: VecDeque::new(),
             windows: Vec::new(),
             outbox: VecDeque::new(),
             last_ui_rects_sig: String::new(),
@@ -810,6 +815,14 @@ impl AppState {
         self.theme_id == "persephone"
     }
 
+    pub fn is_custom_glsl_theme(&self) -> bool {
+        self.custom_gl.is_glsl()
+    }
+
+    pub fn is_custom_plugin_theme(&self) -> bool {
+        self.custom_gl.is_rust_plugin()
+    }
+
     pub fn set_theme(&mut self, id: &str) {
         let clean = id.trim();
         if clean.is_empty() {
@@ -819,6 +832,18 @@ impl AppState {
         self.theme_id = clean.to_string();
         if changed {
             self.raw_params.clear();
+            // Clear previous custom GL binding when switching themes;
+            // custom GL themes immediately follow `theme` with a `customGl` message.
+            if !self.custom_gl.engine.is_empty() {
+                self.custom_gl.engine.clear();
+                self.custom_gl.entry.clear();
+                self.custom_gl.vert_entry = None;
+                self.custom_gl.textures.clear();
+                self.custom_gl.param_order.clear();
+                self.custom_gl.color_order.clear();
+                self.custom_gl.rev = self.custom_gl.rev.wrapping_add(1);
+                self.custom_plugin_inbox.clear();
+            }
         }
         self.drag = None;
         self.seeking_media = false;
@@ -1292,6 +1317,61 @@ impl AppState {
                     self.set_theme(id);
                 }
             }
+            "customGl" => {
+                let engine = v.get("engine").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+                let dir = v.get("dir").and_then(|x| x.as_str()).unwrap_or("").trim();
+                let entry = v.get("entry").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+                let vert = v
+                    .get("vert")
+                    .and_then(|x| x.as_str())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
+                let textures = v
+                    .get("textures")
+                    .and_then(|x| x.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+                            .filter(|s| !s.is_empty())
+                            .take(4)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let param_order = v
+                    .get("paramOrder")
+                    .and_then(|x| x.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+                            .filter(|s| !s.is_empty())
+                            .take(16)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let color_order = v
+                    .get("colorOrder")
+                    .and_then(|x| x.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+                            .filter(|s| !s.is_empty())
+                            .take(8)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let next_rev = self.custom_gl.rev.wrapping_add(1).max(1);
+                self.custom_gl = CustomGlSpec {
+                    engine,
+                    theme_dir: PathBuf::from(dir),
+                    entry,
+                    vert_entry: vert,
+                    textures,
+                    param_order,
+                    color_order,
+                    rev: next_rev,
+                };
+                self.custom_plugin_inbox.clear();
+            }
             "blurInput" => {
                 self.set_active_field(TextField::None);
             }
@@ -1499,6 +1579,9 @@ impl AppState {
                     self.istanbul.set_env_hour(self.env_hour);
                 }
             }
+            "catShoreAction" => {
+                self.cat_shore.apply_action(&v);
+            }
             "systemStats" => {
                 if let Some(c) = v.get("cpu").and_then(|x| x.as_f64()) { self.cpu = c as f32; }
                 if let Some(m) = v.get("mem").and_then(|x| x.as_f64()) { self.mem = m as f32; }
@@ -1537,6 +1620,12 @@ impl AppState {
                 }
             }
             _ => {}
+        }
+        if self.is_custom_plugin_theme() && t != "customGl" && t != "theme" {
+            if self.custom_plugin_inbox.len() >= 128 {
+                self.custom_plugin_inbox.pop_front();
+            }
+            self.custom_plugin_inbox.push_back(text.to_string());
         }
     }
 
@@ -2178,6 +2267,9 @@ impl AppState {
             let was_open = self.cat_shore.is_notch_expanded();
             self.cat_shore.set_low_mode(self.low_mode);
             self.cat_shore.step(dt);
+            for ev in self.cat_shore.drain_events() {
+                self.outbox.push_back(ev);
+            }
             if self.cat_shore.is_notch_expanded() != was_open {
                 self.emit_ui_rects();
             }
@@ -2525,6 +2617,9 @@ impl AppState {
         }
         if self.is_cat_shore_theme() {
             let handled = self.cat_shore.handle_mouse(kind, x, y);
+            for ev in self.cat_shore.drain_events() {
+                self.outbox.push_back(ev);
+            }
             if kind == 1 {
                 self.emit_ui_rects();
             }

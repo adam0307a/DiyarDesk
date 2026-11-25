@@ -3,11 +3,13 @@ pub mod shaders;
 use crate::gl::*;
 use crate::state::{AppState, Rect};
 use crate::text::TextRenderer;
-use chrono::{Datelike, Duration as ChronoDuration, Local, Timelike};
+use chrono::{Datelike, Duration as ChronoDuration, Local, NaiveDate, Timelike};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shaders::{CAT_SHORE_FRAG, CAT_SHORE_VERT, NOTCH_UI_FRAG, NOTCH_UI_VERT};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ffi::c_void;
+use std::path::PathBuf;
 
 // ============================================================================
 // 1. PARAMS (1:1 with prototype/themes.json)
@@ -401,11 +403,71 @@ struct ClickRipple {
     strength: f32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NotchTask {
     pub title: String,
     pub meta: String,
     pub done: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NotchCalEvent {
+    pub date: String, // "YYYY-MM-DD"
+    pub time: String, // "15:00"
+    pub title: String,
+    pub meta: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NotchClip {
+    pub title: String,
+    pub body: String,
+    pub time_str: String,
+    pub color_idx: u8,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct PersistedCatShore {
+    tasks: Vec<NotchTask>,
+    note_title: String,
+    note_text: String,
+    events: Vec<NotchCalEvent>,
+    clips: Vec<NotchClip>,
+    timer_preset_idx: usize,
+}
+
+fn cat_shore_save_path() -> Option<PathBuf> {
+    #[cfg(test)]
+    {
+        return None;
+    }
+    #[cfg(not(test))]
+    {
+        #[cfg(target_os = "windows")]
+        {
+            let base = std::env::var_os("LOCALAPPDATA")?;
+            let mut p = PathBuf::from(base);
+            p.push("DesklandPreview");
+            p.push("cat-shore-widgets.json");
+            return Some(p);
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let base = std::env::var_os("XDG_CONFIG_HOME")
+                .map(PathBuf::from)
+                .or_else(|| {
+                    std::env::var_os("HOME").map(|h| {
+                        let mut p = PathBuf::from(h);
+                        p.push(".config");
+                        p
+                    })
+                })?;
+            let mut p = base;
+            p.push("deskland");
+            p.push("cat-shore-widgets.json");
+            Some(p)
+        }
+    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -416,12 +478,23 @@ struct NotchHits {
     tab_workspace: Rect,
     tab_clips: Rect,
     btn_bell: Rect,
+    tab_tasks_todo: Rect,
+    tab_tasks_done: Rect,
     task_checks: [Rect; 3],
+    task_dels: [Rect; 3],
     btn_add_task: Rect,
     btn_timer_toggle: Rect,
     btn_timer_reset: Rect,
     btn_timer_preset: Rect,
     card_notepad: Rect,
+    cal_prev: Rect,
+    cal_next: Rect,
+    cal_days: [Rect; 7],
+    cal_event_dels: [Rect; 2],
+    btn_add_event: Rect,
+    clip_cards: [Rect; 3],
+    clip_dels: [Rect; 3],
+    btn_add_clip: Rect,
     toast_rect: Rect,
     btn_toast_snooze: Rect,
     btn_toast_done: Rect,
@@ -465,54 +538,26 @@ pub struct CatShoreState {
     pub reminder_open: bool,  // compact reminder toast under notch
     pub reminder_title: String,
 
-    // Workspace interactive widgets inside the notch
+    // Workspace interactive widgets inside the notch (all persisted!)
     pub tasks: Vec<NotchTask>,
-    task_pool_idx: usize,
+    pub task_filter: usize, // 0 = To do, 1 = Completed
     pub timer_preset_idx: usize,
     pub timer_left_sec: f32,
     pub timer_running: bool,
-    pub note_idx: usize,
+    pub note_title: String,
+    pub note_text: String,
+    pub cal_week_offset: i64, // in days (multiples of 7)
+    pub cal_selected_day_off: i64, // offset from today in days
+    pub events: Vec<NotchCalEvent>,
+    pub clips: Vec<NotchClip>,
+    pub clip_copied_idx: Option<usize>,
+    pub clip_copied_ttl: f32,
+    pub pending_events: VecDeque<String>,
 
     hits: NotchHits,
 }
 
-const TIMER_PRESETS_MIN: [u32; 4] = [45, 25, 15, 5];
-
-const NOTE_PAGES: [(&str, [&str; 5], &str); 3] = [
-    (
-        "Notepad",
-        [
-            "Lead the landing page",
-            "with the notch",
-            "Idea: a weekly review",
-            "every Friday",
-            "Ask Sam about the API",
-        ],
-        "18 words",
-    ),
-    (
-        "Not Defteri",
-        [
-            "Kıyı kedisi teması hazır",
-            "Üst bar tıklayınca açılır",
-            "Sayaç ve görevler aktif",
-            "Kedi fareyi takip eder",
-            "Suya tıklayınca dalga çıkar",
-        ],
-        "19 kelime",
-    ),
-    (
-        "Quick Ideas",
-        [
-            "Ship v0.5.4 release notes",
-            "Check desktop icon sync",
-            "Review Rust GL shaders",
-            "Test multi-monitor scale",
-            "Archive old prototypes",
-        ],
-        "17 words",
-    ),
-];
+const TIMER_PRESETS_MIN: [u32; 5] = [45, 25, 15, 5, 60];
 
 impl Default for CatShoreState {
     fn default() -> Self {
@@ -522,6 +567,65 @@ impl Default for CatShoreState {
 
 impl CatShoreState {
     pub fn new(w: f32, h: f32, dpi: f32) -> Self {
+        let today = Local::now().date_naive();
+        let today_str = today.format("%Y-%m-%d").to_string();
+        let mut tasks = vec![
+            NotchTask {
+                title: "Prep slides for design".into(),
+                meta: "Focused · 45 min".into(),
+                done: false,
+            },
+            NotchTask {
+                title: "Pay electricity bill".into(),
+                meta: "Home · 6:30 PM".into(),
+                done: false,
+            },
+        ];
+        let mut note_title = "Notepad".to_string();
+        let mut note_text = "Lead the landing page with the notch\nIdea: weekly review every Friday\nClick to edit your notes".to_string();
+        let mut events = vec![
+            NotchCalEvent {
+                date: today_str.clone(),
+                time: "15:00".into(),
+                title: "Design review".into(),
+                meta: "Work · 1 hr".into(),
+            },
+            NotchCalEvent {
+                date: today_str,
+                time: "16:30".into(),
+                title: "1:1 sync".into(),
+                meta: "Team · 30 min".into(),
+            },
+        ];
+        let mut clips = vec![
+            NotchClip {
+                title: "Quick Note".into(),
+                body: "Click any clip to copy it to your clipboard.".into(),
+                time_str: "Pinned".into(),
+                color_idx: 1,
+            },
+            NotchClip {
+                title: "DiyarDesk".into(),
+                body: "Press + Paste Clip to pin your clipboard text here.".into(),
+                time_str: "Ready".into(),
+                color_idx: 0,
+            },
+        ];
+        let mut timer_preset_idx = 0usize;
+
+        if let Some(path) = cat_shore_save_path() {
+            if let Ok(raw) = std::fs::read_to_string(&path) {
+                if let Ok(saved) = serde_json::from_str::<PersistedCatShore>(&raw) {
+                    tasks = saved.tasks;
+                    note_title = saved.note_title;
+                    note_text = saved.note_text;
+                    events = saved.events;
+                    clips = saved.clips;
+                    timer_preset_idx = saved.timer_preset_idx.min(TIMER_PRESETS_MIN.len() - 1);
+                }
+            }
+        }
+
         let mut st = Self {
             params: CatShoreParams::default(),
             w: w.max(64.0),
@@ -551,27 +655,172 @@ impl CatShoreState {
             notch_tab: 0,
             reminder_open: false,
             reminder_title: "Focus break".into(),
-            tasks: vec![
-                NotchTask {
-                    title: "Prep slides for design".into(),
-                    meta: "Focused · 45 min · High".into(),
-                    done: false,
-                },
-                NotchTask {
-                    title: "Pay electricity bill".into(),
-                    meta: "Home · 6:30 PM".into(),
-                    done: false,
-                },
-            ],
-            task_pool_idx: 0,
-            timer_preset_idx: 0,
-            timer_left_sec: 45.0 * 60.0,
+            tasks,
+            task_filter: 0,
+            timer_preset_idx,
+            timer_left_sec: (TIMER_PRESETS_MIN[timer_preset_idx] * 60) as f32,
             timer_running: false,
-            note_idx: 0,
+            note_title,
+            note_text,
+            cal_week_offset: 0,
+            cal_selected_day_off: 0,
+            events,
+            clips,
+            clip_copied_idx: None,
+            clip_copied_ttl: 0.0,
+            pending_events: VecDeque::new(),
             hits: NotchHits::default(),
         };
         st.recompute_hits();
         st
+    }
+
+    pub fn save_widgets(&self) {
+        if let Some(path) = cat_shore_save_path() {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let payload = PersistedCatShore {
+                tasks: self.tasks.clone(),
+                note_title: self.note_title.clone(),
+                note_text: self.note_text.clone(),
+                events: self.events.clone(),
+                clips: self.clips.clone(),
+                timer_preset_idx: self.timer_preset_idx,
+            };
+            if let Ok(json) = serde_json::to_string_pretty(&payload) {
+                let _ = std::fs::write(path, json);
+            }
+        }
+    }
+
+    pub fn push_event(&mut self, msg: String) {
+        if self.pending_events.len() < 32 {
+            self.pending_events.push_back(msg);
+        }
+    }
+
+    pub fn drain_events(&mut self) -> Vec<String> {
+        self.pending_events.drain(..).collect()
+    }
+
+    pub fn selected_date(&self) -> NaiveDate {
+        Local::now().date_naive() + ChronoDuration::days(self.cal_selected_day_off)
+    }
+
+    pub fn visible_task_indices(&self) -> Vec<usize> {
+        self.tasks
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| if self.task_filter == 1 { t.done } else { !t.done })
+            .map(|(i, _)| i)
+            .take(3)
+            .collect()
+    }
+
+    pub fn selected_day_event_indices(&self) -> Vec<usize> {
+        let key = self.selected_date().format("%Y-%m-%d").to_string();
+        self.events
+            .iter()
+            .enumerate()
+            .filter(|(_, ev)| ev.date == key)
+            .map(|(i, _)| i)
+            .take(2)
+            .collect()
+    }
+
+    pub fn apply_action(&mut self, v: &Value) {
+        let op = v.get("op").and_then(|x| x.as_str()).unwrap_or("");
+        match op {
+            "addTask" => {
+                let title = v.get("title").and_then(|x| x.as_str()).unwrap_or("").trim();
+                let meta = v.get("meta").and_then(|x| x.as_str()).unwrap_or("").trim();
+                if !title.is_empty() {
+                    self.tasks.insert(
+                        0,
+                        NotchTask {
+                            title: title.chars().take(48).collect(),
+                            meta: if meta.is_empty() {
+                                "Today".into()
+                            } else {
+                                meta.chars().take(40).collect()
+                            },
+                            done: false,
+                        },
+                    );
+                    if self.tasks.len() > 24 {
+                        self.tasks.truncate(24);
+                    }
+                    self.task_filter = 0;
+                    self.notch_pinned = true;
+                    self.save_widgets();
+                }
+            }
+            "setNote" => {
+                let title = v.get("title").and_then(|x| x.as_str()).unwrap_or("").trim();
+                let text = v.get("text").and_then(|x| x.as_str()).unwrap_or("");
+                if !title.is_empty() {
+                    self.note_title = title.chars().take(32).collect();
+                }
+                self.note_text = text.chars().take(1200).collect();
+                self.notch_pinned = true;
+                self.save_widgets();
+            }
+            "addEvent" => {
+                let date = v
+                    .get("date")
+                    .and_then(|x| x.as_str())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| self.selected_date().format("%Y-%m-%d").to_string());
+                let time = v.get("time").and_then(|x| x.as_str()).unwrap_or("12:00").trim();
+                let title = v.get("title").and_then(|x| x.as_str()).unwrap_or("").trim();
+                let meta = v.get("meta").and_then(|x| x.as_str()).unwrap_or("").trim();
+                if !title.is_empty() {
+                    self.events.push(NotchCalEvent {
+                        date,
+                        time: if time.is_empty() { "12:00".into() } else { time.chars().take(10).collect() },
+                        title: title.chars().take(42).collect(),
+                        meta: if meta.is_empty() { "Event".into() } else { meta.chars().take(36).collect() },
+                    });
+                    if self.events.len() > 64 {
+                        self.events.remove(0);
+                    }
+                    self.notch_pinned = true;
+                    self.save_widgets();
+                }
+            }
+            "addClip" => {
+                let body = v.get("body").and_then(|x| x.as_str()).unwrap_or("").trim();
+                if !body.is_empty() {
+                    let raw_title = v.get("title").and_then(|x| x.as_str()).unwrap_or("").trim();
+                    let title: String = if !raw_title.is_empty() {
+                        raw_title.chars().take(28).collect()
+                    } else {
+                        body.lines().next().unwrap_or("Clip").chars().take(24).collect()
+                    };
+                    let now = Local::now();
+                    let time_str = format!("{:02}:{:02}", now.hour(), now.minute());
+                    let color_idx = (self.clips.len() % 3) as u8;
+                    self.clips.insert(
+                        0,
+                        NotchClip {
+                            title,
+                            body: body.chars().take(800).collect(),
+                            time_str,
+                            color_idx,
+                        },
+                    );
+                    if self.clips.len() > 12 {
+                        self.clips.truncate(12);
+                    }
+                    self.notch_tab = 1;
+                    self.notch_pinned = true;
+                    self.save_widgets();
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn cat_pos_and_scale(&self) -> (f32, f32, f32) {
@@ -720,18 +969,40 @@ impl CatShoreState {
         let w0 = inner_w * 0.285;
         let w1 = inner_w * 0.225;
         let w2 = inner_w * 0.240;
+        let w3 = inner_w * 0.250;
         let x0 = panel_x + pad;
         let x1 = x0 + w0 + gap;
         let x2 = x1 + w1 + gap;
+        let x3 = x2 + w2 + gap;
 
-        // Task checkboxes inside Card 0
+        // Task filter pills inside Card 0
+        h.tab_tasks_todo = Rect {
+            x: x0 + 10.0,
+            y: cards_y + 32.0,
+            w: 62.0,
+            h: 22.0,
+        };
+        h.tab_tasks_done = Rect {
+            x: x0 + 74.0,
+            y: cards_y + 32.0,
+            w: 86.0,
+            h: 22.0,
+        };
+
+        // Task checkboxes & delete buttons inside Card 0
         for i in 0..3 {
             let ty = cards_y + 68.0 + (i as f32) * ((cards_h - 108.0) / 3.0).clamp(36.0, 52.0);
             h.task_checks[i] = Rect {
                 x: x0 + 8.0,
                 y: ty - 6.0,
-                w: w0 - 16.0,
+                w: (w0 - 38.0).max(40.0),
                 h: 32.0,
+            };
+            h.task_dels[i] = Rect {
+                x: x0 + w0 - 26.0,
+                y: ty - 2.0,
+                w: 20.0,
+                h: 22.0,
             };
         }
         h.btn_add_task = Rect {
@@ -765,12 +1036,83 @@ impl CatShoreState {
             h: 22.0,
         };
 
-        // Notepad card (click cycles note pages)
+        // Notepad card (click opens real note editor!)
         h.card_notepad = Rect {
             x: x2,
             y: cards_y,
             w: w2,
             h: cards_h,
+        };
+
+        // Calendar interactive strip + week arrows + event delete + add button (Card 3)
+        let col_w = (w3 - 34.0) / 7.0;
+        h.cal_prev = Rect {
+            x: x3 + 2.0,
+            y: cards_y + 18.0,
+            w: 16.0,
+            h: 28.0,
+        };
+        h.cal_next = Rect {
+            x: x3 + w3 - 18.0,
+            y: cards_y + 18.0,
+            w: 16.0,
+            h: 28.0,
+        };
+        for d in 0..7 {
+            h.cal_days[d] = Rect {
+                x: x3 + 17.0 + (d as f32) * col_w,
+                y: cards_y + 8.0,
+                w: col_w,
+                h: 38.0,
+            };
+        }
+        let ev1_y = cards_y + 56.0;
+        let ev1_h = (cards_h * 0.30).clamp(50.0, 68.0);
+        h.cal_event_dels[0] = Rect {
+            x: x3 + w3 - 28.0,
+            y: ev1_y + 4.0,
+            w: 18.0,
+            h: 18.0,
+        };
+        let ev2_y = ev1_y + ev1_h + 8.0;
+        h.cal_event_dels[1] = Rect {
+            x: x3 + w3 - 28.0,
+            y: ev2_y + 4.0,
+            w: 18.0,
+            h: 18.0,
+        };
+        h.btn_add_event = Rect {
+            x: x3 + w3 - 76.0,
+            y: cards_y + cards_h - 28.0,
+            w: 66.0,
+            h: 21.0,
+        };
+
+        // Clips clothesline hits (Tab 1)
+        let clip_w = ((panel_w - pad * 2.0 - 44.0) / 3.0).min(210.0);
+        let clip_h = (cards_h - 48.0).clamp(86.0, 145.0);
+        let clip_y = cards_y + 16.0;
+        let start_x = panel_x + pad + 12.0;
+        for ci in 0..3 {
+            let cx_card = start_x + (ci as f32) * (clip_w + 18.0);
+            h.clip_cards[ci] = Rect {
+                x: cx_card,
+                y: clip_y,
+                w: clip_w,
+                h: clip_h,
+            };
+            h.clip_dels[ci] = Rect {
+                x: cx_card + clip_w - 22.0,
+                y: clip_y + 4.0,
+                w: 18.0,
+                h: 18.0,
+            };
+        }
+        h.btn_add_clip = Rect {
+            x: panel_x + panel_w - pad - 118.0,
+            y: cards_y + cards_h - 26.0,
+            w: 112.0,
+            h: 22.0,
         };
 
         // Compact reminder toast rect under top center
@@ -896,38 +1238,35 @@ impl CatShoreState {
                 return true;
             }
             if self.notch_tab == 0 {
-                // Task checkboxes
-                for i in 0..self.tasks.len().min(3) {
-                    if self.hits.task_checks[i].contains(x, y) {
-                        self.tasks[i].done = !self.tasks[i].done;
+                // Task filter tabs ("To do" / "Completed")
+                if self.hits.tab_tasks_todo.contains(x, y) {
+                    self.task_filter = 0;
+                    self.notch_pinned = true;
+                    return true;
+                }
+                if self.hits.tab_tasks_done.contains(x, y) {
+                    self.task_filter = 1;
+                    self.notch_pinned = true;
+                    return true;
+                }
+                // Task delete buttons & checkboxes (mapped to visible filtered tasks)
+                let visible = self.visible_task_indices();
+                for (slot, &real_idx) in visible.iter().enumerate() {
+                    if self.hits.task_dels[slot].contains(x, y) {
+                        self.tasks.remove(real_idx);
+                        self.save_widgets();
+                        self.notch_pinned = true;
+                        return true;
+                    }
+                    if self.hits.task_checks[slot].contains(x, y) {
+                        self.tasks[real_idx].done = !self.tasks[real_idx].done;
+                        self.save_widgets();
                         self.notch_pinned = true;
                         return true;
                     }
                 }
                 if self.hits.btn_add_task.contains(x, y) {
-                    // Reset completed or cycle next sample task
-                    if self.tasks.iter().all(|t| t.done) {
-                        for t in &mut self.tasks {
-                            t.done = false;
-                        }
-                    } else {
-                        const EXTRA: [(&str, &str); 4] = [
-                            ("Review shader perf", "Dev · 20 min"),
-                            ("Water the plants", "Home · 7:00 PM"),
-                            ("Backup desktop notes", "Sync · Today"),
-                            ("Prep slides for design", "Focused · 45 min · High"),
-                        ];
-                        let (title, meta) = EXTRA[self.task_pool_idx % EXTRA.len()];
-                        self.task_pool_idx += 1;
-                        if let Some(slot) = self.tasks.iter_mut().find(|t| t.done) {
-                            slot.title = title.into();
-                            slot.meta = meta.into();
-                            slot.done = false;
-                        } else if let Some(last) = self.tasks.last_mut() {
-                            last.title = title.into();
-                            last.meta = meta.into();
-                        }
-                    }
+                    self.push_event(r#"{"t":"catShorePrompt","kind":"addTask"}"#.into());
                     self.notch_pinned = true;
                     return true;
                 }
@@ -949,13 +1288,89 @@ impl CatShoreState {
                     self.timer_preset_idx = (self.timer_preset_idx + 1) % TIMER_PRESETS_MIN.len();
                     self.timer_running = false;
                     self.timer_left_sec = (TIMER_PRESETS_MIN[self.timer_preset_idx] * 60) as f32;
+                    self.save_widgets();
                     self.notch_pinned = true;
                     return true;
                 }
                 if self.hits.card_notepad.contains(x, y) {
-                    self.note_idx = (self.note_idx + 1) % NOTE_PAGES.len();
+                    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+                        "t": "catShorePrompt",
+                        "kind": "editNote",
+                        "title": &self.note_title,
+                        "text": &self.note_text,
+                    })) {
+                        self.push_event(payload);
+                    }
                     self.notch_pinned = true;
                     return true;
+                }
+                // Calendar week navigation & day selection
+                if self.hits.cal_prev.contains(x, y) {
+                    self.cal_week_offset -= 7;
+                    self.cal_selected_day_off -= 7;
+                    self.notch_pinned = true;
+                    return true;
+                }
+                if self.hits.cal_next.contains(x, y) {
+                    self.cal_week_offset += 7;
+                    self.cal_selected_day_off += 7;
+                    self.notch_pinned = true;
+                    return true;
+                }
+                for d in 0..7 {
+                    if self.hits.cal_days[d].contains(x, y) {
+                        self.cal_selected_day_off = self.cal_week_offset + d as i64;
+                        self.notch_pinned = true;
+                        return true;
+                    }
+                }
+                let day_ev_indices = self.selected_day_event_indices();
+                for (slot, &real_idx) in day_ev_indices.iter().enumerate() {
+                    if self.hits.cal_event_dels[slot].contains(x, y) {
+                        self.events.remove(real_idx);
+                        self.save_widgets();
+                        self.notch_pinned = true;
+                        return true;
+                    }
+                }
+                if self.hits.btn_add_event.contains(x, y) {
+                    let date_str = self.selected_date().format("%Y-%m-%d").to_string();
+                    if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+                        "t": "catShorePrompt",
+                        "kind": "addEvent",
+                        "date": date_str,
+                    })) {
+                        self.push_event(payload);
+                    }
+                    self.notch_pinned = true;
+                    return true;
+                }
+            } else {
+                // Tab 1: Clips clothesline interactions
+                if self.hits.btn_add_clip.contains(x, y) {
+                    self.push_event(r#"{"t":"catShorePrompt","kind":"pasteClip"}"#.into());
+                    self.notch_pinned = true;
+                    return true;
+                }
+                for ci in 0..self.clips.len().min(3) {
+                    if self.hits.clip_dels[ci].contains(x, y) {
+                        self.clips.remove(ci);
+                        self.save_widgets();
+                        self.notch_pinned = true;
+                        return true;
+                    }
+                    if self.hits.clip_cards[ci].contains(x, y) {
+                        if let Ok(payload) = serde_json::to_string(&serde_json::json!({
+                            "t": "catShoreCopy",
+                            "text": &self.clips[ci].body,
+                        })) {
+                            self.push_event(payload);
+                        }
+                        self.clip_copied_idx = Some(ci);
+                        self.clip_copied_ttl = 1.8;
+                        self.notch_pinned = true;
+                        return true;
+                    }
                 }
             }
             self.notch_pinned = true;
@@ -997,7 +1412,7 @@ impl CatShoreState {
         self.tail_phase += dt * (2.3 + self.happy * 4.5) * self.params.water_speed.clamp(0.4, 1.6);
         self.happy = (self.happy - dt * 0.85).max(0.0);
 
-        // Focus timer countdown
+        // Focus timer countdown + desktop alert
         if self.timer_running {
             self.timer_left_sec = (self.timer_left_sec - dt).max(0.0);
             if self.timer_left_sec <= 0.0 {
@@ -1005,6 +1420,16 @@ impl CatShoreState {
                 self.reminder_title = "Focus complete!".into();
                 self.reminder_open = true;
                 self.notch_pinned = false;
+                self.push_event(
+                    r#"{"t":"catShoreNotify","title":"DiyarDesk Odak Sayacı","body":"Odak süresi tamamlandı! Kısa bir mola zamanı."}"#
+                        .into(),
+                );
+            }
+        }
+        if self.clip_copied_ttl > 0.0 {
+            self.clip_copied_ttl = (self.clip_copied_ttl - dt).max(0.0);
+            if self.clip_copied_ttl <= 0.0 {
+                self.clip_copied_idx = None;
             }
         }
 
@@ -1804,7 +2229,7 @@ impl CatShoreRenderer {
         let cards_h = (eh - cards_y - pad).max(80.0);
 
         if cs.notch_tab == 1 {
-            // ---- TAB 1: CLIPS CLOTHESLINE VIEW (inspired by frame 13!) ----
+            // ---- TAB 1: REAL INTERACTIVE CLIPS CLOTHESLINE ----
             (gl.UseProgram)(self.prog_ui);
             (gl.Uniform2f)(self.ui_res, css_w, css_h);
             (gl.Uniform4f)(self.ui_rect, panel_x + pad, cards_y, panel_w - pad * 2.0, 26.0);
@@ -1816,96 +2241,98 @@ impl CatShoreRenderer {
             (gl.BindVertexArray)(self.dummy_vao);
             (gl.DrawArrays)(GL_TRIANGLE_STRIP, 0, 4);
 
-            let clip_w = ((panel_w - pad * 2.0 - 44.0) / 3.0).min(210.0);
-            let clip_h = (cards_h - 48.0).clamp(86.0, 145.0);
-            let clip_y = cards_y + 16.0;
-            let start_x = panel_x + pad + 12.0;
-
-            // Clip 0: Sign-ups Bar Chart Card (white with blue + orange bars)
-            let sway0 = (cs.sim_time * 1.4).sin() * 2.0;
-            let c0x = start_x + sway0;
-            self.draw_ui_box(
-                gl,
-                css_w,
-                css_h,
-                c0x,
-                clip_y,
-                clip_w,
-                clip_h,
-                [6.0; 4],
+            let clip_bgs: [[f32; 4]; 3] = [
                 [0.95, 0.96, 0.98, alpha],
-                [0.0; 4],
-                0.0,
-                4.0,
-            );
-            // Wooden pegs
-            self.draw_ui_box(gl, css_w, css_h, c0x + 14.0, clip_y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
-            self.draw_ui_box(gl, css_w, css_h, c0x + clip_w - 19.0, clip_y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
-            text.push(gl, "Sign-ups", c0x + 12.0, clip_y + 20.0, 10.5, dpi, false, [0.35, 0.38, 0.44, alpha], 0, None);
-            let bars = [0.28f32, 0.48, 0.38, 0.64, 0.56, 0.78, 0.94];
-            let bw = (clip_w - 36.0) / 7.0 - 4.0;
-            for (bi, &bh_frac) in bars.iter().enumerate() {
-                let bh = (clip_h - 40.0) * bh_frac;
-                let bx = c0x + 18.0 + bi as f32 * (bw + 4.0);
-                let by = clip_y + clip_h - 14.0 - bh;
-                let col = if bi == 6 {
-                    [0.95, 0.60, 0.14, alpha]
-                } else {
-                    [0.37, 0.62, 0.85, alpha]
-                };
-                self.draw_ui_box(gl, css_w, css_h, bx, by, bw, bh, [2.0; 4], col, [0.0; 4], 0.0, 0.0);
-            }
-            text.push(gl, "1:42 PM", c0x + clip_w * 0.5, clip_y + clip_h + 15.0, 10.0, dpi, false, [0.55, 0.57, 0.62, alpha], 1, None);
-
-            // Clip 1: Pale Yellow Sticky Note Card
-            let sway1 = (cs.sim_time * 1.4 + 1.8).sin() * 2.0;
-            let c1x = start_x + clip_w + 18.0 + sway1;
-            self.draw_ui_box(
-                gl,
-                css_w,
-                css_h,
-                c1x,
-                clip_y,
-                clip_w,
-                clip_h,
-                [6.0; 4],
                 [0.93, 0.90, 0.62, alpha],
-                [0.0; 4],
-                0.0,
-                4.0,
-            );
-            self.draw_ui_box(gl, css_w, css_h, c1x + 14.0, clip_y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
-            self.draw_ui_box(gl, css_w, css_h, c1x + clip_w - 19.0, clip_y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
-            text.push(gl, "Launch email", c1x + 12.0, clip_y + 22.0, 11.5, dpi, true, [0.16, 0.16, 0.12, alpha], 0, None);
-            text.push(gl, "- Lead with the notch", c1x + 12.0, clip_y + 42.0, 10.5, dpi, false, [0.24, 0.24, 0.18, alpha], 0, Some(clip_w - 20.0));
-            text.push(gl, "- Add the demo video", c1x + 12.0, clip_y + 58.0, 10.5, dpi, false, [0.24, 0.24, 0.18, alpha], 0, Some(clip_w - 20.0));
-            text.push(gl, "Copied · 1:31 PM", c1x + clip_w * 0.5, clip_y + clip_h + 15.0, 10.0, dpi, false, [0.55, 0.57, 0.62, alpha], 1, None);
+                [0.86, 0.92, 0.96, alpha],
+            ];
+            if cs.clips.is_empty() {
+                text.push(
+                    gl,
+                    "No clips yet — click + Paste Clip to pin clipboard text",
+                    panel_x + panel_w * 0.5,
+                    cards_y + cards_h * 0.48,
+                    12.0,
+                    dpi,
+                    false,
+                    [0.72, 0.75, 0.80, 0.90 * alpha],
+                    1,
+                    None,
+                );
+            } else {
+                for (ci, clip) in cs.clips.iter().take(3).enumerate() {
+                    let rc = cs.hits.clip_cards[ci];
+                    let sway = (cs.sim_time * 1.4 + ci as f32 * 1.7).sin() * 1.8;
+                    let cx_card = rc.x + sway;
+                    let bg = clip_bgs[clip.color_idx as usize % 3];
+                    let is_copied = cs.clip_copied_idx == Some(ci) && cs.clip_copied_ttl > 0.0;
+                    self.draw_ui_box(
+                        gl,
+                        css_w,
+                        css_h,
+                        cx_card,
+                        rc.y,
+                        rc.w,
+                        rc.h,
+                        [6.0; 4],
+                        bg,
+                        if is_copied {
+                            [0.20, 0.78, 0.56, alpha]
+                        } else {
+                            [0.0; 4]
+                        },
+                        if is_copied { 2.0 } else { 0.0 },
+                        4.0,
+                    );
+                    // Wooden pegs
+                    self.draw_ui_box(gl, css_w, css_h, cx_card + 14.0, rc.y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
+                    self.draw_ui_box(gl, css_w, css_h, cx_card + rc.w - 19.0, rc.y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
+                    // Delete x button
+                    let bd = cs.hits.clip_dels[ci];
+                    text.push(gl, "x", bd.x + sway + 9.0, bd.y + 13.0, 10.0, dpi, true, [0.42, 0.44, 0.48, 0.80 * alpha], 1, None);
 
-            // Clip 2: Ship Day Mini Window Card
-            let sway2 = (cs.sim_time * 1.4 + 3.4).sin() * 2.0;
-            let c2x = start_x + (clip_w + 18.0) * 2.0 + sway2;
+                    text.push(gl, &clip.title, cx_card + 11.0, rc.y + 22.0, 11.5, dpi, true, [0.14, 0.15, 0.18, alpha], 0, Some(rc.w - 34.0));
+                    for (li, line) in wrap_lines(&clip.body, 24, 4).iter().enumerate() {
+                        text.push(gl, line, cx_card + 11.0, rc.y + 42.0 + li as f32 * 15.5, 10.2, dpi, false, [0.24, 0.26, 0.30, alpha], 0, Some(rc.w - 20.0));
+                    }
+                    let footer = if is_copied { "Copied!" } else { clip.time_str.as_str() };
+                    let fcol = if is_copied {
+                        [0.35, 0.92, 0.70, alpha]
+                    } else {
+                        [0.58, 0.61, 0.66, alpha]
+                    };
+                    text.push(gl, footer, cx_card + rc.w * 0.5, rc.y + rc.h + 15.0, 10.0, dpi, is_copied, fcol, 1, None);
+                }
+            }
+
+            // Bottom-right "+ Paste Clip" button
+            let ba = cs.hits.btn_add_clip;
             self.draw_ui_box(
                 gl,
                 css_w,
                 css_h,
-                c2x,
-                clip_y,
-                clip_w,
-                clip_h,
-                [6.0; 4],
-                [0.97, 0.97, 0.98, alpha],
-                [0.0; 4],
+                ba.x,
+                ba.y,
+                ba.w,
+                ba.h,
+                [11.0; 4],
+                [0.20, 0.24, 0.30, alpha],
+                [1.0, 1.0, 1.0, 0.16 * alpha],
+                1.0,
                 0.0,
-                4.0,
             );
-            self.draw_ui_box(gl, css_w, css_h, c2x + 14.0, clip_y - 10.0, 5.0, 14.0, [2.0; 4], [0.85, 0.80, 0.68, alpha], [0.0; 4], 0.0, 0.0);
-            self.draw_ui_circle(gl, css_w, css_h, c2x + 11.0, clip_y + 10.0, 3.0, [0.95, 0.36, 0.34, alpha], [0.0; 4], 0.0, false);
-            self.draw_ui_circle(gl, css_w, css_h, c2x + 20.0, clip_y + 10.0, 3.0, [0.96, 0.74, 0.24, alpha], [0.0; 4], 0.0, false);
-            self.draw_ui_circle(gl, css_w, css_h, c2x + 29.0, clip_y + 10.0, 3.0, [0.24, 0.80, 0.36, alpha], [0.0; 4], 0.0, false);
-            text.push(gl, "Ship day", c2x + 12.0, clip_y + 34.0, 12.0, dpi, true, [0.12, 0.13, 0.16, alpha], 0, None);
-            text.push(gl, "Final build", c2x + 12.0, clip_y + 52.0, 10.0, dpi, false, [0.30, 0.34, 0.40, alpha], 0, None);
-            text.push(gl, "Landing page", c2x + 12.0, clip_y + 67.0, 10.0, dpi, false, [0.30, 0.34, 0.40, alpha], 0, None);
-            text.push(gl, "12:58 PM", c2x + clip_w * 0.5, clip_y + clip_h + 15.0, 10.0, dpi, false, [0.55, 0.57, 0.62, alpha], 1, None);
+            text.push(
+                gl,
+                "+ Paste Clip",
+                ba.x + ba.w * 0.5,
+                ba.y + 14.5,
+                10.2,
+                dpi,
+                true,
+                [0.92, 0.95, 0.98, alpha],
+                1,
+                None,
+            );
 
             text.flush(gl, css_w, css_h);
             return;
@@ -1967,14 +2394,16 @@ impl CatShoreRenderer {
 
         let todo_cnt = cs.tasks.iter().filter(|t| !t.done).count();
         let done_cnt = cs.tasks.iter().filter(|t| t.done).count();
-        // To do pill
+        let todo_active = cs.task_filter == 0;
+        // Active filter pill highlight
+        let pill_r = if todo_active { cs.hits.tab_tasks_todo } else { cs.hits.tab_tasks_done };
         self.draw_ui_box(
             gl,
             css_w,
             css_h,
-            x0 + 12.0,
-            cards_y + 34.0,
-            56.0,
+            pill_r.x,
+            pill_r.y + 1.0,
+            pill_r.w,
             19.0,
             [9.5; 4],
             [0.74, 0.82, 0.74, alpha],
@@ -1985,30 +2414,47 @@ impl CatShoreRenderer {
         text.push(
             gl,
             &format!("To do {todo_cnt}"),
-            x0 + 40.0,
+            cs.hits.tab_tasks_todo.x + cs.hits.tab_tasks_todo.w * 0.5,
             cards_y + 47.0,
             10.0,
             dpi,
-            true,
-            [0.12, 0.18, 0.13, alpha],
+            todo_active,
+            if todo_active { [0.10, 0.16, 0.11, alpha] } else { [0.20, 0.28, 0.21, 0.85 * alpha] },
             1,
             None,
         );
         text.push(
             gl,
             &format!("Completed {done_cnt}"),
-            x0 + 78.0,
+            cs.hits.tab_tasks_done.x + cs.hits.tab_tasks_done.w * 0.5,
             cards_y + 47.0,
             10.0,
             dpi,
-            false,
-            [0.20, 0.28, 0.21, 0.85 * alpha],
-            0,
+            !todo_active,
+            if !todo_active { [0.10, 0.16, 0.11, alpha] } else { [0.20, 0.28, 0.21, 0.85 * alpha] },
+            1,
             None,
         );
 
-        for (i, task) in cs.tasks.iter().take(3).enumerate() {
-            let r = cs.hits.task_checks[i];
+        let vis_tasks = cs.visible_task_indices();
+        if vis_tasks.is_empty() {
+            text.push(
+                gl,
+                if todo_active { "All done!" } else { "No completed tasks" },
+                x0 + w0 * 0.5,
+                cards_y + cards_h * 0.52,
+                11.0,
+                dpi,
+                false,
+                [0.20, 0.28, 0.21, 0.78 * alpha],
+                1,
+                None,
+            );
+        }
+        for (slot, &real_idx) in vis_tasks.iter().enumerate() {
+            let task = &cs.tasks[real_idx];
+            let r = cs.hits.task_checks[slot];
+            let dr = cs.hits.task_dels[slot];
             let cy = r.y + 14.0;
             self.draw_ui_circle(
                 gl,
@@ -2031,7 +2477,7 @@ impl CatShoreRenderer {
                 task.done,
             );
             let txt_col = if task.done {
-                [0.24, 0.32, 0.25, 0.60 * alpha]
+                [0.24, 0.32, 0.25, 0.65 * alpha]
             } else {
                 [0.10, 0.15, 0.11, alpha]
             };
@@ -2045,7 +2491,7 @@ impl CatShoreRenderer {
                 !task.done,
                 txt_col,
                 0,
-                Some(w0 - 46.0),
+                Some((w0 - 62.0).max(32.0)),
             );
             text.push(
                 gl,
@@ -2057,7 +2503,19 @@ impl CatShoreRenderer {
                 false,
                 [0.22, 0.30, 0.23, 0.82 * alpha],
                 0,
-                Some(w0 - 46.0),
+                Some((w0 - 62.0).max(32.0)),
+            );
+            text.push(
+                gl,
+                "x",
+                dr.x + dr.w * 0.5,
+                cy + 4.0,
+                10.0,
+                dpi,
+                true,
+                [0.20, 0.28, 0.21, 0.68 * alpha],
+                1,
+                None,
             );
         }
 
@@ -2209,7 +2667,7 @@ impl CatShoreRenderer {
             None,
         );
 
-        // === CARD 3: WARM OLIVE — Notepad ===
+        // === CARD 3: WARM OLIVE — Real Editable Notepad ===
         self.draw_ui_box(
             gl,
             css_w,
@@ -2224,10 +2682,9 @@ impl CatShoreRenderer {
             1.0,
             0.0,
         );
-        let (note_title, note_lines, note_words) = NOTE_PAGES[cs.note_idx % NOTE_PAGES.len()];
         text.push(
             gl,
-            note_title,
+            &cs.note_title,
             x2 + 13.0,
             cards_y + 24.0,
             13.0,
@@ -2235,6 +2692,18 @@ impl CatShoreRenderer {
             true,
             [0.16, 0.17, 0.08, alpha],
             0,
+            Some(w2 - 58.0),
+        );
+        text.push(
+            gl,
+            "Edit",
+            x2 + w2 - 12.0,
+            cards_y + 23.0,
+            9.8,
+            dpi,
+            true,
+            [0.24, 0.26, 0.13, 0.88 * alpha],
+            2,
             None,
         );
         let full_date = format!("{} {} {}", now.day(), month_short(now.month()), now.year());
@@ -2250,13 +2719,15 @@ impl CatShoreRenderer {
             0,
             None,
         );
-        for (li, line) in note_lines.iter().enumerate() {
+        let max_chars = ((w2 - 26.0) / 6.2).clamp(16.0, 38.0) as usize;
+        let max_lines = (((cards_h - 86.0) / 17.5).floor() as usize).clamp(3, 6);
+        for (li, line) in wrap_lines(&cs.note_text, max_chars, max_lines).iter().enumerate() {
             text.push(
                 gl,
                 line,
                 x2 + 13.0,
-                cards_y + 72.0 + li as f32 * 18.0,
-                11.2,
+                cards_y + 70.0 + li as f32 * 17.5,
+                11.0,
                 dpi,
                 false,
                 [0.16, 0.17, 0.09, alpha],
@@ -2264,9 +2735,10 @@ impl CatShoreRenderer {
                 Some(w2 - 22.0),
             );
         }
+        let wcount = cs.note_text.split_whitespace().count();
         text.push(
             gl,
-            note_words,
+            &format!("{wcount} words"),
             x2 + 13.0,
             cards_y + cards_h - 13.0,
             10.0,
@@ -2277,7 +2749,7 @@ impl CatShoreRenderer {
             None,
         );
 
-        // === CARD 4: POWDER BLUE — Calendar & Schedule ===
+        // === CARD 4: POWDER BLUE — Interactive Calendar & Real Schedule ===
         self.draw_ui_box(
             gl,
             css_w,
@@ -2293,12 +2765,17 @@ impl CatShoreRenderer {
             0.0,
         );
 
-        // Real 7-day calendar strip starting from today!
+        // Week nav arrows (< / >) + interactive 7-day strip
+        text.push(gl, "<", cs.hits.cal_prev.x + 8.0, cards_y + 36.0, 11.0, dpi, true, [0.16, 0.24, 0.32, 0.88 * alpha], 1, None);
+        text.push(gl, ">", cs.hits.cal_next.x + 8.0, cards_y + 36.0, 11.0, dpi, true, [0.16, 0.24, 0.32, 0.88 * alpha], 1, None);
         let today = now.date_naive();
-        let col_w = (w3 - 18.0) / 7.0;
-        for d_off in 0..7i64 {
+        for d_idx in 0..7usize {
+            let d_off = cs.cal_week_offset + d_idx as i64;
             let d = today + ChronoDuration::days(d_off);
-            let dx = x3 + 9.0 + (d_off as f32 + 0.5) * col_w;
+            let r_day = cs.hits.cal_days[d_idx];
+            let dx = r_day.x + r_day.w * 0.5;
+            let is_sel = d_off == cs.cal_selected_day_off;
+            let is_today = d_off == 0;
             let wd = weekday_letter(d.weekday());
             text.push(
                 gl,
@@ -2312,7 +2789,7 @@ impl CatShoreRenderer {
                 1,
                 None,
             );
-            if d_off == 0 {
+            if is_sel {
                 self.draw_ui_circle(
                     gl,
                     css_w,
@@ -2325,6 +2802,19 @@ impl CatShoreRenderer {
                     0.0,
                     false,
                 );
+            } else if is_today {
+                self.draw_ui_circle(
+                    gl,
+                    css_w,
+                    css_h,
+                    dx,
+                    cards_y + 33.0,
+                    10.5,
+                    [0.0; 4],
+                    [0.10, 0.14, 0.19, 0.70 * alpha],
+                    1.2,
+                    false,
+                );
             }
             text.push(
                 gl,
@@ -2333,8 +2823,8 @@ impl CatShoreRenderer {
                 cards_y + 37.0,
                 10.5,
                 dpi,
-                d_off == 0,
-                if d_off == 0 {
+                is_sel || is_today,
+                if is_sel {
                     [0.98, 0.99, 1.0, alpha]
                 } else {
                     [0.12, 0.18, 0.24, alpha]
@@ -2344,131 +2834,75 @@ impl CatShoreRenderer {
             );
         }
 
-        // Featured Dark Event Card ("Design review")
+        let ev_indices = cs.selected_day_event_indices();
         let ev1_y = cards_y + 56.0;
-        let ev1_h = (cards_h * 0.32).clamp(58.0, 76.0);
-        text.push(gl, "3:00", x3 + 10.0, ev1_y + 17.0, 10.5, dpi, true, [0.12, 0.17, 0.24, alpha], 0, None);
-        text.push(gl, "PM", x3 + 12.0, ev1_y + 28.0, 8.5, dpi, false, [0.22, 0.30, 0.38, 0.8 * alpha], 0, None);
-
+        let ev1_h = (cards_h * 0.30).clamp(50.0, 68.0);
         let ev_card_x = x3 + 42.0;
-        let ev_card_w = w3 - 52.0;
-        self.draw_ui_box(
-            gl,
-            css_w,
-            css_h,
-            ev_card_x,
-            ev1_y,
-            ev_card_w,
-            ev1_h,
-            [11.0; 4],
-            [0.09, 0.11, 0.14, alpha],
-            [0.0; 4],
-            0.0,
-            0.0,
-        );
-        text.push(
-            gl,
-            "Design review",
-            ev_card_x + 10.0,
-            ev1_y + 18.0,
-            11.2,
-            dpi,
-            true,
-            [0.95, 0.97, 0.99, alpha],
-            0,
-            Some(ev_card_w - 16.0),
-        );
-        text.push(
-            gl,
-            "In 1 hr · Work",
-            ev_card_x + 10.0,
-            ev1_y + 32.0,
-            9.2,
-            dpi,
-            false,
-            [0.64, 0.68, 0.74, alpha],
-            0,
-            Some(ev_card_w - 16.0),
-        );
-        if ev1_h >= 56.0 {
-            self.draw_ui_box(
-                gl,
-                css_w,
-                css_h,
-                ev_card_x + 10.0,
-                ev1_y + ev1_h - 24.0,
-                72.0,
-                18.0,
-                [9.0; 4],
-                [0.20, 0.22, 0.26, alpha],
-                [0.0; 4],
-                0.0,
-                0.0,
-            );
+        let ev_card_w = (w3 - 52.0).max(40.0);
+
+        if ev_indices.is_empty() {
             text.push(
                 gl,
-                "Join Meet",
-                ev_card_x + 46.0,
-                ev1_y + ev1_h - 11.5,
-                9.5,
+                "No events on this day",
+                x3 + w3 * 0.5,
+                ev1_y + 34.0,
+                10.8,
                 dpi,
-                true,
-                [0.92, 0.94, 0.97, alpha],
+                false,
+                [0.18, 0.26, 0.35, 0.82 * alpha],
                 1,
                 None,
             );
+        } else {
+            for (slot, &ev_idx) in ev_indices.iter().enumerate() {
+                let ev = &cs.events[ev_idx];
+                let ey = if slot == 0 { ev1_y } else { ev1_y + ev1_h + 8.0 };
+                let eh_card = if slot == 0 { ev1_h } else { 42.0 };
+                if ey + eh_card > cards_y + cards_h - 24.0 {
+                    break;
+                }
+                text.push(gl, &ev.time, x3 + 8.0, ey + 17.0, 10.0, dpi, true, [0.12, 0.17, 0.24, alpha], 0, Some(34.0));
+                self.draw_ui_box(
+                    gl,
+                    css_w,
+                    css_h,
+                    ev_card_x,
+                    ey,
+                    ev_card_w,
+                    eh_card,
+                    [10.0; 4],
+                    if slot == 0 {
+                        [0.09, 0.11, 0.14, alpha]
+                    } else {
+                        [0.53, 0.63, 0.72, alpha]
+                    },
+                    [0.0; 4],
+                    0.0,
+                    0.0,
+                );
+                let title_col = if slot == 0 {
+                    [0.95, 0.97, 0.99, alpha]
+                } else {
+                    [0.10, 0.15, 0.22, alpha]
+                };
+                let meta_col = if slot == 0 {
+                    [0.64, 0.68, 0.74, alpha]
+                } else {
+                    [0.20, 0.28, 0.36, 0.88 * alpha]
+                };
+                text.push(gl, &ev.title, ev_card_x + 10.0, ey + 18.0, 11.0, dpi, true, title_col, 0, Some(ev_card_w - 28.0));
+                text.push(gl, &ev.meta, ev_card_x + 10.0, ey + 33.0, 9.2, dpi, false, meta_col, 0, Some(ev_card_w - 24.0));
+                let del_r = cs.hits.cal_event_dels[slot];
+                text.push(gl, "x", del_r.x + 9.0, del_r.y + 13.0, 9.8, dpi, true, meta_col, 1, None);
+            }
         }
 
-        // Second Event Slot ("1:1 with Sam")
-        let ev2_y = ev1_y + ev1_h + 10.0;
-        if ev2_y + 34.0 < cards_y + cards_h - 20.0 {
-            text.push(gl, "4:30", x3 + 10.0, ev2_y + 15.0, 10.5, dpi, true, [0.14, 0.20, 0.28, alpha], 0, None);
-            text.push(gl, "PM", x3 + 12.0, ev2_y + 26.0, 8.5, dpi, false, [0.22, 0.30, 0.38, 0.8 * alpha], 0, None);
-            self.draw_ui_box(
-                gl,
-                css_w,
-                css_h,
-                ev_card_x,
-                ev2_y,
-                ev_card_w,
-                38.0,
-                [9.0; 4],
-                [0.53, 0.63, 0.72, alpha],
-                [0.0; 4],
-                0.0,
-                0.0,
-            );
-            text.push(
-                gl,
-                "1:1 with Sam",
-                ev_card_x + 10.0,
-                ev2_y + 16.0,
-                10.8,
-                dpi,
-                true,
-                [0.10, 0.15, 0.22, alpha],
-                0,
-                Some(ev_card_w - 14.0),
-            );
-            text.push(
-                gl,
-                "Work · 30 min",
-                ev_card_x + 10.0,
-                ev2_y + 30.0,
-                9.2,
-                dpi,
-                false,
-                [0.20, 0.28, 0.36, 0.88 * alpha],
-                0,
-                Some(ev_card_w - 14.0),
-            );
-        }
-
-        // Footer Connected status
+        // Footer: selected date + "+ Event" button
+        let sel_d = cs.selected_date();
         text.push(
             gl,
-            "Connected",
-            x3 + 14.0,
+            &format!("{} {}", sel_d.day(), month_short(sel_d.month())),
+            x3 + 12.0,
             cards_y + cards_h - 13.0,
             10.0,
             dpi,
@@ -2477,9 +2911,82 @@ impl CatShoreRenderer {
             0,
             None,
         );
+        let bae = cs.hits.btn_add_event;
+        self.draw_ui_box(
+            gl,
+            css_w,
+            css_h,
+            bae.x,
+            bae.y,
+            bae.w,
+            bae.h,
+            [10.0; 4],
+            [0.50, 0.60, 0.70, alpha],
+            [0.0; 4],
+            0.0,
+            0.0,
+        );
+        text.push(
+            gl,
+            "+ Event",
+            bae.x + bae.w * 0.5,
+            bae.y + 14.0,
+            9.8,
+            dpi,
+            true,
+            [0.10, 0.16, 0.22, alpha],
+            1,
+            None,
+        );
 
         text.flush(gl, css_w, css_h);
     }
+}
+
+fn wrap_lines(text: &str, max_chars: usize, max_lines: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let lim = max_chars.max(8);
+    for raw_line in text.lines() {
+        let trimmed = raw_line.trim_end();
+        if trimmed.is_empty() {
+            if out.len() < max_lines {
+                out.push(String::new());
+            }
+            continue;
+        }
+        let mut cur = String::new();
+        for word in trimmed.split_whitespace() {
+            let wlen = word.chars().count();
+            let clen = cur.chars().count();
+            if clen == 0 {
+                if wlen > lim {
+                    cur = word.chars().take(lim).collect();
+                } else {
+                    cur.push_str(word);
+                }
+            } else if clen + 1 + wlen <= lim {
+                cur.push(' ');
+                cur.push_str(word);
+            } else {
+                out.push(cur);
+                if out.len() >= max_lines {
+                    return out;
+                }
+                cur = if wlen > lim {
+                    word.chars().take(lim).collect()
+                } else {
+                    word.to_string()
+                };
+            }
+        }
+        if !cur.is_empty() && out.len() < max_lines {
+            out.push(cur);
+        }
+        if out.len() >= max_lines {
+            break;
+        }
+    }
+    out
 }
 
 fn month_short(m: u32) -> &'static str {

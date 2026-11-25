@@ -301,3 +301,86 @@ def test_is_allowed_local_uri() -> None:
     assert is_allowed_local_uri("javascript:alert(1)", allowed_port=5178) is False
 
 
+def test_inspect_and_import_opengl_glsl_and_dual_zip(tmp_path: Path) -> None:
+    from deskland_linux.importer import inspect_theme_archive
+
+    # 1. Pure OpenGL GLSL shader ZIP
+    glsl_zip = tmp_path / "neon-glsl.zip"
+    with zipfile.ZipFile(glsl_zip, "w") as zf:
+        zf.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "name": "Neon GLSL",
+                    "engine": "opengl-glsl",
+                    "shader": "main.frag",
+                    "adaptive": True,
+                    "groups": [
+                        {
+                            "name": "Shader",
+                            "params": [
+                                {"key": "speed", "label": "Speed", "min": 0.2, "max": 3.0, "step": 0.1, "default": 1.0},
+                                {"key": "accent", "label": "Accent", "type": "color", "default": "#32c5b8"},
+                            ],
+                        }
+                    ],
+                }
+            ),
+        )
+        zf.writestr(
+            "main.frag",
+            "#version 330 core\nin vec2 v_uv; out vec4 fragColor;\nvoid main(){ fragColor = vec4(v_uv, 0.5, 1.0); }\n",
+        )
+
+    scan = inspect_theme_archive(glsl_zip)
+    assert scan["kind"] == "opengl-glsl"
+    assert scan["engines"] == ["opengl-glsl"]
+    assert scan["requires_native_trust"] is False
+
+    custom_dir = tmp_path / "custom"
+    theme = import_theme_file(glsl_zip, custom_dir=custom_dir)
+    assert theme["engine"] == "opengl-glsl"
+    assert theme["entry"] == "main.frag"
+    assert theme["custom"] is True
+    assert (Path(theme["themeDir"]) / "main.frag").is_file()
+    assert (Path(theme["themeDir"]) / "index.html").is_file()
+
+    # 2. Dual (OpenGL GLSL + Web) ZIP
+    dual_zip = tmp_path / "dual-pack.deskland"
+    with zipfile.ZipFile(dual_zip, "w") as zf:
+        zf.writestr(
+            "manifest.json",
+            json.dumps({"name": "Dual Theme", "engine": "opengl-glsl", "shader": "main.frag"}),
+        )
+        zf.writestr("main.frag", "#version 330 core\nin vec2 v_uv; out vec4 fragColor; void main(){ fragColor=vec4(1.0); }")
+        zf.writestr("index.html", "<!doctype html><html><title>Dual Web</title><body>hi</body></html>")
+
+    dscan = inspect_theme_archive(dual_zip)
+    assert dscan["kind"] == "dual"
+    assert dscan["engines"] == ["opengl-glsl", "web"]
+
+    as_web = import_theme_file(dual_zip, custom_dir=custom_dir, preferred_engine="web")
+    assert as_web["engine"] == "web"
+    assert as_web["entry"] == "index.html"
+
+
+def test_inspect_rust_plugin_requires_security_approval(tmp_path: Path) -> None:
+    import pytest
+    from deskland_linux.importer import inspect_theme_archive
+
+    rust_zip = tmp_path / "rust-plugin.zip"
+    with zipfile.ZipFile(rust_zip, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"name": "Rust Plug", "engine": "opengl-rust"}))
+        zf.writestr("Cargo.toml", "[package]\nname='p'\nversion='0.1.0'\nedition='2021'\n[lib]\ncrate-type=['cdylib']\n")
+        zf.writestr("src/lib.rs", "pub extern \"C\" fn ddgl_plugin_abi_version() -> u32 { 1 }\n")
+
+    scan = inspect_theme_archive(rust_zip)
+    assert scan["kind"] == "opengl-rust"
+    assert scan["requires_native_trust"] is True
+    assert scan["has_rust_source"] is True
+
+    with pytest.raises(PermissionError):
+        import_theme_file(rust_zip, custom_dir=tmp_path / "custom", allow_native_code=False)
+
+
+

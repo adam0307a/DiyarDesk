@@ -14,7 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from .config import DISPLAY_MODES, SUPPORTED_LANGS, prototype_dir
-from .native_gl import NativeGlArea, NativeGlLibrary, is_native_gl_page, is_native_gl_theme
+from .native_gl import (
+    NativeGlArea,
+    NativeGlLibrary,
+    build_custom_gl_message,
+    is_custom_gl_theme,
+    is_native_gl_page,
+    is_native_gl_theme,
+)
 from .virtual_icons import VIRTUAL_ICON_TYPES, VIRTUAL_ICON_TYPE_LABELS, infer_icon_type
 
 
@@ -612,8 +619,18 @@ class NativeSettingsWindow:
                 nlbl.set_ellipsize(Pango.EllipsizeMode.END)
                 top.pack_start(nlbl, True, True, 0)
 
-                is_gl = is_native_gl_theme(tid) or is_native_gl_page(str(theme.get("page") or ""))
-                badge = Gtk.Label(label="Rust GL" if is_gl else "HTML/Web")
+                is_gl = (
+                    is_custom_gl_theme(theme)
+                    or is_native_gl_theme(tid)
+                    or is_native_gl_page(str(theme.get("page") or ""))
+                )
+                if str(theme.get("engine") or "") == "opengl-rust":
+                    badge_txt = "Rust Plugin"
+                elif str(theme.get("engine") or "") == "opengl-glsl":
+                    badge_txt = "GLSL · GL"
+                else:
+                    badge_txt = "Rust GL" if is_gl else "HTML/Web"
+                badge = Gtk.Label(label=badge_txt)
                 badge.get_style_context().add_class("dd-badge-gl" if is_gl else "dd-badge-web")
                 top.pack_end(badge, False, False, 0)
                 vbox.pack_start(top, False, False, 0)
@@ -683,7 +700,9 @@ class NativeSettingsWindow:
         tid = self.host.settings.theme
         theme_meta = self.host.themes.find(tid) or {}
         page = str(theme_meta.get("page") or "")
-        can_gl = NativeGlLibrary.is_available() and (is_native_gl_theme(tid) or is_native_gl_page(page))
+        can_gl = NativeGlLibrary.is_available() and (
+            is_custom_gl_theme(theme_meta) or is_native_gl_theme(tid) or is_native_gl_page(page)
+        )
         visible = self.window.get_visible()
 
         if can_gl:
@@ -694,6 +713,9 @@ class NativeSettingsWindow:
                 area.set_low_mode(bool(self.host.settings.low_mode))
                 area.post_json({"t": "lowMode", "v": bool(self.host.settings.low_mode)})
                 area.post_json({"t": "theme", "id": tid})
+                custom_gl_msg = build_custom_gl_message(theme_meta)
+                if custom_gl_msg is not None:
+                    area.post_json(custom_gl_msg)
                 area.post_json({"t": "settings", "v": dict(self.host.settings.for_theme(tid))})
                 area.post_json(self._scaled_preview_icons())
                 area.set_paused(not visible)
@@ -743,7 +765,7 @@ class NativeSettingsWindow:
         Gdk = self._Gdk
         tid = self.host.settings.theme
         theme = self.host.themes.find(tid) or {}
-        is_custom = bool(theme.get("custom"))
+        is_custom = bool(theme.get("custom") or theme.get("imported"))
         self._remove_theme_btn.set_visible(is_custom)
 
         name = self._i18n.theme_name(tid, str(theme.get("name") or tid))
@@ -1239,9 +1261,8 @@ class NativeSettingsWindow:
             return
         self._sync_system_controls()
         self.window.show_all()
-        self._remove_theme_btn.set_visible(
-            bool((self.host.themes.find(self.host.settings.theme) or {}).get("custom"))
-        )
+        theme_now = self.host.themes.find(self.host.settings.theme) or {}
+        self._remove_theme_btn.set_visible(bool(theme_now.get("custom") or theme_now.get("imported")))
         self.window.present()
         self._sync_preview()
 

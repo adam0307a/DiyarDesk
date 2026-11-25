@@ -3,6 +3,8 @@ use crate::aurora::AuroraRenderer;
 use crate::beach::BeachRenderer;
 use crate::cat_shore::CatShoreRenderer;
 use crate::claymorph::ClaymorphRenderer;
+use crate::custom_glsl::CustomGlslRenderer;
+use crate::custom_plugin::CustomPluginRenderer;
 use crate::neobrutalism::NeobrutalismRenderer;
 use crate::gl::*;
 use crate::liquidglass::LiquidGlassRenderer;
@@ -119,6 +121,8 @@ pub struct Renderer {
     ai_mascots_renderer: Option<AiMascotsRenderer>,
     cat_shore_renderer: Option<CatShoreRenderer>,
     persephone_renderer: Option<PersephoneRenderer>,
+    custom_glsl_renderer: Option<CustomGlslRenderer>,
+    custom_plugin_renderer: Option<CustomPluginRenderer>,
     theme_progs: HashMap<String, GLuint>,
 }
 
@@ -185,6 +189,8 @@ impl Renderer {
             ai_mascots_renderer: None,
             cat_shore_renderer: None,
             persephone_renderer: None,
+            custom_glsl_renderer: None,
+            custom_plugin_renderer: None,
             theme_progs: HashMap::new(),
         })
     }
@@ -276,6 +282,12 @@ impl Renderer {
         }
         if let Some(mut pr) = self.persephone_renderer.take() {
             pr.destroy(gl);
+        }
+        if let Some(mut cgr) = self.custom_glsl_renderer.take() {
+            cgr.destroy(gl);
+        }
+        if let Some(mut cpr) = self.custom_plugin_renderer.take() {
+            cpr.destroy(gl);
         }
         self.scene_fbo.destroy(gl);
         self.blur_a.destroy(gl);
@@ -486,6 +498,33 @@ impl Renderer {
     }
 
     pub unsafe fn render(&mut self, gl: &GlFns, st: &mut AppState) {
+        if !st.is_custom_plugin_theme() {
+            if let Some(mut cpr) = self.custom_plugin_renderer.take() {
+                cpr.destroy(gl);
+            }
+        }
+        if st.is_custom_plugin_theme() {
+            if self.custom_plugin_renderer.is_none() {
+                if let Ok(cpr) = CustomPluginRenderer::new(gl) {
+                    self.custom_plugin_renderer = Some(cpr);
+                }
+            }
+            if let Some(cpr) = self.custom_plugin_renderer.as_mut() {
+                cpr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_custom_glsl_theme() {
+            if self.custom_glsl_renderer.is_none() {
+                if let Ok(cgr) = CustomGlslRenderer::new(gl) {
+                    self.custom_glsl_renderer = Some(cgr);
+                }
+            }
+            if let Some(cgr) = self.custom_glsl_renderer.as_mut() {
+                cgr.render(gl, st);
+                return;
+            }
+        }
         if st.is_studio_glass_theme() {
             if self.studio_renderer.is_none() {
                 if let Ok(sr) = StudioGlassRenderer::new(gl) {

@@ -124,7 +124,7 @@
     "importHelpSubtitle": "Yerel bir dosya seçmek için + Tema içe aktar… düğmesine tıklayın. Aşağıdaki tüm formatlar desteklenir ve otomatik doğrulanır:",
     "importHelpHowTitle": "Desteklenen Formatlar ve Davranış",
     "importHelpZipTitle": "Tema Paketleri (.zip, .deskland)",
-    "importHelpZipDesc": "Çok dosyalı HTML/JS/CSS/varlık temaları. manifest.json veya theme.json varsa meta verileri, giriş HTML'ini, küçük resmi ve parametreleri otomatik okur; yoksa index.html veya ilk .html dosyasına döner, thumb/preview görsellerini (.svg dahil) algılar ve zip-slip yol geçişleri ile sembolik bağlantıları engeller.",
+    "importHelpZipDesc": "HTML/JS/CSS Web temaları, yerel OpenGL 3.3 GLSL shader paketleri (manifest.json + main.frag) ve güvenlik onaylı Rust + OpenGL cdylib eklentileri (Cargo.toml + src/lib.rs). Paket içeriği otomatik algılanır ve uygun arayüze (Rust OpenGL veya Web) otomatik geçilir; zip-slip ve sembolik bağlantılar engellenir.",
     "importHelpHtmlTitle": "Tek Web Sayfası (.html, .htm)",
     "importHelpHtmlDesc": "Tek dosyalı etkileşimli shader veya HTML temaları (tema adı olarak <title> etiketini kullanır).",
     "importHelpImageTitle": "Görsel Duvar Kağıtları (.png, .jpg, .jpeg, .webp, .gif, .svg, .avif, .bmp)",

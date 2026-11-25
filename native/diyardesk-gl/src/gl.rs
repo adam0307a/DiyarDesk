@@ -265,6 +265,7 @@ mod unix_dl {
     extern "C" {
         pub fn dlopen(filename: *const c_char, flags: c_int) -> *mut c_void;
         pub fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+        pub fn dlclose(handle: *mut c_void) -> c_int;
     }
 
     pub unsafe fn open_any(names: &[&[u8]]) -> *mut c_void {
@@ -367,6 +368,25 @@ impl GlProcLoader {
             }
         }
         Err(format!("Failed to load OpenGL function: {name}"))
+    }
+}
+
+/// C-ABI OpenGL procedure loader passed to external Rust `cdylib` theme plugins.
+/// Redirects `glBindFramebuffer` through `bind_framebuffer_redirect` so plugins
+/// binding FBO 0 automatically render into GtkGLArea / Qt6 / headless EGL FBOs.
+pub unsafe extern "C" fn host_gl_get_proc(name: *const c_char) -> *const c_void {
+    if name.is_null() {
+        return std::ptr::null();
+    }
+    let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() else {
+        return std::ptr::null();
+    };
+    if s == "glBindFramebuffer" {
+        return bind_framebuffer_redirect as *const c_void;
+    }
+    match GlProcLoader::open() {
+        Ok(loader) => loader.load_proc(s).unwrap_or(std::ptr::null()),
+        Err(_) => std::ptr::null(),
     }
 }
 

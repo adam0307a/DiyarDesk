@@ -151,3 +151,100 @@ def test_frame_pacer_throttles_and_recovers_from_stall():
     # Low-power mode caps effective FPS at 15
     pacer.set_low_mode(True)
     assert pacer.effective_fps == 15
+
+
+def test_custom_glsl_and_rust_plugin_live_headless_render(tmp_path: Path):
+    """End-to-end test: zip & import BOTH example GLSL + Rust cdylib themes and render via libdiyardesk_gl.so."""
+    import shutil
+    import zipfile
+    from deskland_linux.config import repo_root
+    from deskland_linux.importer import import_theme_file
+    from deskland_linux.native_gl import (
+        NativeGlHeadless,
+        NativeGlLibrary,
+        build_custom_gl_message,
+        is_custom_gl_theme,
+        should_use_native_gl,
+    )
+
+    if not NativeGlLibrary.is_available():
+        pytest.skip("libdiyardesk_gl.so not built")
+
+    examples = repo_root() / "examples" / "custom-gl-themes"
+    custom_dir = tmp_path / "custom_themes"
+
+    # 1. Pack & import example GLSL shader theme
+    glsl_src = examples / "neon-icons-glsl"
+    glsl_zip = tmp_path / "neon-icons-glsl.deskland"
+    with zipfile.ZipFile(glsl_zip, "w") as zf:
+        for p in glsl_src.rglob("*"):
+            if p.is_file():
+                zf.write(p, p.relative_to(glsl_src).as_posix())
+
+    glsl_meta = import_theme_file(glsl_zip, custom_dir=custom_dir)
+    assert is_custom_gl_theme(glsl_meta) is True
+    assert should_use_native_gl(
+        glsl_meta["page"], glsl_meta["id"], rust_opengl=False, available=True, theme_meta=glsl_meta
+    ) is True
+    glsl_msg = build_custom_gl_message(glsl_meta)
+    assert glsl_msg is not None and glsl_msg["engine"] == "opengl-glsl"
+
+    try:
+        headless = NativeGlHeadless(320, 180, 1.0)
+    except RuntimeError as exc:
+        pytest.skip(f"Headless EGL unavailable: {exc}")
+
+    try:
+        headless.post_json({"t": "theme", "id": glsl_meta["id"]})
+        headless.post_json(glsl_msg)
+        headless.post_json({"t": "settings", "v": {"speed": 1.2, "glow": 1.4, "accent": "#32c5b8"}})
+        headless.post_json({"t": "icons", "vis": True, "r": [[40, 40, 110, 120], [180, 60, 250, 140]]})
+        glsl_png_path = tmp_path / "glsl.png"
+        assert headless.render_to_png(glsl_png_path, dt=0.05) is True
+        png_glsl = glsl_png_path.read_bytes()
+        assert png_glsl.startswith(b"\x89PNG\r\n\x1a\n")
+        assert len(png_glsl) > 500
+
+        # 2. Pack, compile with cargo, import & live-render example Rust cdylib plugin!
+        if shutil.which("cargo"):
+            rust_src = examples / "aurora-pulse-rust"
+            rust_zip = tmp_path / "aurora-pulse-rust.deskland"
+            with zipfile.ZipFile(rust_zip, "w") as zf:
+                for p in rust_src.rglob("*"):
+                    if p.is_file() and "target" not in p.parts:
+                        zf.write(p, p.relative_to(rust_src).as_posix())
+
+            rust_meta = import_theme_file(
+                rust_zip, custom_dir=custom_dir, allow_native_code=True
+            )
+            assert rust_meta["engine"] == "opengl-rust"
+            rust_msg = build_custom_gl_message(rust_meta)
+            assert rust_msg is not None and rust_msg["engine"] == "opengl-rust"
+
+            headless.post_json({"t": "theme", "id": rust_meta["id"]})
+            headless.post_json(rust_msg)
+            headless.post_json({"t": "settings", "v": {"speed": 1.5, "intensity": 1.3}})
+            rust_png_path = tmp_path / "rust.png"
+            assert headless.render_to_png(rust_png_path, dt=0.05) is True
+            png_rust = rust_png_path.read_bytes()
+            assert png_rust.startswith(b"\x89PNG\r\n\x1a\n")
+            assert len(png_rust) > 500
+            assert png_rust != png_glsl
+    finally:
+        headless.destroy()
+
+
+def test_parse_gnome_shell_windows_filters_wallpaper_and_small_windows():
+    from deskland_linux.windows import parse_gnome_shell_windows
+
+    raw = (
+        '[[101, 200, 140, 1100, 760, "firefox"],'
+        '[102, 10, 10, 40, 30, "tiny"],'
+        '[103, 0, 0, 1920, 1080, "DiyarDeskWallpaper"]]'
+    )
+    wins = parse_gnome_shell_windows(raw)
+    assert len(wins) == 1
+    assert wins[0].wid == 101
+    assert wins[0].as_wire_list(scale=1.0) == [101, 200, 140, 1100, 760]
+
+

@@ -5,9 +5,12 @@ from __future__ import annotations
 import html
 import json
 import os
+import platform
 import posixpath
 import re
 import shutil
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -19,6 +22,8 @@ HTML_EXTS = {".html", ".htm"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif", ".bmp"}
 VIDEO_EXTS = {".mp4", ".webm", ".mkv", ".mov"}
 SHADER_EXTS = {".glsl", ".frag"}
+RUST_SOURCE_EXTS = {".rs", ".toml", ".lock"}
+NATIVE_BIN_EXTS = {".so", ".dll", ".dylib"}
 SUPPORTED_EXTS = ARCHIVE_EXTS | HTML_EXTS | IMAGE_EXTS | VIDEO_EXTS | SHADER_EXTS
 
 ARCHIVE_ALLOWED_EXTS = (
@@ -75,11 +80,30 @@ MAX_ARCHIVE_BYTES = 150 * 1024 * 1024
 MAX_ARCHIVE_FILES = 2000
 
 
-def _is_allowed_archive_member(file_name: str) -> bool:
+def _is_allowed_archive_member(file_name: str, *, allow_native: bool = False) -> bool:
     ext = Path(file_name).suffix.lower()
     if ext:
-        return ext in ARCHIVE_ALLOWED_EXTS
+        if ext in ARCHIVE_ALLOWED_EXTS:
+            return True
+        if allow_native and ext in (RUST_SOURCE_EXTS | NATIVE_BIN_EXTS):
+            return True
+        return False
     return file_name.lower() in ARCHIVE_ALLOWED_BASENAMES
+
+
+def _platform_bin_subdir() -> str:
+    os_name = "windows" if sys.platform.startswith("win") else ("macos" if sys.platform == "darwin" else "linux")
+    raw_arch = (platform.machine() or "x86_64").lower()
+    arch = "x86_64" if raw_arch in ("amd64", "x86_64", "x64") else ("aarch64" if raw_arch in ("arm64", "aarch64") else raw_arch)
+    return f"{os_name}-{arch}"
+
+
+def _platform_lib_ext() -> str:
+    if sys.platform.startswith("win"):
+        return ".dll"
+    if sys.platform == "darwin":
+        return ".dylib"
+    return ".so"
 
 
 def custom_themes_dir() -> Path:
@@ -143,7 +167,9 @@ def _extract_html_title(content: str, fallback: str) -> str:
     return fallback
 
 
-def _safe_zip_members(zf: zipfile.ZipFile) -> list[tuple[zipfile.ZipInfo, list[str]]]:
+def _safe_zip_members(
+    zf: zipfile.ZipFile, *, allow_native: bool = False
+) -> list[tuple[zipfile.ZipInfo, list[str]]]:
     entries: list[tuple[zipfile.ZipInfo, list[str]]] = []
     total_size = 0
     for info in zf.infolist():
@@ -160,7 +186,7 @@ def _safe_zip_members(zf: zipfile.ZipFile) -> list[tuple[zipfile.ZipInfo, list[s
             raise ValueError(f"Unsafe archive entry path: {info.filename}")
         if parts[0] == "__MACOSX":
             continue
-        if not _is_allowed_archive_member(parts[-1]):
+        if not _is_allowed_archive_member(parts[-1], allow_native=allow_native):
             raise ValueError(f"Unsupported file type in theme archive: {info.filename}")
         total_size += max(0, info.file_size)
         if total_size > MAX_ARCHIVE_BYTES:
@@ -790,12 +816,253 @@ def _media_params(is_video: bool) -> list[dict[str, Any]]:
     ]
 
 
+def _normalize_manifest_engine(raw: Any) -> str:
+    val = str(raw or "").strip().lower()
+    if val in ("opengl-rust", "rust-opengl", "rust-gl", "rust", "plugin", "cdylib"):
+        return "opengl-rust"
+    if val in ("opengl-glsl", "opengl", "gl", "glsl", "shader"):
+        return "opengl-glsl"
+    if val in ("web", "html", "webview", "webkit"):
+        return "web"
+    return ""
+
+
+def _native_gl_card_html(title: str, engine: str) -> str:
+    safe_title = html.escape(title)
+    badge = "Rust + OpenGL 3.3 Plugin" if engine == "opengl-rust" else "OpenGL 3.3 Core GLSL"
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        f"<title>{safe_title}</title>"
+        "<style>html,body{margin:0;height:100%;display:grid;place-items:center;"
+        "background:radial-gradient(circle at 30% 30%,#1b2640,#0c101b 70%);color:#e6eefc;"
+        "font-family:system-ui,sans-serif;text-align:center}"
+        ".pill{display:inline-block;padding:6px 14px;border-radius:999px;"
+        "background:rgba(50,197,184,.18);border:1px solid rgba(50,197,184,.45);"
+        "color:#7ee8de;font-size:12px;margin-bottom:10px}</style></head>"
+        f"<body><div><div class='pill'>{badge}</div><h2>{safe_title}</h2>"
+        "<p style='opacity:.72;font-size:13px'>Bu tema yerel Rust + OpenGL 3.3 motorunda çalışır.</p>"
+        "</div><script>try{window.chrome&&window.chrome.webview&&window.chrome.webview.postMessage('ready')}catch(e){}</script>"
+        "</body></html>"
+    )
+
+
+def inspect_theme_archive(source: Path) -> dict[str, Any]:
+    """Inspect a theme file/archive before import and classify its target engine(s)."""
+    src = Path(source)
+    if not src.is_file():
+        raise ValueError(f"Selected file does not exist: {src}")
+    if src.stat().st_size == 0:
+        raise ValueError("Selected file is empty.")
+    ext = src.suffix.lower()
+    if ext not in SUPPORTED_EXTS:
+        raise ValueError(f"Unsupported file type: {ext or 'none'}")
+
+    title = _pretty_title(src.stem)
+    if ext in SHADER_EXTS:
+        head = src.read_bytes()[:2048].decode("utf-8", errors="ignore")
+        if ("#version 330" in head or "#version 4" in head) and "mainImage(" not in head:
+            return {
+                "kind": "opengl-glsl",
+                "engines": ["opengl-glsl"],
+                "requires_native_trust": False,
+                "has_rust_source": False,
+                "has_prebuilt_binary": False,
+                "name": title,
+            }
+        return {
+            "kind": "web",
+            "engines": ["web"],
+            "requires_native_trust": False,
+            "has_rust_source": False,
+            "has_prebuilt_binary": False,
+            "name": title,
+        }
+
+    if ext not in ARCHIVE_EXTS:
+        return {
+            "kind": "web",
+            "engines": ["web"],
+            "requires_native_trust": False,
+            "has_rust_source": False,
+            "has_prebuilt_binary": False,
+            "name": title,
+        }
+
+    try:
+        zf_ctx = zipfile.ZipFile(src, "r")
+    except zipfile.BadZipFile as exc:
+        raise ValueError("Archive is corrupted or not a valid ZIP file.") from exc
+
+    with zf_ctx as zf:
+        entries = _safe_zip_members(zf, allow_native=True)
+        rel_paths = ["/".join(parts) for _, parts in entries]
+        rel_lower = {p.lower(): info for (info, parts), p in zip(entries, rel_paths)}
+
+        manifest: dict[str, Any] = {}
+        for mname in ("manifest.json", "theme.json"):
+            if mname in rel_lower:
+                try:
+                    raw = zf.read(rel_lower[mname]).decode("utf-8", errors="replace")
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, dict):
+                        manifest = parsed
+                        break
+                except (OSError, ValueError):
+                    pass
+
+        name = str(manifest.get("name") or manifest.get("title") or title)[:60]
+        declared = _normalize_manifest_engine(manifest.get("engine"))
+
+        has_cargo = "cargo.toml" in rel_lower
+        has_rs = any(p.lower().endswith(".rs") for p in rel_paths)
+        has_rust_source = has_cargo and has_rs
+        has_prebuilt_binary = any(Path(p).suffix.lower() in NATIVE_BIN_EXTS for p in rel_paths)
+        has_rust_plugin = has_rust_source or has_prebuilt_binary or declared == "opengl-rust"
+
+        has_glsl = any(Path(p).suffix.lower() in SHADER_EXTS for p in rel_paths)
+        has_html = any(Path(p).suffix.lower() in HTML_EXTS for p in rel_paths)
+
+        # Reject archives containing disallowed/native extensions unless they are genuine Rust plugins
+        if not has_rust_plugin:
+            for _, parts in entries:
+                if not _is_allowed_archive_member(parts[-1], allow_native=False):
+                    raise ValueError(f"Unsupported file type in theme archive: {'/'.join(parts)}")
+
+        engines: list[str] = []
+        if has_rust_plugin:
+            engines.append("opengl-rust")
+        elif declared == "opengl-glsl" or (has_glsl and not has_html) or bool(manifest.get("shader")):
+            engines.append("opengl-glsl")
+
+        if has_html and declared not in ("opengl-glsl", "opengl-rust"):
+            engines.append("web")
+        elif has_html and declared in ("opengl-glsl", "opengl-rust"):
+            # Dual package explicitly declaring OpenGL while also shipping a Web fallback
+            if "web" not in engines and any(p.lower() == "index.html" for p in rel_paths):
+                engines.append("web")
+
+        if not engines:
+            engines = ["web"]
+
+        kind = "dual" if len(engines) > 1 else engines[0]
+        return {
+            "kind": kind,
+            "engines": engines,
+            "requires_native_trust": "opengl-rust" in engines,
+            "has_rust_source": has_rust_source,
+            "has_prebuilt_binary": has_prebuilt_binary,
+            "name": name,
+        }
+
+
+def _safe_rel_file(theme_dir: Path, rel: str, allowed_exts: set[str] | None = None) -> str:
+    clean = str(rel or "").strip().lstrip("/").replace("\\", "/")
+    if not clean:
+        raise ValueError("Empty relative path in theme manifest")
+    cand = (theme_dir / clean).resolve()
+    try:
+        cand.relative_to(theme_dir.resolve())
+    except ValueError as exc:
+        raise ValueError(f"Unsafe path in theme manifest: {rel}") from exc
+    if not cand.is_file():
+        raise ValueError(f"Referenced asset not found in archive: {clean}")
+    if allowed_exts is not None and cand.suffix.lower() not in allowed_exts:
+        raise ValueError(f"Unsupported asset extension: {clean}")
+    return clean
+
+
+def _find_entry_glsl(theme_dir: Path, preferred: str | None = None) -> str:
+    if preferred:
+        return _safe_rel_file(theme_dir, preferred, SHADER_EXTS)
+    for name in ("main.frag", "shader.frag", "main.glsl", "shader.glsl"):
+        if (theme_dir / name).is_file():
+            return name
+    root_frag = sorted(
+        p.name for p in theme_dir.iterdir() if p.is_file() and p.suffix.lower() in SHADER_EXTS
+    )
+    if root_frag:
+        return root_frag[0]
+    nested_frag = sorted(
+        p.relative_to(theme_dir).as_posix()
+        for p in theme_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in SHADER_EXTS
+    )
+    if nested_frag:
+        return nested_frag[0]
+    raise ValueError("No .frag or .glsl fragment shader found in archive")
+
+
+def _find_prebuilt_plugin(theme_dir: Path, preferred: str | None = None) -> str | None:
+    ext = _platform_lib_ext()
+    if preferred:
+        clean = str(preferred).strip().lstrip("/").replace("\\", "/")
+        cand = (theme_dir / clean).resolve()
+        try:
+            cand.relative_to(theme_dir.resolve())
+            if cand.is_file() and cand.suffix.lower() == ext:
+                return clean
+        except ValueError:
+            pass
+    plat_dir = theme_dir / "bin" / _platform_bin_subdir()
+    if plat_dir.is_dir():
+        for p in sorted(plat_dir.iterdir()):
+            if p.is_file() and p.suffix.lower() == ext:
+                return p.relative_to(theme_dir).as_posix()
+    for p in sorted(theme_dir.iterdir()):
+        if p.is_file() and p.suffix.lower() == ext:
+            return p.name
+    return None
+
+
+def _compile_rust_plugin(theme_dir: Path, timeout_sec: int = 300) -> str:
+    """Compile a Rust `cdylib` theme plugin using system `cargo` into `bin/<plat>/plugin.{so,dll}`."""
+    cargo_bin = shutil.which("cargo")
+    if not cargo_bin:
+        raise ValueError(
+            "Rust eklenti paketini kaynak koddan derlemek için sistemde `cargo` (Rust araç zinciri) gerekli."
+        )
+    cargo_toml = theme_dir / "Cargo.toml"
+    if not cargo_toml.is_file():
+        raise ValueError("Rust eklenti paketinde Cargo.toml bulunamadı.")
+    proc = subprocess.run(
+        [cargo_bin, "build", "--release"],
+        cwd=str(theme_dir),
+        capture_output=True,
+        text=True,
+        timeout=timeout_sec,
+        check=False,
+    )
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-12:]
+        raise ValueError("Rust eklentisi derlenemedi:\n" + "\n".join(tail))
+
+    ext = _platform_lib_ext()
+    rel_dir = theme_dir / "target" / "release"
+    built = sorted(
+        p for p in rel_dir.iterdir() if p.is_file() and p.suffix.lower() == ext
+    ) if rel_dir.is_dir() else []
+    if not built:
+        raise ValueError(
+            f"Cargo derlemesi tamamlandı ancak target/release altında {ext} (`crate-type = [\"cdylib\"]`) bulunamadı."
+        )
+
+    out_dir = theme_dir / "bin" / _platform_bin_subdir()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / f"plugin{ext}"
+    shutil.copy2(built[0], out_file)
+    shutil.rmtree(theme_dir / "target", ignore_errors=True)
+    return out_file.relative_to(theme_dir).as_posix()
+
+
 def import_theme_file(
     source: Path,
     custom_dir: Path | None = None,
     reserved_ids: set[str] | None = None,
+    *,
+    preferred_engine: str | None = None,
+    allow_native_code: bool = False,
 ) -> dict[str, Any]:
-    """Import a theme package, HTML page, image, or video into custom_dir."""
+    """Import a theme package (Web, OpenGL GLSL, or Rust cdylib plugin), HTML, shader, image, or video."""
     src = Path(source)
     if not src.is_file():
         raise ValueError(f"Selected file does not exist: {src}")
@@ -806,6 +1073,18 @@ def import_theme_file(
         raise ValueError(f"Unsupported file type: {ext or 'none'}")
     if ext not in ARCHIVE_EXTS and src.stat().st_size > MAX_ARCHIVE_BYTES:
         raise ValueError("Selected file exceeds 150 MB size limit.")
+
+    info_scan = inspect_theme_archive(src)
+    chosen_engine = _normalize_manifest_engine(preferred_engine)
+    if chosen_engine and chosen_engine not in info_scan["engines"]:
+        chosen_engine = ""
+    if not chosen_engine:
+        chosen_engine = info_scan["engines"][0]
+
+    if chosen_engine == "opengl-rust" and not allow_native_code:
+        raise PermissionError(
+            "Native Rust + OpenGL eklentisi çalıştırılabilir kod içerir; içe aktarmak için güvenlik onayı gereklidir."
+        )
 
     target_root = custom_dir or custom_themes_dir()
     target_root.mkdir(parents=True, exist_ok=True)
@@ -823,7 +1102,7 @@ def import_theme_file(
             except zipfile.BadZipFile as exc:
                 raise ValueError("Archive is corrupted or not a valid ZIP file.") from exc
             with zf_ctx as zf:
-                entries = _safe_zip_members(zf)
+                entries = _safe_zip_members(zf, allow_native=(chosen_engine == "opengl-rust"))
                 remaining = MAX_ARCHIVE_BYTES
                 for info, parts in entries:
                     dest = (theme_dir / Path(*parts)).resolve()
@@ -864,35 +1143,105 @@ def import_theme_file(
                     lively_props_raw = json.loads(lively_props.read_text(encoding="utf-8"))
                 except (OSError, ValueError):
                     lively_props_raw = None
-            preferred_entry = (
-                manifest.get("entry")
-                or manifest.get("page")
-                or manifest.get("main")
-                or manifest.get("file")
-            )
-            entry = _find_entry_html(theme_dir, preferred_entry)
-            entry_html = _validate_html_file(theme_dir / entry)
-            html_title = _extract_html_title(entry_html, _pretty_title(src.stem))
             thumb_spec = manifest.get("thumb") or manifest.get("thumbnail") or manifest.get("preview")
-            theme_obj: dict[str, Any] = {
-                "id": theme_id,
-                "name": str(manifest.get("name") or manifest.get("title") or html_title)[:60],
-                "desc": str(manifest.get("desc") or manifest.get("description") or "Imported custom theme package."),
-                "page": f"__custom/{theme_id}/{entry}",
-                "entry": entry,
-                "status": "ready",
-                "product": "free",
-                "imported": True,
-                "adaptive": bool(manifest.get("adaptive", False)),
-                "thumb": _find_archive_thumb(theme_dir, theme_id, thumb_spec),
-            }
             groups = (
                 _sanitize_groups(manifest.get("groups"))
                 or _groups_from_settings(manifest.get("settings"))
                 or _groups_from_settings(lively_props_raw)
             )
-            if groups:
-                theme_obj["groups"] = groups
+
+            if chosen_engine == "opengl-glsl":
+                preferred_shader = manifest.get("shader") or manifest.get("fragment") or manifest.get("entry")
+                if isinstance(preferred_shader, str) and preferred_shader.lower().endswith((".html", ".htm")):
+                    preferred_shader = None
+                entry = _find_entry_glsl(theme_dir, preferred_shader)
+                vert_spec = manifest.get("vert") or manifest.get("vertex")
+                vert_rel = _safe_rel_file(theme_dir, vert_spec, {".vert", ".glsl"}) if vert_spec else None
+                textures_rel: list[str] = []
+                raw_textures = manifest.get("textures")
+                if isinstance(raw_textures, list):
+                    for tpath in raw_textures[:4]:
+                        if isinstance(tpath, str) and tpath.strip():
+                            textures_rel.append(_safe_rel_file(theme_dir, tpath, IMAGE_EXTS))
+                title = str(manifest.get("name") or manifest.get("title") or _pretty_title(src.stem))[:60]
+                if not (theme_dir / "index.html").is_file():
+                    (theme_dir / "index.html").write_text(_native_gl_card_html(title, "opengl-glsl"), encoding="utf-8")
+                theme_obj = {
+                    "id": theme_id,
+                    "name": title,
+                    "desc": str(manifest.get("desc") or manifest.get("description") or "Imported OpenGL 3.3 Core GLSL shader theme."),
+                    "engine": "opengl-glsl",
+                    "themeDir": str(theme_dir.resolve()),
+                    "entry": entry,
+                    "page": f"__custom/{theme_id}/index.html",
+                    "status": "ready",
+                    "product": "free",
+                    "custom": True,
+                    "imported": True,
+                    "adaptive": bool(manifest.get("adaptive", True)),
+                    "thumb": _find_archive_thumb(theme_dir, theme_id, thumb_spec),
+                }
+                if vert_rel:
+                    theme_obj["vert"] = vert_rel
+                if textures_rel:
+                    theme_obj["textures"] = textures_rel
+                if groups:
+                    theme_obj["groups"] = groups
+
+            elif chosen_engine == "opengl-rust":
+                preferred_bin = manifest.get("plugin") or manifest.get("binary")
+                entry = _find_prebuilt_plugin(theme_dir, preferred_bin)
+                if entry is None:
+                    entry = _compile_rust_plugin(theme_dir)
+                title = str(manifest.get("name") or manifest.get("title") or _pretty_title(src.stem))[:60]
+                if not (theme_dir / "index.html").is_file():
+                    (theme_dir / "index.html").write_text(_native_gl_card_html(title, "opengl-rust"), encoding="utf-8")
+                theme_obj = {
+                    "id": theme_id,
+                    "name": title,
+                    "desc": str(manifest.get("desc") or manifest.get("description") or "Imported native Rust + OpenGL 3.3 plugin theme."),
+                    "engine": "opengl-rust",
+                    "themeDir": str(theme_dir.resolve()),
+                    "entry": entry,
+                    "page": f"__custom/{theme_id}/index.html",
+                    "status": "ready",
+                    "product": "free",
+                    "custom": True,
+                    "imported": True,
+                    "adaptive": bool(manifest.get("adaptive", True)),
+                    "thumb": _find_archive_thumb(theme_dir, theme_id, thumb_spec),
+                }
+                if groups:
+                    theme_obj["groups"] = groups
+
+            else:
+                preferred_entry = (
+                    manifest.get("entry")
+                    or manifest.get("page")
+                    or manifest.get("main")
+                    or manifest.get("file")
+                )
+                if isinstance(preferred_entry, str) and not preferred_entry.lower().endswith((".html", ".htm")):
+                    preferred_entry = None
+                entry = _find_entry_html(theme_dir, preferred_entry)
+                entry_html = _validate_html_file(theme_dir / entry)
+                html_title = _extract_html_title(entry_html, _pretty_title(src.stem))
+                theme_obj = {
+                    "id": theme_id,
+                    "name": str(manifest.get("name") or manifest.get("title") or html_title)[:60],
+                    "desc": str(manifest.get("desc") or manifest.get("description") or "Imported custom theme package."),
+                    "engine": "web",
+                    "page": f"__custom/{theme_id}/{entry}",
+                    "entry": entry,
+                    "status": "ready",
+                    "product": "free",
+                    "custom": True,
+                    "imported": True,
+                    "adaptive": bool(manifest.get("adaptive", False)),
+                    "thumb": _find_archive_thumb(theme_dir, theme_id, thumb_spec),
+                }
+                if groups:
+                    theme_obj["groups"] = groups
 
         elif ext in SHADER_EXTS:
             raw_glsl = src.read_bytes()
@@ -900,33 +1249,67 @@ def import_theme_file(
                 raise ValueError(f"Shader file is empty, too large, or corrupted: {src.name}")
             glsl_src = raw_glsl.decode("utf-8", errors="replace")
             title = _pretty_title(src.stem)
-            (theme_dir / "shader.glsl").write_text(glsl_src, encoding="utf-8")
-            (theme_dir / "index.html").write_text(_shader_wrapper_html(title, glsl_src), encoding="utf-8")
-            theme_obj = {
-                "id": theme_id,
-                "name": title[:60],
-                "desc": "Imported GLSL WebGL fragment shader.",
-                "page": f"__custom/{theme_id}/index.html",
-                "entry": "index.html",
-                "status": "ready",
-                "product": "free",
-                "imported": True,
-                "adaptive": True,
-                "thumb": (
-                    "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), "
-                    "radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), "
-                    "linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)"
-                ),
-                "groups": [
-                    {
-                        "name": "Shader",
-                        "params": [
-                            {"key": "speed", "label": "Speed", "min": 0.1, "max": 3.0, "step": 0.05, "default": 1.0, "format": "times"},
-                            {"key": "brightness", "label": "Brightness", "min": 0.4, "max": 1.4, "step": 0.01, "default": 1.0, "format": "percent"},
-                        ],
-                    }
-                ],
-            }
+            (theme_dir / "main.frag").write_text(glsl_src, encoding="utf-8")
+            if chosen_engine == "opengl-glsl":
+                (theme_dir / "index.html").write_text(_native_gl_card_html(title, "opengl-glsl"), encoding="utf-8")
+                theme_obj = {
+                    "id": theme_id,
+                    "name": title[:60],
+                    "desc": "Imported OpenGL 3.3 Core GLSL fragment shader.",
+                    "engine": "opengl-glsl",
+                    "themeDir": str(theme_dir.resolve()),
+                    "entry": "main.frag",
+                    "page": f"__custom/{theme_id}/index.html",
+                    "status": "ready",
+                    "product": "free",
+                    "custom": True,
+                    "imported": True,
+                    "adaptive": True,
+                    "thumb": (
+                        "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), "
+                        "radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), "
+                        "linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)"
+                    ),
+                    "groups": [
+                        {
+                            "name": "Shader",
+                            "params": [
+                                {"key": "speed", "label": "Speed", "min": 0.1, "max": 3.0, "step": 0.05, "default": 1.0, "format": "times"},
+                                {"key": "brightness", "label": "Brightness", "min": 0.4, "max": 1.4, "step": 0.01, "default": 1.0, "format": "percent"},
+                            ],
+                        }
+                    ],
+                }
+            else:
+                (theme_dir / "shader.glsl").write_text(glsl_src, encoding="utf-8")
+                (theme_dir / "index.html").write_text(_shader_wrapper_html(title, glsl_src), encoding="utf-8")
+                theme_obj = {
+                    "id": theme_id,
+                    "name": title[:60],
+                    "desc": "Imported GLSL WebGL fragment shader.",
+                    "engine": "web",
+                    "page": f"__custom/{theme_id}/index.html",
+                    "entry": "index.html",
+                    "status": "ready",
+                    "product": "free",
+                    "custom": True,
+                    "imported": True,
+                    "adaptive": True,
+                    "thumb": (
+                        "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), "
+                        "radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), "
+                        "linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)"
+                    ),
+                    "groups": [
+                        {
+                            "name": "Shader",
+                            "params": [
+                                {"key": "speed", "label": "Speed", "min": 0.1, "max": 3.0, "step": 0.05, "default": 1.0, "format": "times"},
+                                {"key": "brightness", "label": "Brightness", "min": 0.4, "max": 1.4, "step": 0.01, "default": 1.0, "format": "percent"},
+                            ],
+                        }
+                    ],
+                }
 
         elif ext in HTML_EXTS:
             raw_html = _validate_html_file(src)
@@ -936,10 +1319,12 @@ def import_theme_file(
                 "id": theme_id,
                 "name": title,
                 "desc": "Imported interactive HTML wallpaper.",
+                "engine": "web",
                 "page": f"__custom/{theme_id}/index.html",
                 "entry": "index.html",
                 "status": "ready",
                 "product": "free",
+                "custom": True,
                 "imported": True,
                 "adaptive": False,
                 "thumb": (
@@ -969,10 +1354,12 @@ def import_theme_file(
                 "id": theme_id,
                 "name": title,
                 "desc": "Imported animated video wallpaper." if is_video else "Imported custom image wallpaper.",
+                "engine": "web",
                 "page": f"__custom/{theme_id}/index.html",
                 "entry": "index.html",
                 "status": "ready",
                 "product": "free",
+                "custom": True,
                 "imported": True,
                 "adaptive": True,
                 "thumb": thumb,

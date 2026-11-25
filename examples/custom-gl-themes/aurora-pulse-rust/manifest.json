@@ -1,0 +1,31 @@
+{
+  "name": "Aurora Pulse (Rust Plugin)",
+  "desc": "Native Rust + OpenGL 3.3 cdylib plugin example implementing DDGL_PLUGIN_ABI_VERSION 1.",
+  "engine": "opengl-rust",
+  "adaptive": true,
+  "groups": [
+    {
+      "name": "Plugin Controls",
+      "params": [
+        {
+          "key": "speed",
+          "label": "Drift Speed",
+          "min": 0.2,
+          "max": 3.0,
+          "step": 0.05,
+          "default": 1.0,
+          "format": "times"
+        },
+        {
+          "key": "intensity",
+          "label": "Aurora Glow",
+          "min": 0.2,
+          "max": 2.0,
+          "step": 0.05,
+          "default": 1.0,
+          "format": "percent"
+        }
+      ]
+    }
+  ]
+}
