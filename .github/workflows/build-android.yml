@@ -44,14 +44,16 @@ jobs:
         run: |
           VER=$(python3 -c "import json; print(json.load(open('tools/version.json'))['version'])")
           mkdir -p out-android
-          APK=$(find android/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
-          if [ -z "$APK" ]; then
-            echo "No APK found!" >&2
-            exit 1
-          fi
-          DEST="out-android/DiyarDesk-${VER}-android-tablet.apk"
-          cp "$APK" "$DEST"
-          (cd out-android && sha256sum "$(basename "$DEST")" > "$(basename "$DEST").sha256")
+          for abi in arm64-v8a armeabi-v7a x86_64 universal; do
+            APK=$(find android/app/build/outputs/apk -type f -name "*${abi}*.apk" | head -n 1)
+            if [ -z "$APK" ]; then
+              echo "Missing APK for ABI=$abi!" >&2
+              exit 1
+            fi
+            DEST="out-android/DiyarDesk-${VER}-android-tablet-${abi}.apk"
+            cp "$APK" "$DEST"
+            (cd out-android && sha256sum "$(basename "$DEST")" > "$(basename "$DEST").sha256")
+          done
           ls -lh out-android
 
       - name: Upload Android Tablet artifact
