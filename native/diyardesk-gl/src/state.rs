@@ -3,8 +3,10 @@ use crate::aurora::{AuroraParams, AuroraState};
 use crate::beach::{BeachParams, BeachState};
 use crate::cat_shore::{CatShoreParams, CatShoreState};
 use crate::claymorph::{ClaymorphParams, ClaymorphState};
+use crate::cosmic_eye::{CosmicEyeParams, CosmicEyeState};
 use crate::custom_glsl::CustomGlSpec;
 use crate::desert::{DesertParams, DesertState};
+use crate::eye_within_words::{EyeWithinWordsParams, EyeWithinWordsState};
 use crate::glade::{GladeParams, GladeState};
 use crate::istanbul::{IstanbulParams, IstanbulState};
 use crate::liquidglass::{LgParams, LiquidGlassState};
@@ -485,6 +487,12 @@ pub struct AppState {
     pub ai_mascots: AiMascotsState,
     pub cat_shore: CatShoreState,
     pub persephone: PersephoneState,
+    pub eye_within_words: EyeWithinWordsState,
+    pub cosmic_eye: CosmicEyeState,
+    /// When true (headless/snapshot/tests), heavy CPU-baked themes block until
+    /// their baked layers are ready on the first frame; interactive hosts leave
+    /// this false so baking runs asynchronously off the UI/render thread.
+    pub sync_bake: bool,
     pub custom_gl: CustomGlSpec,
     pub custom_plugin_inbox: VecDeque<String>,
     pub windows: Vec<WindowInput>,
@@ -638,6 +646,9 @@ impl AppState {
             ai_mascots: AiMascotsState::default(),
             cat_shore: CatShoreState::default(),
             persephone: PersephoneState::default(),
+            eye_within_words: EyeWithinWordsState::default(),
+            cosmic_eye: CosmicEyeState::default(),
+            sync_bake: false,
             custom_gl: CustomGlSpec::default(),
             custom_plugin_inbox: VecDeque::new(),
             windows: Vec::new(),
@@ -813,6 +824,14 @@ impl AppState {
 
     pub fn is_persephone_theme(&self) -> bool {
         self.theme_id == "persephone"
+    }
+
+    pub fn is_eye_within_words_theme(&self) -> bool {
+        self.theme_id == "eye-within-words"
+    }
+
+    pub fn is_cosmic_eye_theme(&self) -> bool {
+        self.theme_id == "cosmic-eye"
     }
 
     pub fn is_custom_glsl_theme(&self) -> bool {
@@ -1012,6 +1031,20 @@ impl AppState {
             }
             if !self.icons.is_empty() {
                 self.persephone.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_eye_within_words_theme() {
+            self.eye_within_words.set_low_mode(self.low_mode);
+            self.eye_within_words.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.icons.is_empty() {
+                self.eye_within_words.set_icons(&self.icons, true);
+            }
+        }
+        if self.is_cosmic_eye_theme() {
+            self.cosmic_eye.set_low_mode(self.low_mode);
+            self.cosmic_eye.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.icons.is_empty() {
+                self.cosmic_eye.set_icons(&self.icons, true);
             }
         }
         self.set_active_field(TextField::None);
@@ -1389,6 +1422,8 @@ impl AppState {
                     self.ai_mascots.set_low_mode(b);
                     self.cat_shore.set_low_mode(b);
                     self.persephone.set_low_mode(b);
+                    self.eye_within_words.set_low_mode(b);
+                    self.cosmic_eye.set_low_mode(b);
                 }
             }
             "settings" => {
@@ -1482,6 +1517,12 @@ impl AppState {
                 if self.is_persephone_theme() {
                     self.persephone.sync_params(PersephoneParams::default());
                 }
+                if self.is_eye_within_words_theme() {
+                    self.eye_within_words.sync_params(EyeWithinWordsParams::default());
+                }
+                if self.is_cosmic_eye_theme() {
+                    self.cosmic_eye.sync_params(CosmicEyeParams::default());
+                }
                 if let Some(obj) = v.get("v").and_then(|x| x.as_object()) {
                     self.apply_params(obj);
                 }
@@ -1546,6 +1587,8 @@ impl AppState {
                 self.ai_mascots.set_icons(&self.icons, &self.icon_names, vis);
                 self.cat_shore.set_icons(&self.icons, vis);
                 self.persephone.set_icons(&self.icons, vis);
+                self.eye_within_words.set_icons(&self.icons, vis);
+                self.cosmic_eye.set_icons(&self.icons, vis);
                 self.recompute_layout();
             }
             "windows" => {
@@ -2127,6 +2170,14 @@ impl AppState {
         if self.is_persephone_theme() {
             self.persephone.sync_params(PersephoneParams::from_raw_params(&self.raw_params));
         }
+        if self.is_eye_within_words_theme() {
+            self.eye_within_words
+                .sync_params(EyeWithinWordsParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_cosmic_eye_theme() {
+            self.cosmic_eye
+                .sync_params(CosmicEyeParams::from_raw_params(&self.raw_params));
+        }
         self.recompute_layout();
     }
 
@@ -2277,6 +2328,14 @@ impl AppState {
         if self.is_persephone_theme() {
             self.persephone.set_low_mode(self.low_mode);
             self.persephone.step(dt);
+        }
+        if self.is_eye_within_words_theme() {
+            self.eye_within_words.set_low_mode(self.low_mode);
+            self.eye_within_words.step(dt);
+        }
+        if self.is_cosmic_eye_theme() {
+            self.cosmic_eye.set_low_mode(self.low_mode);
+            self.cosmic_eye.step(dt);
         }
     }
 
@@ -2490,6 +2549,8 @@ impl AppState {
             self.ai_mascots.handle_mouse(3, 0.0, 0.0);
             self.cat_shore.handle_mouse(3, 0.0, 0.0);
             self.persephone.handle_mouse(3, 0.0, 0.0);
+            self.eye_within_words.handle_mouse(3, 0.0, 0.0);
+            self.cosmic_eye.handle_mouse(3, 0.0, 0.0);
             return false;
         }
         self.pointer_x = x;
@@ -2627,6 +2688,12 @@ impl AppState {
         }
         if self.is_persephone_theme() {
             return self.persephone.handle_mouse(kind, x, y);
+        }
+        if self.is_eye_within_words_theme() {
+            return self.eye_within_words.handle_mouse(kind, x, y);
+        }
+        if self.is_cosmic_eye_theme() {
+            return self.cosmic_eye.handle_mouse(kind, x, y);
         }
 
         if kind == 0 {

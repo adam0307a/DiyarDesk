@@ -18,6 +18,7 @@ __pycache__/
 /android/build/
 /android/app/build/
 /android/app/src/main/assets/prototype/
+/android/app/src/main/jniLibs/
 /android/local.properties
 *.apk
 *.aab

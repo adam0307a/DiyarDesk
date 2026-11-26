@@ -11,8 +11,67 @@ public struct MacSettings: Codable {
     public var windowAware: Bool = false
     public var playlistEnabled: Bool = false
     public var playlistIntervalMin: Int = 30
+    public var rustOpenGl: Bool = true
+    public var nativeVideo: Bool = true
 
     public init() {}
+}
+
+public enum NativeGlSupport {
+    public static let nativeGlThemes: Set<String> = [
+        "material-impulse-gl", "material-impulse", "liquidglass", "thinking-orbs", "solar-system",
+        "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
+        "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
+        "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
+        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye"
+    ]
+
+    public static let nativeGlOnlyPages: Set<String> = [
+        "material-impulse-gl.html",
+        "ai-mascots.html",
+        "cat-shore.html",
+        "persephone.html",
+        "eye-within-words.html",
+        "cosmic-eye.html"
+    ]
+
+    public static let avFoundationVideoExts: Set<String> = ["mp4", "mov", "m4v"]
+
+    public static func isNativeGlTheme(_ id: String) -> Bool {
+        guard !id.isEmpty else { return false }
+        return nativeGlThemes.contains(id.lowercased())
+    }
+
+    public static func isNativeGlPage(_ page: String) -> Bool {
+        guard !page.isEmpty else { return false }
+        return nativeGlOnlyPages.contains(page.lowercased())
+    }
+
+    public static func shouldUseNativeGl(
+        page: String,
+        themeId: String,
+        rustOpenGl: Bool,
+        glAvailable: Bool
+    ) -> Bool {
+        guard glAvailable else { return false }
+        if isNativeGlPage(page) { return true }
+        return rustOpenGl && isNativeGlTheme(themeId)
+    }
+
+    public static func clampVideoSpeed(_ speed: Double) -> Float {
+        return Float(max(0.25, min(2.0, speed)))
+    }
+
+    public static func brightnessOverlayStyle(_ brightness: Double) -> (isWhite: Bool, alpha: Double) {
+        let clamped = max(0.4, min(1.4, brightness))
+        if clamped < 0.99 {
+            return (false, min(0.75, max(0.0, 1.0 - clamped)))
+        }
+        if clamped > 1.01 {
+            return (true, min(0.22, (clamped - 1.0) * 0.45))
+        }
+        return (false, 0.0)
+    }
 }
 
 public final class ThemeStore {
@@ -55,6 +114,8 @@ public final class ThemeStore {
         if let v = root["windowAware"] as? Bool { settings.windowAware = v }
         if let v = root["playlistEnabled"] as? Bool { settings.playlistEnabled = v }
         if let v = root["playlistIntervalMin"] as? Int { settings.playlistIntervalMin = max(1, min(1440, v)) }
+        if let v = root["rustOpenGl"] as? Bool { settings.rustOpenGl = v }
+        if let v = root["nativeVideo"] as? Bool { settings.nativeVideo = v }
         if let p = root["params"] as? [String: [String: Any]] {
             params = p
         }
@@ -73,6 +134,8 @@ public final class ThemeStore {
             "windowAware": settings.windowAware,
             "playlistEnabled": settings.playlistEnabled,
             "playlistIntervalMin": settings.playlistIntervalMin,
+            "rustOpenGl": settings.rustOpenGl,
+            "nativeVideo": settings.nativeVideo,
             "params": params
         ]
         if let data = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted]) {
@@ -155,6 +218,43 @@ public final class ThemeStore {
             }
         }
         return "papercut.html"
+    }
+
+    /// Returns a native AVFoundation-playable video file inside an imported theme folder
+    /// (`.mp4`, `.mov`, `.m4v`), or `nil` when WebKit fallback is needed (e.g., `.webm`/`.mkv`).
+    public func resolveAVPlayerVideoURL(themeId: String) -> URL? {
+        guard !themeId.isEmpty else { return nil }
+        let themeDir = customThemesDir.appendingPathComponent(themeId, isDirectory: true)
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: themeDir.path, isDirectory: &isDir), isDir.boolValue else {
+            return nil
+        }
+
+        if let meta = loadCustomThemes().first(where: { ($0["id"] as? String) == themeId }),
+           let mediaFile = meta["mediaFile"] as? String,
+           DiyarSecurity.isSafeRelativePath(mediaFile) {
+            let cand = themeDir.appendingPathComponent(mediaFile)
+            if NativeGlSupport.avFoundationVideoExts.contains(cand.pathExtension.lowercased()),
+               FileManager.default.fileExists(atPath: cand.path) {
+                return cand
+            }
+        }
+
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: themeDir,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return nil
+        }
+        for url in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            let vals = try? url.resourceValues(forKeys: [.isRegularFileKey])
+            if vals?.isRegularFile == true &&
+                NativeGlSupport.avFoundationVideoExts.contains(url.pathExtension.lowercased()) {
+                return url
+            }
+        }
+        return nil
     }
 
     public func removeCustomTheme(id: String) -> Bool {
@@ -274,7 +374,27 @@ public final class ThemeStore {
                     : "<img id=\"m\" src=\"\(mediaName)\" style=\"width:100%;height:100%;object-fit:cover\">"
                 let html = "<!doctype html><html><head><meta charset=\"utf-8\"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}</style></head><body>\(mediaTag)<script>if(window.chrome&&window.chrome.webview)window.chrome.webview.postMessage('ready');else if(parent!==window)parent.postMessage(JSON.stringify({t:'ready'}),'*');</script></body></html>"
                 try html.write(to: destDir.appendingPathComponent("index.html"), atomically: true, encoding: .utf8)
-                entry = makeEntry(id: id, name: stem, desc: isVideo ? "Imported video wallpaper." : "Imported image wallpaper.", page: "__custom/\(id)/index.html", adaptive: false, groups: [])
+                var groups: [[String: Any]] = []
+                if isVideo {
+                    groups = [[
+                        "name": "Playback",
+                        "params": [
+                            ["key": "speed", "label": "Speed", "min": 0.25, "max": 2.0, "step": 0.05, "default": 1.0, "format": "times"],
+                            ["key": "brightness", "label": "Brightness", "min": 0.4, "max": 1.4, "step": 0.01, "default": 1.0, "format": "percent"]
+                        ]
+                    ]]
+                }
+                entry = makeEntry(
+                    id: id,
+                    name: stem,
+                    desc: isVideo ? "Imported video wallpaper." : "Imported image wallpaper.",
+                    page: "__custom/\(id)/index.html",
+                    adaptive: false,
+                    groups: groups,
+                    mediaType: isVideo ? "video" : nil,
+                    mediaFile: mediaName,
+                    memoryTier: "light"
+                )
             } else if DiyarSecurity.archiveExts.contains(ext) {
                 entry = try importArchive(sourceURL: sourceURL, destDir: destDir, id: id, fallbackName: stem)
             } else {
@@ -382,7 +502,17 @@ public final class ThemeStore {
         return nil
     }
 
-    private func makeEntry(id: String, name: String, desc: String, page: String, adaptive: Bool, groups: [[String: Any]]) -> [String: Any] {
+    private func makeEntry(
+        id: String,
+        name: String,
+        desc: String,
+        page: String,
+        adaptive: Bool,
+        groups: [[String: Any]],
+        mediaType: String? = nil,
+        mediaFile: String? = nil,
+        memoryTier: String? = nil
+    ) -> [String: Any] {
         var obj: [String: Any] = [
             "id": id,
             "name": name,
@@ -394,6 +524,9 @@ public final class ThemeStore {
             "adaptive": adaptive,
             "thumb": "radial-gradient(circle at 30% 35%, rgba(98,195,255,0.45) 0%, transparent 48%), linear-gradient(150deg, #162231 0%, #243e54 55%, #172738 100%)"
         ]
+        if let mt = mediaType { obj["mediaType"] = mt }
+        if let mf = mediaFile { obj["mediaFile"] = mf }
+        if let tier = memoryTier { obj["memoryTier"] = tier }
         if !groups.isEmpty { obj["groups"] = groups }
         return obj
     }

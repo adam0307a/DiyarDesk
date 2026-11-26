@@ -18,10 +18,24 @@ swift build --package-path "$MACOS_DIR" -c release
 BIN_PATH="$(swift build --package-path "$MACOS_DIR" -c release --show-bin-path)/DiyarDeskMac"
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks"
 
 cp "$BIN_PATH" "$APP_BUNDLE/Contents/MacOS/DiyarDesk"
 chmod +x "$APP_BUNDLE/Contents/MacOS/DiyarDesk"
+
+# Build & bundle native Rust + OpenGL 3.3 Core renderer (libdiyardesk_gl.dylib)
+RUST_DIR="$ROOT/native/diyardesk-gl"
+if [[ -f "$RUST_DIR/Cargo.toml" ]] && command -v cargo >/dev/null 2>&1; then
+  echo "==> Building native Rust OpenGL renderer (libdiyardesk_gl.dylib)..."
+  cargo build --release --manifest-path "$RUST_DIR/Cargo.toml"
+  DYLIB_SRC="$RUST_DIR/target/release/libdiyardesk_gl.dylib"
+  if [[ -f "$DYLIB_SRC" ]]; then
+    cp "$DYLIB_SRC" "$APP_BUNDLE/Contents/Frameworks/libdiyardesk_gl.dylib"
+    if command -v install_name_tool >/dev/null 2>&1; then
+      install_name_tool -id "@rpath/libdiyardesk_gl.dylib" "$APP_BUNDLE/Contents/Frameworks/libdiyardesk_gl.dylib" || true
+    fi
+  fi
+fi
 
 # Bundle shared prototype/ web themes & settings UI
 cp -a "$ROOT/prototype" "$APP_BUNDLE/Contents/Resources/prototype"

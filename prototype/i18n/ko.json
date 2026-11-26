@@ -182,7 +182,14 @@
     "rustOpenGlHint": "이 테마는 로컬 네이티브 엔진으로 실행되므로 WebView2가 필요 없으며 백그라운드에서 약 {mb} MB가 사용 중일 수 있습니다. 아래 버튼을 눌러 해제하세요.",
     "webview2Release": "WebView2 메모리 해제",
     "webview2Released": "WebView2 메모리가 해제되었습니다(약 {mb} MB 해제).",
-    "webview2Nothing": "해제할 WebView2 메모리가 없습니다."
+    "webview2Nothing": "해제할 WebView2 메모리가 없습니다.",
+    "ramTierLight": "가벼움",
+    "ramTierMedium": "보통",
+    "ramTierHeavy": "높음",
+    "ramTierTitle": "예상 RAM 및 GPU 텍스처 사용량",
+    "ramLiveBadge": "앱 전체 RAM: {mb} MB",
+    "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
+    "nativeVideoBadge": "하드웨어 비디오 · MediaPlayer (WebView 없음)"
   },
   "host": {
     "traySettings": "설정…",
@@ -2003,6 +2010,89 @@
             "보통",
             "높음"
           ]
+        }
+      }
+    },
+    "eye-within-words": {
+      "name": "단어 속의 눈 · OpenGL (Rust)",
+      "desc": "네이티브 Rust + OpenGL 3.3 제너러티브 타이포그래피: 화면 전체를 가장자리까지 읽을 수 있는 철학적 문구로 채우고, 수천 개의 단어가 자연스럽게 눈을 깜빡이며 커서를 따라다니는 거대한 하나의 눈을 이룹니다. 시네마틱 카메라가 전경과 2.55배 클로즈업 사이를 천천히 오갑니다 (mishratanya2311/eye_python의 1:1 포팅).",
+      "groups": [
+        "팔레트와 연출",
+        "베이크와 시드"
+      ],
+      "params": {
+        "palette": {
+          "label": "단어 팔레트",
+          "hint": "한밤의 시(오리지널 청록-파랑-보라), 생체발광 터콰이즈 또는 성점 자수정 필사본",
+          "options": [
+            "한밤의 시",
+            "생체발광",
+            "성점 필사본"
+          ]
+        },
+        "autoBlink": {
+          "label": "자연스러운 눈 깜빡임",
+          "hint": "3-6초마다 한 번씩 생체학적 깜빡임 리듬(가끔 이중 깜빡임)"
+        },
+        "autoZoom": {
+          "label": "시네마틱 카메라",
+          "hint": "전경(1.0x)과 클로즈업(2.55x) 사이를 끊임없이 천천히 줌"
+        },
+        "adaptive": {
+          "label": "아이콘 받침",
+          "hint": "바탕 화면 아이콘 뒤에 부드러운 어두운 둥근 받침을 깔아 단어의 바다 위에서도 알아보기 쉽게 유지"
+        },
+        "seed": {
+          "label": "단어 시드",
+          "hint": "단어 바다 전체를 배열하는 랜덤 시드(변경하면 다시 생성)"
+        },
+        "quality": {
+          "label": "베이크 품질",
+          "hint": "가상 타이포그래피 캔버스의 베이크 해상도",
+          "options": [
+            "낮음",
+            "균형",
+            "높음"
+          ]
+        }
+      }
+    },
+    "cosmic-eye": {
+      "name": "코스믹 ASCII 눈 · OpenGL (Rust)",
+      "desc": "네이티브 Rust + OpenGL 3.3 실시간 ASCII 아트 루프: 동공 깊은 곳에서 자전하는 고리 행성으로 시작해 부드럽게 줌아웃하며 황금빛 눈이 좌우를 둘러보고 깜빡인 뒤, 다시 매끄럽게 동공 속 우주로 돌아가는 무한 루프입니다.",
+      "groups": [
+        "ASCII 스타일 및 팔레트",
+        "카메라 루프 및 상호작용"
+      ],
+      "params": {
+        "palette": {
+          "label": "색상 팔레트",
+          "hint": "오리지널 웜 앰버 골드(1:1), 에메랄드 코스모스, 시안 성운",
+          "options": [
+            "앰버 클래식",
+            "에메랄드 코스모스",
+            "시안 성운"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII 문자 크기",
+          "hint": "고정폭 ASCII 격자 크기 (작을수록 더 정교함)"
+        },
+        "speed": {
+          "label": "루프 속도",
+          "hint": "줌 전환, 시선 이동, 눈 깜빡임 및 행성 자전의 전체 속도"
+        },
+        "autoLoop": {
+          "label": "무한 우주 루프",
+          "hint": "동공 속 행성 → 전체 눈 줌아웃 → 좌우 응시 및 깜빡임 → 동공으로 줌인 무한 순환"
+        },
+        "mouseFollow": {
+          "label": "커서 시선 추적",
+          "hint": "전체 눈 화면에서 시선이 마우스를 부드럽게 따라감 (클릭 시 즉시 깜빡임)"
+        },
+        "adaptive": {
+          "label": "아이콘 배경",
+          "hint": "바탕화면 아이콘 뒤 가독성을 높이는 부드러운 어두운 배경"
         }
       }
     }

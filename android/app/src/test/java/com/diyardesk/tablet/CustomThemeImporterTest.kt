@@ -265,4 +265,20 @@ class CustomThemeImporterTest {
         assertTrue(html.contains("uniform vec4 u_icons[32];"))
         assertTrue(html.contains("desklandSnapshot"))
     }
+
+    @Test
+    fun importsVideoWallpaperWithNativeMediaMetadata() {
+        val root = tmp.newFolder("custom_video")
+        val importer = CustomThemeImporter(root)
+        val mp4Stub = byteArrayOf(0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32)
+        val entry = importer.importStream(ByteArrayInputStream(mp4Stub), "ocean_loop.mp4")
+        val id = entry.getString("id")
+        assertEquals("video", entry.getString("mediaType"))
+        assertEquals("media.mp4", entry.getString("mediaFile"))
+        assertEquals("light", entry.getString("memoryTier"))
+        val resolved = importer.resolveCustomVideoFile(id)
+        assertNotNull(resolved)
+        assertEquals("media.mp4", resolved?.name)
+        assertNull(importer.resolveCustomVideoFile("papercut"))
+    }
 }

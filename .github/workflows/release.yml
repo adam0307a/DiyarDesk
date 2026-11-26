@@ -230,6 +230,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Run Swift tests & build macOS DMG
         run: bash macos/build-app.sh
 

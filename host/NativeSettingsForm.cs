@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -704,15 +705,32 @@ class NativeSettingsForm : Form
         }
     }
 
+    static int CurrentProcessRamMb()
+    {
+        try
+        {
+            using (var p = Process.GetCurrentProcess())
+            {
+                p.Refresh();
+                return (int)Math.Round(p.WorkingSet64 / 1048576.0);
+            }
+        }
+        catch { return 0; }
+    }
+
     void UpdateEngineBadge()
     {
         if (IsDisposed || engineBadge == null) return;
         int wvCount = WebViewProcessGuard.OwnWebView2ProcessCount();
+        int ramMb = CurrentProcessRamMb();
+        string ramText = ramMb > 0 ? (" · " + I18n.Ui("ramLiveBadge", "mb", ramMb.ToString())) : "";
         engineBadge.Text = wvCount == 0
-            ? "Rust OpenGL 3.3 · 0 WebView2"
-            : ("Rust OpenGL 3.3 · WebView2: " + wvCount);
+            ? ("Rust OpenGL 3.3" + ramText + " · 0 WebView2")
+            : ("Rust OpenGL 3.3" + ramText + " · WebView2: " + wvCount);
         engineBadge.BackColor = colBadgeBg;
         engineBadge.ForeColor = darkTheme ? Color.FromArgb(134, 239, 172) : Color.FromArgb(21, 128, 61);
+        if (ramMb > 0)
+            tip.SetToolTip(engineBadge, I18n.Ui("ramLiveBadge", "mb", ramMb.ToString()) + " (Working Set)");
     }
 
     void LoadThemes()
@@ -724,7 +742,18 @@ class NativeSettingsForm : Form
             var th = builtIn[i];
             string id = th.ContainsKey("id") ? th["id"] as string : null;
             string status = th.ContainsKey("status") ? th["status"] as string : null;
-            if (!string.IsNullOrEmpty(id) && string.Equals(status, "ready", StringComparison.OrdinalIgnoreCase) && WallpaperForm.IsNativeGlTheme(id))
+            if (!string.IsNullOrEmpty(id) && string.Equals(status, "ready", StringComparison.OrdinalIgnoreCase)
+                && (WallpaperForm.IsNativeGlTheme(id) || WallpaperForm.IsNativeVideoTheme(id)))
+            {
+                allThemes.Add(th);
+            }
+        }
+        var custom = CustomThemes.Load();
+        for (int i = 0; i < custom.Count; i++)
+        {
+            var th = custom[i];
+            string id = th.ContainsKey("id") ? th["id"] as string : null;
+            if (!string.IsNullOrEmpty(id) && WallpaperForm.IsNativeVideoTheme(id))
             {
                 allThemes.Add(th);
             }
@@ -975,10 +1004,16 @@ class NativeSettingsForm : Form
             string rawName = th.ContainsKey("name") ? th["name"] as string : id;
             string name = I18n.ThemeName(id, rawName);
             string thumb = th.ContainsKey("thumb") ? th["thumb"] as string : "";
+            string memTier = th.ContainsKey("memoryTier") ? (th["memoryTier"] as string ?? "") : "";
+            string tierLabel = string.Equals(memTier, "light", StringComparison.OrdinalIgnoreCase)
+                ? I18n.Ui("ramTierLight")
+                : (string.Equals(memTier, "medium", StringComparison.OrdinalIgnoreCase)
+                    ? I18n.Ui("ramTierMedium")
+                    : (string.Equals(memTier, "heavy", StringComparison.OrdinalIgnoreCase) ? I18n.Ui("ramTierHeavy") : ""));
             Color[] grad = ParseThumbGradient(thumb);
             Bitmap thumbBmp = LoadThumbBitmap(id, thumb);
 
-            var card = new ThemeCardControl(id, name, grad, thumbBmp, activeBadge, readyBadge, fontBold, fontSmall);
+            var card = new ThemeCardControl(id, name, grad, thumbBmp, activeBadge, readyBadge, memTier, tierLabel, fontBold, fontSmall);
             card.Size = new Size(cardW, cardH);
             card.Margin = new Padding(0, 0, S(10), S(10));
             card.SetPalette(colCard, colCardHover, colBorder, colText, colMuted, colAccent, colAccentSoft);
@@ -1574,12 +1609,12 @@ class NativeSettingsForm : Form
         public readonly string ThemeTitle;
         readonly Color[] gradColors;
         readonly Bitmap thumbImage;
-        readonly string activeBadge, readyBadge;
+        readonly string activeBadge, readyBadge, memoryTier, tierLabel;
         readonly Font titleFont, badgeFont;
         Color cBg, cHover, cBorder, cText, cMuted, cAccent, cAccentSoft;
         bool selected, hovered;
 
-        public ThemeCardControl(string id, string title, Color[] grad, Bitmap thumbImage, string activeBadge, string readyBadge, Font titleFont, Font badgeFont)
+        public ThemeCardControl(string id, string title, Color[] grad, Bitmap thumbImage, string activeBadge, string readyBadge, string memoryTier, string tierLabel, Font titleFont, Font badgeFont)
         {
             ThemeId = id;
             ThemeTitle = title;
@@ -1587,6 +1622,8 @@ class NativeSettingsForm : Form
             this.thumbImage = thumbImage;
             this.activeBadge = activeBadge;
             this.readyBadge = readyBadge;
+            this.memoryTier = memoryTier ?? "";
+            this.tierLabel = tierLabel ?? "";
             this.titleFont = titleFont;
             this.badgeFont = badgeFont;
             DoubleBuffered = true;
@@ -1673,6 +1710,30 @@ class NativeSettingsForm : Form
                     }
                 }
                 g.ResetClip();
+
+                if (!string.IsNullOrEmpty(tierLabel))
+                {
+                    Size ts = TextRenderer.MeasureText(g, tierLabel, badgeFont, new Size(stripRect.Width - 16, 20), TextFormatFlags.NoPadding);
+                    int pw = ts.Width + 12;
+                    int ph = Math.Max(18, ts.Height + 4);
+                    var pillRect = new Rectangle(stripRect.Right - pw - 6, stripRect.Top + 6, pw, ph);
+                    Color pillBg = string.Equals(memoryTier, "heavy", StringComparison.OrdinalIgnoreCase)
+                        ? Color.FromArgb(215, 127, 29, 45)
+                        : (string.Equals(memoryTier, "medium", StringComparison.OrdinalIgnoreCase)
+                            ? Color.FromArgb(215, 112, 68, 12)
+                            : Color.FromArgb(210, 16, 82, 58));
+                    Color pillFg = string.Equals(memoryTier, "heavy", StringComparison.OrdinalIgnoreCase)
+                        ? Color.FromArgb(254, 202, 202)
+                        : (string.Equals(memoryTier, "medium", StringComparison.OrdinalIgnoreCase)
+                            ? Color.FromArgb(253, 230, 138)
+                            : Color.FromArgb(134, 239, 172));
+                    using (var pillPath = RoundedRect(pillRect, ph / 2))
+                    using (var pillBrush = new SolidBrush(pillBg))
+                    {
+                        g.FillPath(pillBrush, pillPath);
+                    }
+                    TextRenderer.DrawText(g, tierLabel, badgeFont, pillRect, pillFg, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                }
 
                 using (var pen = new Pen(selected ? cAccent : cBorder, selected ? 2f : 1f))
                     g.DrawPath(pen, path);

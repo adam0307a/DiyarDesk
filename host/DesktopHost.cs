@@ -178,7 +178,7 @@ static class StartupCrashSentinel
         {
             string safeTheme = Themes.FirstReadyBuiltIn(pageDir);
             if (string.IsNullOrEmpty(safeTheme)) safeTheme = "meadow";
-            if (Settings.RustOpenGl && !WallpaperForm.IsNativeGlTheme(safeTheme))
+            if (Settings.RustOpenGl && !WallpaperForm.IsNativeGlTheme(safeTheme) && !WallpaperForm.IsNativeVideoTheme(safeTheme))
                 safeTheme = "papercut";
 
             string oldTheme = string.IsNullOrEmpty(Settings.Theme) ? prevTheme : Settings.Theme;
@@ -892,6 +892,34 @@ class HostContext : ApplicationContext
         return WebViewProcessGuard.OwnWebView2MemBytes();
     }
 
+    public static int OwnHostRamMb()
+    {
+        try
+        {
+            using (var p = Process.GetCurrentProcess())
+            {
+                p.Refresh();
+                return (int)Math.Round(p.WorkingSet64 / 1048576.0);
+            }
+        }
+        catch { return 0; }
+    }
+
+    public static int TotalHostRamMb()
+    {
+        long hostBytes = 0;
+        try
+        {
+            using (var p = Process.GetCurrentProcess())
+            {
+                p.Refresh();
+                hostBytes = p.WorkingSet64;
+            }
+        }
+        catch { }
+        return (int)Math.Round((hostBytes + WebView2MemBytes()) / 1048576.0);
+    }
+
     // 释放壁纸 WebView2 后其浏览器进程异步退出，最多等 ~2 秒让内存真正回落，返回回落后的字节数。
     static long WaitWebView2Drop(long before, int timeoutMs)
     {
@@ -1033,7 +1061,8 @@ class HostContext : ApplicationContext
         mpvBackend.Stop();
         if (!Settings.PreferMpv || form == null || form.IsDisposed) return;
         string vpath = WinMpvBackend.FindThemeVideo(Settings.Theme);
-        if (string.IsNullOrEmpty(vpath)) return;
+        if (string.IsNullOrEmpty(vpath) || string.IsNullOrEmpty(WinMpvBackend.FindMpvExe())) return;
+        form.StopNativeVideo();
         var p = Settings.For(Settings.Theme);
         double spd = 1.0, bright = 1.0;
         object v;
@@ -1054,6 +1083,9 @@ class HostContext : ApplicationContext
     {
         Settings.PreferMpv = enabled;
         SaveSoon();
+        string page = Themes.PageFor(pageDir, Settings.Theme);
+        if (!string.IsNullOrEmpty(page) && Themes.PageExists(pageDir, page))
+            ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, Settings.Theme); });
         SyncMpvVideo();
         if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "preferMpv", "v", enabled)));
         Log.Write(enabled ? "已启用 mpv 硬件视频后端" : "已切回 WebView2 视频播放");
@@ -1066,7 +1098,7 @@ class HostContext : ApplicationContext
         Settings.RustOpenGl = enabled;
         if (rustGlItem != null) rustGlItem.Checked = enabled;
 
-        if (enabled && !WallpaperForm.IsNativeGlTheme(Settings.Theme))
+        if (enabled && !WallpaperForm.IsNativeGlTheme(Settings.Theme) && !WallpaperForm.IsNativeVideoTheme(Settings.Theme))
         {
             string fallback = Themes.FirstReadyBuiltIn(pageDir);
             if (!WallpaperForm.IsNativeGlTheme(fallback)) fallback = "papercut";
@@ -1600,7 +1632,7 @@ class HostContext : ApplicationContext
                     "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin,
                     "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv,
                     "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable(),
-                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb)));
+                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb, "ramMb", TotalHostRamMb())));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -1833,7 +1865,7 @@ class HostContext : ApplicationContext
     {
         if (string.IsNullOrEmpty(theme) || !ThemeAllowed(theme)) return;
         string chosen = null;
-        using (var dlg = new OpenFileDialog())
+        using (var dlg = new System.Windows.Forms.OpenFileDialog())
         {
             dlg.Filter = "Audio (*.mp3;*.wav;*.ogg;*.opus;*.flac;*.m4a;*.aac;*.webm)|*.mp3;*.wav;*.ogg;*.opus;*.flac;*.m4a;*.aac;*.webm|All Files (*.*)|*.*";
             dlg.RestoreDirectory = true;
@@ -1875,7 +1907,7 @@ class HostContext : ApplicationContext
     {
         if (settingsWin == null) return;
         string chosen = null;
-        using (var dlg = new OpenFileDialog())
+        using (var dlg = new System.Windows.Forms.OpenFileDialog())
         {
             string title = I18n.T("importTheme");
             dlg.Title = string.IsNullOrEmpty(title) || title == "importTheme" ? "Import theme" : title;
@@ -1892,7 +1924,7 @@ class HostContext : ApplicationContext
             string newPage = themeObj["page"] as string;
             Settings.Theme = newId;
             SaveSoon();
-            if (form != null && !string.IsNullOrEmpty(newPage)) form.LoadPage(newPage);
+            if (form != null && !string.IsNullOrEmpty(newPage)) form.LoadPage(newPage, newId);
             settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", true)));
             Log.Write("已导入自定义主题：" + newId);
         }
@@ -2812,6 +2844,7 @@ class SettingsForm : Form
     readonly string pageDir;
     uint browserPid;
     bool webDisposed;
+    System.Windows.Forms.Timer memTimer;
 
     public SettingsForm(string pageDir, HostContext host)
     {
@@ -2908,6 +2941,21 @@ class SettingsForm : Form
             string settingsUrl = "https://app.local/settings.html?v=" + Uri.EscapeDataString(Application.ProductVersion);
             Log.Write("设置页面：" + settingsUrl);
             core.Navigate(settingsUrl);
+            if (memTimer == null)
+            {
+                memTimer = new System.Windows.Forms.Timer();
+                memTimer.Interval = 2500;
+                memTimer.Tick += delegate
+                {
+                    if (IsDisposed || webDisposed || web == null || web.CoreWebView2 == null) return;
+                    double wvMb = Math.Round(WebViewProcessGuard.OwnWebView2MemBytes() / 1048576.0, 1);
+                    Post(Json.Stringify(Json.Obj("t", "memStats",
+                        "ramMb", HostContext.TotalHostRamMb(),
+                        "hostMb", HostContext.OwnHostRamMb(),
+                        "webview2Mb", wvMb)));
+                };
+                memTimer.Start();
+            }
         }
         catch (Exception ex)
         {
@@ -2920,6 +2968,11 @@ class SettingsForm : Form
 
     public void DisposeWebViewTree()
     {
+        if (memTimer != null)
+        {
+            try { memTimer.Stop(); memTimer.Dispose(); } catch { }
+            memTimer = null;
+        }
         if (webDisposed) return;
         webDisposed = true;
         uint pid = browserPid;
@@ -3050,13 +3103,13 @@ class WallpaperForm : Form
     }
 
     public bool NativeGlActive { get { return glHost != null && glHost.IsRunning; } }
+    public bool NativeVideoActive { get { return videoHost != null && videoHost.IsRunning; } }
 
-    // 进入 Rust OpenGL 模式时调用：隐藏并彻底释放壁纸 WebView2，并确保其浏览器进程树完全退出。
-    // 若当前不在 native 模式（glHost 未运行）则不动，避免破坏 WebView 主题。
+    // 进入 Rust OpenGL 或 Yerel Video 模式时调用：隐藏并彻底释放壁纸 WebView2，并确保其浏览器进程树完全退出。
     public void ReleaseWallpaperWebView()
     {
         if (shuttingDown || IsDisposed) return;
-        if (glHost == null || !glHost.IsRunning) return;
+        if ((glHost == null || !glHost.IsRunning) && (videoHost == null || !videoHost.IsRunning)) return;
         uint pid = webBrowserPid;
         if (web != null)
         {
@@ -3203,6 +3256,35 @@ class WallpaperForm : Form
             glHost.PostJson(json);
             return;
         }
+        if (videoHost != null && videoHost.IsRunning)
+        {
+            try
+            {
+                var m = Json.Parse(json) as Dictionary<string, object>;
+                if (m != null)
+                {
+                    object tObj;
+                    string kind = m.TryGetValue("t", out tObj) ? tObj as string : null;
+                    if (kind == "pause")
+                    {
+                        object vObj;
+                        if (m.TryGetValue("v", out vObj) && vObj is bool)
+                            videoHost.SetPaused((bool)vObj);
+                    }
+                    else if (kind == "settings")
+                    {
+                        var dict = m.ContainsKey("params") ? m["params"] as Dictionary<string, object> : Settings.For(themeId);
+                        double spd = 1.0, bright = 1.0;
+                        object v;
+                        if (dict != null && dict.TryGetValue("speed", out v)) try { spd = Convert.ToDouble(v); } catch { }
+                        if (dict != null && dict.TryGetValue("brightness", out v)) try { bright = Convert.ToDouble(v); } catch { }
+                        videoHost.UpdateParams(spd, bright);
+                    }
+                }
+            }
+            catch { }
+            return;
+        }
         if (web == null || web.CoreWebView2 == null) return;
         try { web.CoreWebView2.PostWebMessageAsString(json); }
         catch (InvalidOperationException ex) { WebDead(ex); }
@@ -3214,7 +3296,9 @@ class WallpaperForm : Form
         return string.Equals(p, "material-impulse-gl.html", StringComparison.OrdinalIgnoreCase)
             || string.Equals(p, "ai-mascots.html", StringComparison.OrdinalIgnoreCase)
             || string.Equals(p, "cat-shore.html", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(p, "persephone.html", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(p, "persephone.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "eye-within-words.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "cosmic-eye.html", StringComparison.OrdinalIgnoreCase);
     }
 
     static readonly HashSet<string> NativeGlThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -3223,12 +3307,35 @@ class WallpaperForm : Form
         "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
         "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
         "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
-        "ai-mascots", "cat-shore", "persephone"
+        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye"
     };
 
     public static bool IsNativeGlTheme(string tid)
     {
         return !string.IsNullOrEmpty(tid) && NativeGlThemes.Contains(tid);
+    }
+
+    public static bool IsNativeVideoTheme(string tid)
+    {
+        string vpath = WinMpvBackend.FindThemeVideo(tid);
+        if (string.IsNullOrEmpty(vpath)) return false;
+        return NativeVideoHost.IsAvailable()
+            || (Settings.PreferMpv && !string.IsNullOrEmpty(WinMpvBackend.FindMpvExe()));
+    }
+
+    static bool ShouldUseExternalMpv(string tid)
+    {
+        return Settings.PreferMpv
+            && !string.IsNullOrEmpty(WinMpvBackend.FindMpvExe())
+            && !string.IsNullOrEmpty(WinMpvBackend.FindThemeVideo(tid));
+    }
+
+    static bool ShouldUseNativeVideo(string tid)
+    {
+        return NativeVideoHost.IsAvailable()
+            && (Settings.RustOpenGl || Settings.PreferMpv)
+            && !ShouldUseExternalMpv(tid)
+            && !string.IsNullOrEmpty(WinMpvBackend.FindThemeVideo(tid));
     }
 
     static bool ShouldUseNativeGl(string pageName, string tid)
@@ -3295,7 +3402,57 @@ class WallpaperForm : Form
             try { glHost.Dispose(); } catch { }
             glHost = null;
         }
-        if (web != null && !web.IsDisposed) web.Visible = true;
+        if (web != null && !web.IsDisposed && (videoHost == null || !videoHost.IsRunning))
+            web.Visible = true;
+    }
+
+    bool StartNativeVideo(string tid)
+    {
+        if (shuttingDown || IsDisposed || !NativeVideoHost.IsAvailable()) return false;
+        string vpath = WinMpvBackend.FindThemeVideo(tid);
+        if (string.IsNullOrEmpty(vpath)) return false;
+        var p = Settings.For(tid);
+        double spd = 1.0, bright = 1.0;
+        object v;
+        if (p.TryGetValue("speed", out v)) try { spd = Convert.ToDouble(v); } catch { }
+        if (p.TryGetValue("brightness", out v)) try { bright = Convert.ToDouble(v); } catch { }
+
+        if (videoHost == null)
+        {
+            videoHost = new NativeVideoHost();
+            videoHost.PlaybackFailed += delegate
+            {
+                PostToUi(delegate
+                {
+                    if (shuttingDown || IsDisposed) return;
+                    StopNativeVideo();
+                    if (!ShouldUseNativeGl(page, themeId))
+                        LoadPage(page, themeId);
+                });
+            };
+        }
+        if (!videoHost.Start(this, vpath, spd, bright))
+        {
+            StopNativeVideo();
+            return false;
+        }
+        StopNativeGl();
+        ReleaseWallpaperWebView();
+        lastPause = -1;
+        PollForeground();
+        Log.Write("Yerel donanim video motoru baslatildi (0 WebView2): " + Path.GetFileName(vpath));
+        return true;
+    }
+
+    public void StopNativeVideo()
+    {
+        if (videoHost != null)
+        {
+            try { videoHost.Dispose(); } catch { }
+            videoHost = null;
+        }
+        if (web != null && !web.IsDisposed && (glHost == null || !glHost.IsRunning))
+            web.Visible = true;
     }
 
     // WebView2 运行时后台更新 / 浏览器进程被杀后，CoreWebView2 不为 null 但已 disposed，任何调用都抛异常
@@ -3320,11 +3477,17 @@ class WallpaperForm : Form
         page = newPage;
         themeId = !string.IsNullOrEmpty(newThemeId) ? newThemeId : (Settings.Theme ?? "");
 
-        if (ShouldUseNativeGl(newPage, themeId) && StartNativeGl())
+        if (ShouldUseNativeGl(newPage, themeId))
+        {
+            StopNativeVideo();
+            if (StartNativeGl()) return;
+        }
+        if (ShouldUseNativeVideo(themeId) && StartNativeVideo(themeId))
         {
             return;
         }
         StopNativeGl();
+        StopNativeVideo();
         EnsureWebViewControl();
         if (web.CoreWebView2 == null)
         {
@@ -3681,6 +3844,7 @@ class WallpaperForm : Form
     IntPtr focusedFgHwnd;
     MediaBridge mediaBridge;
     NativeGlHost glHost;
+    NativeVideoHost videoHost;
     bool webInitialized;
     double uiScale = 1.0;
     bool uiMouseCaptured, desktopMouseDown;
@@ -4852,7 +5016,8 @@ class WallpaperForm : Form
     void PollForeground()
     {
         bool glActive = glHost != null && glHost.IsRunning;
-        if (!glActive && (web == null || web.CoreWebView2 == null)) return;
+        bool vidActive = videoHost != null && videoHost.IsRunning;
+        if (!glActive && !vidActive && (web == null || web.CoreWebView2 == null)) return;
         SyncPowerPerf(false);
         IntPtr curFg = Native.GetForegroundWindow();
         if (uiTextFocused && !IsDesktopForeground() && (focusedFgHwnd == IntPtr.Zero || curFg != focusedFgHwnd))
@@ -4915,6 +5080,8 @@ class WallpaperForm : Form
         StopMouseHook();
         StopWindowTrackHooks();
         iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
+        StopNativeVideo();
+        StopNativeGl();
         reader.ResetOrbitalPositions();
         reader.Dispose();
         IntPtr parent = parentHwnd;
@@ -4944,6 +5111,8 @@ class WallpaperForm : Form
         StopWindowTrackHooks();
         if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
         iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
+        StopNativeVideo();
+        StopNativeGl();
         reader.ResetOrbitalPositions();
         reader.Dispose();
         base.OnHandleDestroyed(e);

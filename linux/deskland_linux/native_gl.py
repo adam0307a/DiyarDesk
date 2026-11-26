@@ -57,6 +57,8 @@ NATIVE_GL_THEMES: frozenset[str] = frozenset(
         "ai-mascots",
         "cat-shore",
         "persephone",
+        "eye-within-words",
+        "cosmic-eye",
     }
 )
 
@@ -66,6 +68,8 @@ NATIVE_GL_ONLY_PAGES: frozenset[str] = frozenset(
         "ai-mascots.html",
         "cat-shore.html",
         "persephone.html",
+        "eye-within-words.html",
+        "cosmic-eye.html",
     }
 )
 

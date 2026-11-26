@@ -182,7 +182,14 @@
     "rustOpenGlHint": "Ce thème fonctionne sur le moteur natif, WebView2 n'est donc pas nécessaire et peut encore occuper ~{mb} Mo en arrière-plan. Cliquez ci-dessous pour libérer.",
     "webview2Release": "Libérer la mémoire WebView2",
     "webview2Released": "Mémoire WebView2 libérée (~{mb} Mo libérés).",
-    "webview2Nothing": "Aucune mémoire WebView2 à libérer."
+    "webview2Nothing": "Aucune mémoire WebView2 à libérer.",
+    "ramTierLight": "Léger",
+    "ramTierMedium": "Moyen",
+    "ramTierHeavy": "Élevé",
+    "ramTierTitle": "Estimation RAM et textures GPU",
+    "ramLiveBadge": "RAM totale appli : {mb} Mo",
+    "ramOpenGlBadge": "OpenGL (GPU) : {mb} Mo",
+    "nativeVideoBadge": "Vidéo matérielle · MediaPlayer (0 WebView)"
   },
   "host": {
     "traySettings": "Paramètres…",
@@ -258,7 +265,7 @@
           "label": "Disposition des widgets",
           "hint": "Choisissez un préréglage (ou glissez librement chaque carte par son en-tête)",
           "options": [
-            "Impulse Split",
+            "Fractionnement Impulsion",
             "Barre droite",
             "Bento centré",
             "Horloge min."
@@ -1857,7 +1864,7 @@
           "label": "Disposition des widgets",
           "hint": "Choisissez un préréglage (ou glissez librement chaque carte par son en-tête)",
           "options": [
-            "Impulse Split",
+            "Fractionnement Impulsion",
             "Barre droite",
             "Bento centré",
             "Horloge min."
@@ -2003,6 +2010,89 @@
             "Moyenne",
             "Haute"
           ]
+        }
+      }
+    },
+    "eye-within-words": {
+      "name": "L'œil dans les mots · OpenGL (Rust)",
+      "desc": "Typographie générative native Rust + OpenGL 3.3 : tout l'écran se remplit de bord en bord de citations philosophiques lisibles ; des milliers de mots forment un œil humain gigantesque qui cligne naturellement et suit le curseur, tandis qu'une caméra cinématique passe lentement entre la vue d'ensemble et les gros plans 2,55x (portage 1:1 de mishratanya2311/eye_python).",
+      "groups": [
+        "Palette et chorégraphie",
+        "Précalcul et graine"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette de vocabulaire",
+          "hint": "Poésie nocturne (cyan-bleu-violet original), turquoise bioluminescente ou manuscrit améthyste astral",
+          "options": [
+            "Poésie nocturne",
+            "Bioluminescence",
+            "Manuscrit astral"
+          ]
+        },
+        "autoBlink": {
+          "label": "Clignements naturels",
+          "hint": "Rythme biologique de clignement toutes les 3-6 secondes, parfois en double"
+        },
+        "autoZoom": {
+          "label": "Caméra cinématique",
+          "hint": "Zoom lent et continu entre la vue large (1,0x) et les gros plans (2,55x)"
+        },
+        "adaptive": {
+          "label": "Fond des icônes",
+          "hint": "Fonds sombres arrondis et doux derrière les icônes du bureau pour qu'elles restent lisibles sur la mer de mots"
+        },
+        "seed": {
+          "label": "Graine des mots",
+          "hint": "Graine aléatoire arrangeant tout le champ de mots (la modifier régénère la disposition)"
+        },
+        "quality": {
+          "label": "Qualité de précalcul",
+          "hint": "Résolution de précalcul du canevas typographique virtuel",
+          "options": [
+            "Basse",
+            "Équilibrée",
+            "Haute"
+          ]
+        }
+      }
+    },
+    "cosmic-eye": {
+      "name": "Œil ASCII Cosmique · OpenGL (Rust)",
+      "desc": "Boucle d'art ASCII temps réel en Rust + OpenGL 3.3 : débute au cœur de la pupille autour d'une géante gazeuse à anneaux en rotation, dézoome doucement sur l'œil ambré qui regarde à gauche et à droite en clignant, puis replonge sans couture dans le cosmos.",
+      "groups": [
+        "Style ASCII & Palette",
+        "Boucle Caméra & Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Palette",
+          "hint": "Ambre doré classique (1:1 original), Cosmos Émeraude ou Nébuleuse Cyan",
+          "options": [
+            "Ambre Classique",
+            "Cosmos Émeraude",
+            "Nébuleuse Cyan"
+          ]
+        },
+        "charSize": {
+          "label": "Taille des caractères",
+          "hint": "Taille de la grille ASCII monospace (plus petit = plus fin)"
+        },
+        "speed": {
+          "label": "Vitesse de boucle",
+          "hint": "Rythme du zoom, du regard, des clignements et de la rotation planétaire"
+        },
+        "autoLoop": {
+          "label": "Boucle cosmique continue",
+          "hint": "Cycle infini : planète dans la pupille → dézoom œil entier → regard & clignement → retour pupille"
+        },
+        "mouseFollow": {
+          "label": "Suivi du curseur",
+          "hint": "Le regard suit doucement le curseur en vue large (cliquer déclenche un clignement)"
+        },
+        "adaptive": {
+          "label": "Fond d'icônes",
+          "hint": "Voile sombre arrondi derrière les icônes du bureau"
         }
       }
     }

@@ -22,7 +22,7 @@ from deskland_linux.native_settings import SettingsI18n, format_param_value, is_
 
 def test_should_use_native_gl_routing_preserves_html_css_js_support():
     # Native themes activate when rust_opengl=True and library is available
-    for tid in ("papercut", "meadow", "beach", "istanbul", "studio-glass", "liquidglass", "ai-mascots"):
+    for tid in ("papercut", "meadow", "beach", "istanbul", "studio-glass", "liquidglass", "ai-mascots", "eye-within-words", "cosmic-eye"):
         assert is_native_gl_theme(tid)
         assert should_use_native_gl(f"{tid}.html", tid, rust_opengl=True, available=True)
 
@@ -33,8 +33,14 @@ def test_should_use_native_gl_routing_preserves_html_css_js_support():
     # GL-only pages always prefer native GL when available
     assert is_native_gl_page("material-impulse-gl.html")
     assert is_native_gl_page("ai-mascots.html")
+    assert is_native_gl_page("eye-within-words.html")
+    assert is_native_gl_page("cosmic-eye.html")
     assert should_use_native_gl("material-impulse-gl.html", "material-impulse-gl", rust_opengl=False, available=True)
     assert should_use_native_gl("ai-mascots.html", "ai-mascots", rust_opengl=False, available=True)
+    assert should_use_native_gl("eye-within-words.html", "eye-within-words", rust_opengl=False, available=True)
+    assert should_use_native_gl("cosmic-eye.html", "cosmic-eye", rust_opengl=False, available=True)
+    assert is_toggle_param({"key": "autoBlink", "min": 0, "max": 1, "step": 1})
+    assert is_toggle_param({"key": "showCodePanel", "type": "toggle"})
 
     # Custom HTML/CSS/JS, image, and video themes NEVER hijack into native GL
     assert not should_use_native_gl("__custom/my-html-theme/index.html", "my-html-theme", rust_opengl=True, available=True)

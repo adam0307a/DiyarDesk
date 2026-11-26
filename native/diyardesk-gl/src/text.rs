@@ -57,15 +57,28 @@ pub struct TextRenderer {
     verts: Vec<TextVert>,
 }
 
-fn load_system_font(candidates: &[&str]) -> Result<Font, String> {
+fn load_font_candidates(candidates: &[&str]) -> Option<Font> {
     for path in candidates {
         if let Ok(bytes) = std::fs::read(path) {
             if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
-                return Ok(font);
+                return Some(font);
             }
         }
     }
-    #[cfg(not(target_os = "windows"))]
+    None
+}
+
+fn load_system_font(candidates: &[&str]) -> Result<Font, String> {
+    if let Some(font) = load_font_candidates(candidates) {
+        return Ok(font);
+    }
+    #[cfg(target_os = "android")]
+    {
+        if let Some(font) = scan_android_system_font(false) {
+            return Ok(font);
+        }
+    }
+    #[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
     {
         for pattern in ["sans-serif", "DejaVu Sans", "Liberation Sans", "Noto Sans"] {
             if let Some(path) = fc_match_font(pattern) {
@@ -80,7 +93,175 @@ fn load_system_font(candidates: &[&str]) -> Result<Font, String> {
     Err("Could not load any system UI font".into())
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(any(target_os = "android", test))]
+fn scan_font_dirs(dirs: &[&str], prefer_mono: bool) -> Option<Font> {
+    let mut paths: Vec<std::path::PathBuf> = Vec::new();
+    for dir in dirs {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for e in entries.flatten() {
+                let p = e.path();
+                let is_font = p
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .map(|ext| {
+                        ext.eq_ignore_ascii_case("ttf")
+                            || ext.eq_ignore_ascii_case("otf")
+                            || ext.eq_ignore_ascii_case("ttc")
+                    })
+                    .unwrap_or(false);
+                if is_font {
+                    paths.push(p);
+                }
+            }
+        }
+    }
+    paths.sort();
+    if prefer_mono {
+        for p in &paths {
+            let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+            if name.to_ascii_lowercase().contains("mono") {
+                if let Ok(bytes) = std::fs::read(p) {
+                    if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                        return Some(font);
+                    }
+                }
+            }
+        }
+        return None;
+    }
+    for p in &paths {
+        let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        let lower = name.to_ascii_lowercase();
+        if lower.contains("roboto") || lower.contains("droidsans") || lower.contains("notosans") {
+            if let Ok(bytes) = std::fs::read(p) {
+                if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                    return Some(font);
+                }
+            }
+        }
+    }
+    for p in &paths {
+        if let Ok(bytes) = std::fs::read(p) {
+            if let Ok(font) = Font::from_bytes(bytes, FontSettings::default()) {
+                return Some(font);
+            }
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "android")]
+const ANDROID_FONT_DIRS: &[&str] = &["/system/fonts", "/product/fonts", "/system_ext/fonts"];
+
+#[cfg(target_os = "android")]
+fn scan_android_system_font(prefer_mono: bool) -> Option<Font> {
+    scan_font_dirs(ANDROID_FONT_DIRS, prefer_mono)
+}
+
+#[cfg(target_os = "android")]
+const ANDROID_SANS_REG: &[&str] = &[
+    "/system/fonts/Roboto-Regular.ttf",
+    "/system/fonts/RobotoStatic-Regular.ttf",
+    "/system/fonts/RobotoFlex-Regular.ttf",
+    "/system/fonts/DroidSans.ttf",
+    "/system/fonts/NotoSans-Regular.ttf",
+    "/system/fonts/Roboto-Medium.ttf",
+];
+
+#[cfg(target_os = "android")]
+const ANDROID_SANS_BOLD: &[&str] = &[
+    "/system/fonts/Roboto-Bold.ttf",
+    "/system/fonts/RobotoStatic-Bold.ttf",
+    "/system/fonts/Roboto-Medium.ttf",
+    "/system/fonts/DroidSans-Bold.ttf",
+    "/system/fonts/Roboto-Regular.ttf",
+    "/system/fonts/RobotoFlex-Regular.ttf",
+];
+
+#[cfg(target_os = "android")]
+const ANDROID_MONO_REG: &[&str] = &[
+    "/system/fonts/DroidSansMono.ttf",
+    "/system/fonts/CutiveMono.ttf",
+    "/system/fonts/RobotoMono-Regular.ttf",
+    "/system/fonts/NotoSansMono-Regular.ttf",
+];
+
+#[cfg(target_os = "android")]
+const ANDROID_MONO_BOLD: &[&str] = &[
+    "/system/fonts/RobotoMono-Bold.ttf",
+    "/system/fonts/NotoSansMono-Bold.ttf",
+    "/system/fonts/DroidSansMono.ttf",
+    "/system/fonts/CutiveMono.ttf",
+];
+
+#[cfg(target_os = "android")]
+const ANDROID_SYMBOL_FALLBACK: &[&str] = &[
+    "/system/fonts/NotoSansSymbols-Regular-Subsetted.ttf",
+    "/system/fonts/NotoSansSymbols-Regular-Subsetted2.ttf",
+    "/system/fonts/NotoSansSymbols-Regular.ttf",
+    "/system/fonts/DroidSansFallback.ttf",
+];
+
+#[cfg(target_os = "android")]
+fn load_android_mono_reg() -> Result<Font, String> {
+    if let Some(f) = load_font_candidates(ANDROID_MONO_REG) {
+        return Ok(f);
+    }
+    if let Some(f) = scan_android_system_font(true) {
+        return Ok(f);
+    }
+    load_system_font(ANDROID_SANS_REG)
+}
+
+#[cfg(target_os = "android")]
+fn load_android_mono_bold() -> Result<Font, String> {
+    if let Some(f) = load_font_candidates(ANDROID_MONO_BOLD) {
+        return Ok(f);
+    }
+    load_android_mono_reg()
+}
+
+#[cfg(target_os = "macos")]
+const MACOS_SANS_REG: &[&str] = &[
+    "/System/Library/Fonts/SFNS.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/System/Library/Fonts/Geneva.ttf",
+    "/System/Library/Fonts/Supplemental/Verdana.ttf",
+];
+
+#[cfg(target_os = "macos")]
+const MACOS_SANS_BOLD: &[&str] = &[
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/SFNS.ttf",
+    "/System/Library/Fonts/Supplemental/Verdana Bold.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+];
+
+#[cfg(target_os = "macos")]
+const MACOS_MONO_REG: &[&str] = &[
+    "/System/Library/Fonts/SFNSMono.ttf",
+    "/System/Library/Fonts/Menlo.ttc",
+    "/System/Library/Fonts/Monaco.ttf",
+    "/System/Library/Fonts/Supplemental/Courier New.ttf",
+    "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
+];
+
+#[cfg(target_os = "macos")]
+const MACOS_MONO_BOLD: &[&str] = &[
+    "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+    "/System/Library/Fonts/SFNSMono.ttf",
+    "/System/Library/Fonts/Menlo.ttc",
+];
+
+#[cfg(target_os = "macos")]
+const MACOS_SYMBOL_FALLBACK: &[&str] = &[
+    "/System/Library/Fonts/Apple Symbols.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    "/System/Library/Fonts/SFNS.ttf",
+];
+
+#[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
 fn fc_match_font(pattern: &str) -> Option<String> {
     let out = std::process::Command::new("fc-match")
         .args(["-f", "%{file}", pattern])
@@ -98,7 +279,7 @@ fn fc_match_font(pattern: &str) -> Option<String> {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
 fn load_linux_font_with_fc(candidates: &[&str], fc_pattern: &str) -> Result<Font, String> {
     for path in candidates {
         if let Ok(bytes) = std::fs::read(path) {
@@ -135,7 +316,23 @@ impl TextRenderer {
                 ],
             )
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = "android")]
+        {
+            let reg = load_system_font(ANDROID_SANS_REG)?;
+            let bold = load_system_font(ANDROID_SANS_BOLD)
+                .or_else(|_| load_system_font(ANDROID_SANS_REG))?;
+            let fallback = load_font_candidates(ANDROID_SYMBOL_FALLBACK);
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let reg = load_system_font(MACOS_SANS_REG)?;
+            let bold = load_system_font(MACOS_SANS_BOLD)
+                .or_else(|_| load_system_font(MACOS_SANS_REG))?;
+            let fallback = load_font_candidates(MACOS_SYMBOL_FALLBACK);
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
+        #[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
         {
             let reg = load_linux_font_with_fc(
                 &[
@@ -207,7 +404,24 @@ impl TextRenderer {
                 ],
             )
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = "android")]
+        {
+            let reg = load_android_mono_reg()?;
+            let bold = load_android_mono_bold()?;
+            let fallback = load_font_candidates(ANDROID_SYMBOL_FALLBACK);
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let reg = load_system_font(MACOS_MONO_REG)
+                .or_else(|_| load_system_font(MACOS_SANS_REG))?;
+            let bold = load_system_font(MACOS_MONO_BOLD)
+                .or_else(|_| load_system_font(MACOS_MONO_REG))
+                .or_else(|_| load_system_font(MACOS_SANS_REG))?;
+            let fallback = load_font_candidates(MACOS_SYMBOL_FALLBACK);
+            Self::new_from_loaded_fonts(gl, reg, bold, fallback)
+        }
+        #[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
         {
             let reg = load_linux_font_with_fc(
                 &[
@@ -508,5 +722,144 @@ impl TextRenderer {
         if self.vbo != 0 { (gl.DeleteBuffers)(1, &self.vbo); self.vbo = 0; }
         if self.vao != 0 { (gl.DeleteVertexArrays)(1, &self.vao); self.vao = 0; }
         if self.prog != 0 { (gl.DeleteProgram)(self.prog); self.prog = 0; }
+    }
+}
+
+/// CPU-side UI font pair (regular + bold) for themes that bake word
+/// typography offscreen without a GL context (eye-within-words). Mirrors the
+/// `TextRenderer::new` platform candidate lists.
+pub fn load_baking_font_pair() -> Result<(Font, Font), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let reg = load_system_font(&[
+            r"C:\Windows\Fonts\segoeui.ttf",
+            r"C:\Windows\Fonts\arial.ttf",
+        ])?;
+        let bold = load_system_font(&[
+            r"C:\Windows\Fonts\segoeuib.ttf",
+            r"C:\Windows\Fonts\seguisb.ttf",
+            r"C:\Windows\Fonts\arialbd.ttf",
+            r"C:\Windows\Fonts\segoeui.ttf",
+        ])?;
+        Ok((reg, bold))
+    }
+    #[cfg(target_os = "android")]
+    {
+        let reg = load_system_font(ANDROID_SANS_REG)?;
+        let bold = load_system_font(ANDROID_SANS_BOLD)
+            .or_else(|_| load_system_font(ANDROID_SANS_REG))?;
+        Ok((reg, bold))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let reg = load_system_font(MACOS_SANS_REG)?;
+        let bold = load_system_font(MACOS_SANS_BOLD)
+            .or_else(|_| load_system_font(MACOS_SANS_REG))?;
+        Ok((reg, bold))
+    }
+    #[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
+    {
+        let reg = load_linux_font_with_fc(
+            &[
+                "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/TTF/Inter-Regular.ttf",
+                "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+                "/usr/share/fonts/adwaita-sans-fonts/AdwaitaSans-Regular.ttf",
+                "/usr/share/fonts/cantarell/Cantarell-Regular.otf",
+            ],
+            "sans-serif:weight=regular",
+        )?;
+        let bold = load_linux_font_with_fc(
+            &[
+                "/usr/share/fonts/noto/NotoSans-Bold.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+                "/usr/share/fonts/google-noto/NotoSans-Bold.ttf",
+                "/usr/share/fonts/TTF/Inter-Bold.ttf",
+                "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
+                "/usr/share/fonts/adwaita-sans-fonts/AdwaitaSans-Bold.ttf",
+                "/usr/share/fonts/cantarell/Cantarell-Bold.otf",
+            ],
+            "sans-serif:weight=bold",
+        )
+        .or_else(|_| load_linux_font_with_fc(&[], "sans-serif"))?;
+        Ok((reg, bold))
+    }
+}
+
+/// Monospace UI font loader for ASCII-art themes (`cosmic-eye`).
+pub fn load_mono_font() -> Result<Font, String> {
+    #[cfg(target_os = "windows")]
+    {
+        load_system_font(&[
+            r"C:\Windows\Fonts\consola.ttf",
+            r"C:\Windows\Fonts\CascadiaMono.ttf",
+            r"C:\Windows\Fonts\cour.ttf",
+            r"C:\Windows\Fonts\lucon.ttf",
+        ])
+        .or_else(|_| load_baking_font_pair().map(|(r, _)| r))
+    }
+    #[cfg(target_os = "android")]
+    {
+        load_android_mono_reg()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        load_system_font(MACOS_MONO_REG)
+            .or_else(|_| load_baking_font_pair().map(|(r, _)| r))
+    }
+    #[cfg(all(not(target_os = "windows"), not(target_os = "android"), not(target_os = "macos")))]
+    {
+        load_linux_font_with_fc(
+            &[
+                "/usr/share/fonts/noto/NotoSansMono-Regular.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf",
+                "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                "/usr/share/fonts/dejavu-sans-mono-fonts/DejaVuSansMono.ttf",
+                "/usr/share/fonts/TTF/JetBrainsMono-Regular.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+                "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf",
+                "/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf",
+            ],
+            "monospace:weight=regular",
+        )
+        .or_else(|_| load_baking_font_pair().map(|(r, _)| r))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn android_font_dir_scanner_prefers_mono_and_handles_missing_dirs() {
+        assert!(scan_font_dirs(&["/nonexistent/android/fonts/dir"], false).is_none());
+        assert!(scan_font_dirs(&["/nonexistent/android/fonts/dir"], true).is_none());
+        // Verify against real system font dirs on Linux host when present.
+        let linux_dirs = [
+            "/usr/share/fonts/TTF",
+            "/usr/share/fonts/noto",
+            "/usr/share/fonts/truetype/dejavu",
+            "/usr/share/fonts/dejavu-sans-fonts",
+            "/usr/share/fonts/liberation",
+        ];
+        if linux_dirs.iter().any(|d| std::path::Path::new(d).is_dir()) {
+            assert!(
+                scan_font_dirs(&linux_dirs, false).is_some(),
+                "Expected scan_font_dirs(prefer_mono=false) to load a font"
+            );
+        }
     }
 }

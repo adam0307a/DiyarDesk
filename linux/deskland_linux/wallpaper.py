@@ -29,7 +29,7 @@ from .desktop_env import (  # noqa: E402
 )
 from .displays import MonitorInfo, detect_compositor_monitors  # noqa: E402
 from .icons import make_adapter  # noqa: E402
-from .mpv_player import MpvVideoBackend, find_theme_video_file  # noqa: E402
+from .mpv_player import MpvVideoBackend, create_native_video_widget, find_theme_video_file  # noqa: E402
 from .native_gl import (  # noqa: E402
     NativeGlArea,
     NativeGlHeadless,
@@ -432,6 +432,7 @@ class Wallpaper:
         self.resource_watchdog = ResourceWatchdog()
         self._last_watchdog_check = 0.0
         self.mpv_backend = MpvVideoBackend(log)
+        self._native_video: Any = None
         self.stats_sampler = SystemStatsSampler()
         self.audio_meter = LocalAudioMeter()
         self._last_stats_ts = 0.0
@@ -447,8 +448,10 @@ class Wallpaper:
 
         self.bridge: BridgeWebView | None = None
         self.web = None
-        if self.backend != "plasma-plugin" and not self._should_use_native_gl(
-            self._page, self._theme_id
+        if (
+            self.backend != "plasma-plugin"
+            and not self._should_use_native_gl(self._page, self._theme_id)
+            and self._should_use_native_video(self._page, self._theme_id) is None
         ):
             self._init_bridge()
         self.window: Gtk.Window | None = None
@@ -893,10 +896,26 @@ class Wallpaper:
     def _post_active(self, payload: Any) -> None:
         native_gl = getattr(self, "_native_gl", None)
         native_hl = getattr(self, "_native_headless", None)
+        native_vid = getattr(self, "_native_video", None)
         if native_gl is not None:
             native_gl.post_json(payload)
         elif native_hl is not None:
             native_hl.post_json(payload)
+        elif native_vid is not None:
+            try:
+                data = json.loads(payload) if isinstance(payload, str) else payload
+                if isinstance(data, dict):
+                    kind = data.get("t")
+                    if kind == "pause":
+                        native_vid.set_paused(bool(data.get("v")))
+                    elif kind == "settings":
+                        params = data.get("params") or {}
+                        native_vid.update_params(
+                            float(params.get("speed", 1.0)),
+                            float(params.get("brightness", 1.0)),
+                        )
+            except Exception:
+                pass
         elif self.bridge is not None:
             self.bridge.post(payload)
 
@@ -1133,6 +1152,65 @@ class Wallpaper:
         low = "&low=1" if self._is_low_mode() else ""
         return self.server.url(f"{page}?wallpaper=1{mute}{vicons}{safe}{low}&v={self.host.version}")
 
+    def _should_use_native_video(self, page: str, theme_id: str) -> Path | None:
+        if self.backend in ("plasma-plugin", "static"):
+            return None
+        settings = getattr(self.host, "settings", None)
+        if settings is None or not (
+            bool(getattr(settings, "rust_opengl", False))
+            or bool(getattr(settings, "prefer_mpv", False))
+        ):
+            return None
+        custom_dir = getattr(self.host, "custom_themes_dir", None)
+        if custom_dir is None or not str(page or "").startswith("__custom/"):
+            return None
+        tid = theme_id or str(page).split("/", 2)[1]
+        return find_theme_video_file(Path(custom_dir) / tid)
+
+    def _stop_native_video(self) -> None:
+        nv = getattr(self, "_native_video", None)
+        if nv is None:
+            return
+        try:
+            parent = nv.widget.get_parent()
+            if parent is not None:
+                parent.remove(nv.widget)
+        except Exception:
+            pass
+        try:
+            nv.destroy()
+        except Exception:
+            pass
+        self._native_video = None
+
+    def _start_native_video(self, theme_id: str, vpath: Path) -> bool:
+        if self._closed or self.window is None:
+            return False
+        settings = getattr(self.host, "settings", None)
+        params = settings.for_theme(theme_id) if settings is not None else {}
+        spd = float(params.get("speed", 1.0))
+        bright = float(params.get("brightness", 1.0))
+        nv = create_native_video_widget(
+            vpath, self.backend, speed=spd, brightness=bright, log=self.log
+        )
+        if nv is None:
+            return False
+        self._stop_native_gl()
+        self._stop_native_video()
+        mpv = getattr(self, "mpv_backend", None)
+        if mpv is not None:
+            mpv.stop()
+        self._native_video = nv
+        self._attach_window_child(nv.widget)
+        self._release_webview()
+        self._ready = True
+        self._last_pause = -1
+        self._kick_polls()
+        self.log.write(
+            f"Yerel donanim video motoru baslatildi ({nv.backend_name}, 0 WebKitGTK): {vpath.name}"
+        )
+        return True
+
     def load_page(self, page: str, theme_id: str | None = None) -> None:
         self._native_audio.stop()
         self._ui_rect = None
@@ -1146,11 +1224,21 @@ class Wallpaper:
         self._ready = False
         self._last_pause = -1
 
-        if self._should_use_native_gl(page, self._theme_id) and self._start_native_gl(self._theme_id):
-            self.log.write(f"Yerel Rust OpenGL teması yüklendi: {self._theme_id}")
+        if self._should_use_native_gl(page, self._theme_id):
+            self._stop_native_video()
+            mpv = getattr(self, "mpv_backend", None)
+            if mpv is not None:
+                mpv.stop()
+            if self._start_native_gl(self._theme_id):
+                self.log.write(f"Yerel Rust OpenGL teması yüklendi: {self._theme_id}")
+                return
+
+        vpath = self._should_use_native_video(page, self._theme_id)
+        if vpath is not None and self._start_native_video(self._theme_id, vpath):
             return
 
         self._stop_native_gl()
+        self._stop_native_video()
         if self.backend == "plasma-plugin":
             return
         if self.bridge is None:
@@ -1781,18 +1869,32 @@ class Wallpaper:
         host = getattr(self, "host", None)
         if mpv is None or host is None:
             return
-        settings = getattr(host, "settings", None)
-        prefer_mpv = bool(getattr(settings, "prefer_mpv", False))
+        settings = getattr(self.host, "settings", None)
         custom_dir = getattr(host, "custom_themes_dir", None)
         page = str(getattr(self, "_page", "") or "")
+        tid = str(getattr(self, "_theme_id", "") or (page.split("/", 2)[1] if page.startswith("__custom/") else ""))
+
+        nv = getattr(self, "_native_video", None)
+        if nv is not None:
+            params = settings.for_theme(tid) if settings is not None else {}
+            nv.update_params(
+                float(params.get("speed", 1.0)),
+                float(params.get("brightness", 1.0)),
+            )
+            return
+
+        vpath = self._should_use_native_video(page, tid)
+        if vpath is not None and self._start_native_video(tid, vpath):
+            return
+
+        prefer_mpv = bool(getattr(settings, "prefer_mpv", False))
         if prefer_mpv and self.backend == "x11" and page.startswith("__custom/") and custom_dir is not None:
-            tid = page.split("/", 2)[1]
-            vpath = find_theme_video_file(Path(custom_dir) / tid)
-            if vpath is not None and self.window is not None:
+            vid_file = find_theme_video_file(Path(custom_dir) / tid)
+            if vid_file is not None and self.window is not None:
                 gdk_win = self.window.get_window()
                 wid = gdk_win.get_xid() if gdk_win is not None and hasattr(gdk_win, "get_xid") else None
                 params = settings.for_theme(tid) if settings is not None else {}
-                if mpv.start(vpath, wid=wid, speed=float(params.get("speed", 1.0)), brightness=float(params.get("brightness", 1.0))):
+                if mpv.start(vid_file, wid=wid, speed=float(params.get("speed", 1.0)), brightness=float(params.get("brightness", 1.0))):
                     return
         mpv.stop()
 
@@ -1862,6 +1964,7 @@ class Wallpaper:
         self._sync_native_audio()
         native_gl = getattr(self, "_native_gl", None)
         native_hl = getattr(self, "_native_headless", None)
+        native_vid = getattr(self, "_native_video", None)
         if pause and getattr(self, "_pointer_active", False):
             self._pointer_active = False
             self._last_pointer = None
@@ -1873,6 +1976,8 @@ class Wallpaper:
             native_gl.set_paused(pause)
         if native_hl is not None:
             native_hl.set_paused(pause)
+        if native_vid is not None:
+            native_vid.set_paused(pause)
         if self._ready and self.bridge is not None:
             self.bridge.post({"t": "pause", "v": pause})
         self.log.write("Duraklatıldı" if pause else "Devam ediyor")
@@ -2226,6 +2331,7 @@ class Wallpaper:
             self._watchdog_timeout = 0
         self.static_wallpaper.restore()
         self._stop_native_gl()
+        self._stop_native_video()
         if self._static_file is not None:
             try:
                 self._static_file.unlink()

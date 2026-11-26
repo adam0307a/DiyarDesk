@@ -345,9 +345,17 @@ impl DepthFbo {
         (gl.GenFramebuffers)(1, &mut self.fbo);
         (gl.GenTextures)(1, &mut self.tex);
         (gl.BindTexture)(GL_TEXTURE_2D, self.tex);
+        let use_float = !gl.is_gles || gl.has_color_buffer_float;
         (gl.TexImage2D)(
-            GL_TEXTURE_2D, 0, GL_RGBA16F as GLint, w, h, 0,
-            GL_RGBA, GL_FLOAT, std::ptr::null(),
+            GL_TEXTURE_2D,
+            0,
+            if use_float { GL_RGBA16F as GLint } else { GL_RGBA8 as GLint },
+            w,
+            h,
+            0,
+            GL_RGBA,
+            if use_float { GL_FLOAT } else { GL_UNSIGNED_BYTE },
+            std::ptr::null(),
         );
         (gl.TexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         (gl.TexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -360,6 +368,21 @@ impl DepthFbo {
             (gl.BindRenderbuffer)(GL_RENDERBUFFER, self.rbo);
             (gl.RenderbufferStorage)(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
             (gl.FramebufferRenderbuffer)(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, self.rbo);
+        }
+        if use_float && (gl.CheckFramebufferStatus)(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE {
+            (gl.BindTexture)(GL_TEXTURE_2D, self.tex);
+            (gl.TexImage2D)(
+                GL_TEXTURE_2D,
+                0,
+                GL_RGBA8 as GLint,
+                w,
+                h,
+                0,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+            (gl.FramebufferTexture2D)(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.tex, 0);
         }
         (gl.BindFramebuffer)(GL_FRAMEBUFFER, 0);
         self.w = w;

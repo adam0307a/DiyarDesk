@@ -106,14 +106,6 @@
     "badgeOn": "使用中",
     "badgeReady": "可用",
     "badgeSoon": "即将推出",
-    "badgeLocked": "壁纸版",
-    "lockedTitle": "{name} · 壁纸版主题，点击查看购买方式",
-    "purchaseLocalTitle": "解锁壁纸版",
-    "purchaseLocalTheme": "“{name}”属于壁纸版主题。",
-    "purchaseLocalMessage": "在当前商店购买后，DiyarDesk 会自动核验并解锁，无需登录账号。如果刚完成购买，可重新检查。",
-    "purchaseRecheck": "重新检查本机购买",
-    "purchaseChecking": "正在检查…",
-    "purchaseCrossChannel": "跨渠道恢复",
     "ongoingTitle": "持续更新中",
     "ongoingDesc": "新的风景和元素，会陆续加入。",
     "noParams": "这个主题还没有可调整的设置",
@@ -121,11 +113,6 @@
     "resetOneAria": "{label}恢复默认",
     "dblclickReset": "双击恢复默认（{v}）",
     "comingSoon": "即将加入：",
-    "purchaseTitle": "购买壁纸版",
-    "purchaseTheme": "“{name}”是壁纸版主题。",
-    "purchaseMessage": "体验版可永久使用沙滩和草地。壁纸版可解锁更多主题，并在同一个 DiyarDesk 中使用。",
-    "purchaseLater": "继续体验",
-    "purchaseWebsite": "前往官网",
     "audioNone": "未选择文件",
     "audioPick": "选择音频…",
     "audioPlay": "▶ 播放",
@@ -195,7 +182,14 @@
     "rustOpenGlHint": "此主题运行在本地原生引擎上，不需要 WebView2，后台可能仍占用约 {mb} MB。点击下方按钮释放。",
     "webview2Release": "释放 WebView2 内存",
     "webview2Released": "WebView2 内存已释放（释放约 {mb} MB）。",
-    "webview2Nothing": "没有可释放的 WebView2 内存。"
+    "webview2Nothing": "没有可释放的 WebView2 内存。",
+    "ramTierLight": "轻量",
+    "ramTierMedium": "中等",
+    "ramTierHeavy": "较高",
+    "ramTierTitle": "预估内存与 GPU 纹理占用",
+    "ramLiveBadge": "应用总内存: {mb} MB",
+    "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
+    "nativeVideoBadge": "硬件视频 · MediaPlayer (零 WebView)"
   },
   "host": {
     "traySettings": "设置…",
@@ -221,5 +215,1803 @@
     "errNoPage": "找不到页面：{path}",
     "errNoDesktop": "没有找到桌面窗口，无法挂载到壁纸层。",
     "errStart": "启动失败：{msg}"
+  },
+  "themes": {
+    "material-impulse": {
+      "name": "DiyarDesk Impulse · 桌面小工具",
+      "creditPrefix": "灵感源自",
+      "desc": "灵感源自 end-4/dots-hyprland（illogical-impulse）的 DiyarDesk Material You 桌面小工具壁纸：无需额外 Shell，原生内置花边曲奇混合时钟、动态波浪音乐播放器、离线 DiyarDesk 日历（.ics 导入）、DiyarDesk 任务、/todo 命令行与计算器栏、便签，以及番茄钟与系统环。",
+      "groups": [
+        "Material You 配色与背景",
+        "DiyarDesk 小工具",
+        "卡片外观与图标",
+        "性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "动态调色板",
+          "hint": "实时切换 Material You 动态色调与表面容器色彩",
+          "options": [
+            "薰衣草夜色",
+            "鼠尾草森系",
+            "落日珊瑚",
+            "深海青蓝",
+            "极简墨色"
+          ]
+        },
+        "colorMode": {
+          "label": "明暗模式",
+          "hint": "自动模式依本地时段在浅色与深色 Material 表面间切换",
+          "options": [
+            "自动时段",
+            "深色",
+            "浅色"
+          ]
+        },
+        "backdrop": {
+          "label": "背景质感",
+          "hint": "动态流体光晕、等高线丝带或星尘微光背景",
+          "options": [
+            "流体光晕",
+            "几何丝带",
+            "星尘微光"
+          ]
+        },
+        "motion": {
+          "label": "背景动效",
+          "hint": "背景流动渐层与微光的呼吸速度"
+        },
+        "layout": {
+          "label": "小工具版面",
+          "hint": "选择默认桌面排布（也可直接按住卡片标题列自由拖动）",
+          "options": [
+            "Impulse 分栏",
+            "右侧边栏",
+            "居中便当盒",
+            "极简时钟"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk 时钟",
+          "hint": "显示 Material 3 曲奇混合时钟或速览信息卡片",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "clockStyle": {
+          "label": "时钟样式",
+          "hint": "在 12 瓣波浪曲奇混合指针时钟与速览卡片之间切换",
+          "options": [
+            "曲奇混合",
+            "速览卡片"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk 波形音乐",
+          "hint": "实时同步 Windows 播放中媒体（Spotify/YouTube 等）并搭配动态波浪进度条，也可点击封面播放本地音乐",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk 日历 (.ics)",
+          "hint": "交互月历与日程清单，支持 100% 离线导入 .ics 日历文件",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk 任务",
+          "hint": "交互式本地待办清单，支持星号标记与筛选",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk 工具栏",
+          "hint": "支持 /todo 快捷指令、离线计算器与单位换算、便签及番茄钟/系统环",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "clock24": {
+          "label": "时间格式",
+          "hint": "切换 24 小时制或 12 小时制（AM/PM）",
+          "options": [
+            "12 小时",
+            "24 小时"
+          ]
+        },
+        "widgetScale": {
+          "label": "小工具缩放",
+          "hint": "整体调整所有桌面小工具卡片大小"
+        },
+        "cardOpacity": {
+          "label": "卡片不透明度",
+          "hint": "调整 Material You 表面容器的半透明质感"
+        },
+        "glassBlur": {
+          "label": "磨砂模糊",
+          "hint": "卡片背后的模糊半径（Eco 模式下自动停用以省电）"
+        },
+        "cornerRadius": {
+          "label": "圆角弧度",
+          "hint": "Material 3 Expressive 卡片与图标底座的圆角大小"
+        },
+        "iconStyle": {
+          "label": "图标底座样式",
+          "hint": "自适应模式下桌面图标下方的 Material You 托盘样式",
+          "options": [
+            "柔和胶囊",
+            "描边卡片",
+            "柔光晕",
+            "关闭"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "背景画布绘制分辨率预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "studio-glass": {
+      "name": "Studio Glass",
+      "creditPrefix": "灵感来源",
+      "desc": "灵感源自 Studio Glass 的交互式 3D Three.js 设计师工作室：提供清晨、雷雨（玻璃雨滴）、午后、日落与夜晚五种灯光氛围。可拉动木质百叶窗、旋转屏幕、拖动键盘、鼠标、椅子、笔记本与窗台植物，并自由移动折射玻璃控制面板。",
+      "groups": [
+        "灯光与天气",
+        "工作室与家具",
+        "玻璃与图标",
+        "性能"
+      ],
+      "params": {
+        "preset": {
+          "label": "灯光预设",
+          "hint": "在依时段自动切换与五种 3D 工作室光影氛围间平滑过渡",
+          "options": [
+            "自动",
+            "清晨",
+            "雷雨",
+            "午后",
+            "日落",
+            "夜晚"
+          ]
+        },
+        "blinds": {
+          "label": "木质百叶窗",
+          "hint": "拉开或收合左侧木质百叶窗（亦可直接在窗户上拖动）"
+        },
+        "shafts": {
+          "label": "窗户光束",
+          "hint": "穿透百叶窗的 3D 体积光束强度"
+        },
+        "weather": {
+          "label": "雨滴与光尘",
+          "hint": "雷雨模式的玻璃雨滴与闪电密度，或阳光下的微尘粒子"
+        },
+        "monitorAngle": {
+          "label": "屏幕旋转角度",
+          "hint": "左右转动 3D 显示器（键盘、鼠标、椅子与植物皆可直接拖动）"
+        },
+        "deskLamp": {
+          "label": "蘑菇台灯",
+          "hint": "右侧边桌磨砂玻璃蘑菇灯的暖光强度（点击灯具可切换开关）"
+        },
+        "parallax": {
+          "label": "镜头视差",
+          "hint": "随光标轻微移动的 3D 空间透视感"
+        },
+        "showHud": {
+          "label": "玻璃灯光面板",
+          "hint": "显示可移动的折射玻璃灯光控制卡与亮度滑块",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "refraction": {
+          "label": "折射与色散",
+          "hint": "玻璃卡片与图标底座的光学折射及 RGB 棱镜边缘色散"
+        },
+        "frost": {
+          "label": "磨砂磨砂模糊",
+          "hint": "玻璃表面内部的高斯磨砂模糊程度"
+        },
+        "iconGlass": {
+          "label": "图标玻璃形状",
+          "hint": "每个桌面图标下方折射玻璃底座的几何样式",
+          "options": [
+            "玻璃卡片",
+            "棱镜",
+            "关闭"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "Three.js 3D 场景与折射玻璃的分辨率预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "quietsnow": {
+      "name": "静雪",
+      "creditPrefix": "灵感源自",
+      "desc": "灵感源自 Snowhush 的真实物理交互降雪壁纸：支持飘雪、细雨玻璃水珠、秋叶与樱花四种季节模式，雪会在屏幕底部、桌面图标及打开窗口顶端自然堆积、滑落与融化，并随光标划过而飞扬",
+      "groups": [
+        "季节与天气",
+        "堆积与交互",
+        "氛围与外观",
+        "性能"
+      ],
+      "params": {
+        "mode": {
+          "label": "季节模式",
+          "hint": "在真实飘雪、窗面雨滴、秋叶飘落与樱花花瓣之间实时切换",
+          "options": [
+            "飘雪",
+            "细雨",
+            "秋叶",
+            "樱花"
+          ]
+        },
+        "intensity": {
+          "label": "降落强度",
+          "hint": "雪花、雨丝、秋叶或花瓣的整体密度与降落量"
+        },
+        "wind": {
+          "label": "风向与风力",
+          "hint": "负值向左吹，正值向右吹"
+        },
+        "gusts": {
+          "label": "自然阵风",
+          "hint": "不定期拂过的微风阵与雪面吹雪效果"
+        },
+        "accumulate": {
+          "label": "堆积位置",
+          "hint": "控制积雪、落叶与雨珠是仅停留在屏幕底部，还是同时落在桌面图标上",
+          "options": [
+            "关闭",
+            "仅地面",
+            "地面与图标"
+          ]
+        },
+        "windows": {
+          "label": "窗口顶端堆积",
+          "hint": "积雪、落叶与雨滴同样会在打开的应用程序窗口顶端堆积，移动或关闭窗口时自然滑落",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "melt": {
+          "label": "自然消融",
+          "hint": "积雪缓慢融化，或落叶花瓣逐渐枯萎，保持画面清爽平衡"
+        },
+        "cursor": {
+          "label": "光标扫雪交互",
+          "hint": "移动鼠标即可拨开积雪、卷起落叶花瓣或划开玻璃上的雨珠",
+          "options": [
+            "关闭",
+            "柔和",
+            "强烈"
+          ]
+        },
+        "depth": {
+          "label": "堆积厚度",
+          "hint": "地面与图标顶端积雪及落叶堆的最大高度"
+        },
+        "atmosphere": {
+          "label": "背景氛围",
+          "hint": "切换静谧冬夜、蓝色时刻、雾霭冬晨或路灯暖光背景",
+          "options": [
+            "静谧夜色",
+            "蓝色时刻",
+            "雾霭冬晨",
+            "路灯暖光"
+          ]
+        },
+        "sparkle": {
+          "label": "微光与质感",
+          "hint": "雪面晶粒微闪、雨珠反光以及花瓣透光强弱"
+        },
+        "backdrop": {
+          "label": "远景雾岚",
+          "hint": "远山轮廓、常青树影与低空薄雾的可见度"
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "渲染分辨率与物理粒子数量预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "beach": {
+      "name": "海滩",
+      "desc": "海岸线绕着你的文件弯曲，海浪一层层冲上海滩",
+      "groups": [
+        "岸线",
+        "海水",
+        "元素"
+      ],
+      "params": {
+        "palms": {
+          "label": "椰子树数量",
+          "hint": "沿岸椰子树的数量，设为 0 可隐藏；沙地不足时会减少显示",
+          "unit": "棵"
+        },
+        "sigma": {
+          "label": "离岸距离",
+          "hint": "海岸线离图标多远"
+        },
+        "warp": {
+          "label": "海岸曲折",
+          "hint": "岸线弯弯绕绕的程度"
+        },
+        "shoal": {
+          "label": "透明浅滩",
+          "hint": "能看见沙底的浅水有多宽"
+        },
+        "shallow": {
+          "label": "浅海宽度",
+          "hint": "从青绿过渡到深蓝的距离"
+        },
+        "kayaks": {
+          "label": "独木舟",
+          "unit": "艘"
+        },
+        "birds": {
+          "label": "海鸟",
+          "hint": "在上空滑翔、盘旋的海鸥",
+          "unit": "只"
+        }
+      }
+    },
+    "meadow": {
+      "name": "草地",
+      "desc": "钢笔淡彩的草地：图标藏在白云中，云朵投下深绿色的影子",
+      "groups": [
+        "图标周围",
+        "云",
+        "角色"
+      ],
+      "params": {
+        "sigma": {
+          "label": "云团大小",
+          "hint": "图标所在的云从图标往外铺多远"
+        },
+        "cover": {
+          "label": "草地上的云",
+          "hint": "空旷的草地上空零星飘着的云有多少"
+        },
+        "flow": {
+          "label": "流动速度",
+          "hint": "云飘多快、云团的鼓包变化多快"
+        },
+        "showBoy": {
+          "label": "显示男孩",
+          "hint": "男孩和他手中的风筝一起显示或隐藏",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showCat": {
+          "label": "显示小猫",
+          "hint": "躺在草地上的小黑猫",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        }
+      }
+    },
+    "aurora": {
+      "name": "极光冰湖",
+      "desc": "深蓝冰湖倒映流动的翠绿极光，图标落在暮色雪岛上，雪松与暖灯笼相伴",
+      "groups": [
+        "雪岸",
+        "极光与冰面",
+        "景物"
+      ],
+      "params": {
+        "sigma": {
+          "label": "雪地范围",
+          "hint": "雪地小岛从图标向外延伸多远"
+        },
+        "warp": {
+          "label": "岸线曲折",
+          "hint": "雪岸轮廓弯弯曲曲的程度"
+        },
+        "shoal": {
+          "label": "浅冰边缘",
+          "hint": "冰岸外围浅蓝冰层的宽度"
+        },
+        "aurora": {
+          "label": "极光亮度",
+          "hint": "冰面上流动的极光倒影有多明亮"
+        },
+        "flow": {
+          "label": "流动速度",
+          "hint": "极光飘动和飘雪的速度"
+        },
+        "pines": {
+          "label": "雪松数量",
+          "hint": "雪地小岛上覆雪的松树数量，设为 0 可隐藏",
+          "unit": "棵"
+        },
+        "lanterns": {
+          "label": "暖灯笼",
+          "hint": "雪岸边点亮的暖色灯笼",
+          "unit": "盏"
+        },
+        "snow": {
+          "label": "飘雪密度",
+          "hint": "夜空中缓缓飘落的雪花多少"
+        }
+      }
+    },
+    "glade": {
+      "name": "林间空地",
+      "desc": "水彩森林随图标灵动让路，阳光草地与林间栖鸟相映成趣",
+      "groups": [
+        "空地",
+        "树林",
+        "生灵"
+      ],
+      "params": {
+        "sigma": {
+          "label": "空地大小",
+          "hint": "图标周围阳光草地空开的范围"
+        },
+        "warp": {
+          "label": "林缘曲折",
+          "hint": "林缘轮廓起伏变化的程度"
+        },
+        "density": {
+          "label": "树木密度",
+          "hint": "森林覆盖的树木疏密程度"
+        },
+        "wind": {
+          "label": "微风摇曳",
+          "hint": "树冠与林间小鸟随风摆动的幅度"
+        },
+        "birds": {
+          "label": "林间小鸟",
+          "hint": "停驻在树梢或穿行林间的小鸟数量，设为 0 可隐藏",
+          "unit": "只"
+        }
+      }
+    },
+    "rift": {
+      "name": "符文峡谷",
+      "desc": "手绘幽林与发光灵河之间，图标周围展开雕花青石圣坛、海克斯符文与守卫灯柱",
+      "groups": [
+        "圣坛",
+        "符文与灵河",
+        "秘境生灵"
+      ],
+      "params": {
+        "sigma": {
+          "label": "符文台大小",
+          "hint": "图标周围雕花青石圣坛空开的范围"
+        },
+        "warp": {
+          "label": "崖岸曲折",
+          "hint": "青石圣坛与林野崖岸轮廓蜿蜒变化的程度"
+        },
+        "glow": {
+          "label": "符文辉光",
+          "hint": "海克斯金蓝符文与河道水光的明亮程度"
+        },
+        "wind": {
+          "label": "灵风流速",
+          "hint": "树冠摇曳、河水流动与灵光飘游的速度"
+        },
+        "heroes": {
+          "label": "英雄伙伴",
+          "hint": "在圣坛与河畔漫步巡逻的峡谷英雄与小魄罗数量，设为 0 可隐藏",
+          "unit": "位"
+        },
+        "turrets": {
+          "label": "防御塔",
+          "hint": "驻守在圣坛边缘的蓝紫双方奥术防御塔数量，设为 0 可隐藏",
+          "unit": "座"
+        },
+        "wards": {
+          "label": "守卫灯柱",
+          "hint": "矗立在青石边缘的海克斯守卫灯柱数量，设为 0 可隐藏",
+          "unit": "座"
+        },
+        "wisps": {
+          "label": "奥术灵光",
+          "hint": "在河谷与林梢间轻盈游弋的奥术光点数量，设为 0 可隐藏",
+          "unit": "缕"
+        }
+      }
+    },
+    "strike": {
+      "name": "炙热沙城",
+      "desc": "烈日沙砖广场之上，图标四周展开布满弹孔裂纹与弹出弹壳的水泥战区，可把场内足球踢向空旷处，木箱与小鸡点缀其间",
+      "groups": [
+        "交火区",
+        "沙城氛围",
+        "道具与彩蛋"
+      ],
+      "params": {
+        "sigma": {
+          "label": "弹孔区大小",
+          "hint": "图标周围弹痕水泥战区空开的范围"
+        },
+        "warp": {
+          "label": "边缘碎裂",
+          "hint": "战区碎石边缘起伏变化的程度"
+        },
+        "holes": {
+          "label": "弹孔密度",
+          "hint": "图标区域弹孔裂纹与地面散落黄铜弹壳的密集程度"
+        },
+        "smoke": {
+          "label": "战术烟尘",
+          "hint": "广场边角飘散的战术烟雾与沙尘薄霭浓度"
+        },
+        "wind": {
+          "label": "沙风流速",
+          "hint": "热浪沙尘、烟雾飘移与巡游小鸡走动的速度"
+        },
+        "ball": {
+          "label": "场内足球",
+          "hint": "图标落到足球上时会将球踢往空旷沙地，设为 0 可隐藏",
+          "unit": "颗"
+        },
+        "chickens": {
+          "label": "巡游小鸡",
+          "hint": "在广场踱步、受惊会扑棱躲开的沙漠小鸡数量，设为 0 可隐藏",
+          "unit": "只"
+        },
+        "crates": {
+          "label": "木箱掩体",
+          "hint": "广场空地上堆放的战术木箱、油桶与沙袋密集程度"
+        }
+      }
+    },
+    "pocket": {
+      "name": "战线包围",
+      "desc": "大战略沙盘地形图之上，桌面图标化作被重兵合围的战区口袋，依据文件夹语言自动派遣土耳其、德意志或英伦师级部队与突击箭头步步进逼",
+      "groups": [
+        "战线与包围",
+        "师级编制与阵营",
+        "战场局势"
+      ],
+      "params": {
+        "sigma": {
+          "label": "包围圈大小",
+          "hint": "图标周围被合围战区口袋展开的范围"
+        },
+        "warp": {
+          "label": "战线曲折",
+          "hint": "包围战线轮廓随地形蜿蜒起伏的程度"
+        },
+        "arrows": {
+          "label": "突击箭头",
+          "hint": "战线边缘动态内向突击箭头与前线辉光亮度"
+        },
+        "divisions": {
+          "label": "包围师数量",
+          "hint": "环绕图标包围圈布防的大战略师级编制牌数量，设为 0 可隐藏",
+          "unit": "师"
+        },
+        "faction": {
+          "label": "包围军团",
+          "hint": "0 = 依文件夹语言自动切换（土耳其语/德语/英语）；1 = 土耳其部队；2 = 德意志部队；3 = 英伦部队"
+        },
+        "pace": {
+          "label": "行军节奏",
+          "hint": "战线推进波纹与师级部队机动驻防的速度"
+        },
+        "skirmish": {
+          "label": "炮火交锋",
+          "hint": "前线部队向口袋内发射零星炮火与战地烟尘的频率"
+        },
+        "supply": {
+          "label": "地图细节",
+          "hint": "等高线、经纬网格与后方星形要塞补给站点的显示强度"
+        }
+      }
+    },
+    "roach": {
+      "name": "蟑螂小镇",
+      "desc": "走红的拟人蟑螂角色登场——皮背心果汁客、领带学生、安全帽工头、粉羽天后与红裙情侣，在鹅卵石大道上围着温暖的图标人行道台地悠闲散步",
+      "groups": [
+        "街景与地砖",
+        "蟑螂阵容"
+      ],
+      "params": {
+        "sigma": {
+          "label": "人行道范围",
+          "hint": "图标周围暖色石板人行道台地向外展开的宽度"
+        },
+        "warp": {
+          "label": "砖缝起伏",
+          "hint": "人行道与街头路缘随砖石走势弯曲的程度"
+        },
+        "glow": {
+          "label": "街灯暖光",
+          "hint": "街头水洼与鹅卵石反射暖琥珀路灯光的亮度"
+        },
+        "vibe": {
+          "label": "晴天校园",
+          "hint": "从黄昏伊斯坦布尔老街逐步切换为阳光明媚的校园操场"
+        },
+        "crowd": {
+          "label": "蟑螂人数",
+          "hint": "在鹅卵石街道上散步、跳舞、喝橙汁的拟人蟑螂数量，设为 0 可隐藏",
+          "unit": "只"
+        },
+        "speed": {
+          "label": "漫步节奏",
+          "hint": "蟑螂巡街、情侣同行以及停下舞动的速度"
+        },
+        "props": {
+          "label": "路灯与道具",
+          "hint": "街角暖光铁艺路灯、吸管橙汁盒与红茶杯的布置密度"
+        },
+        "audio": {
+          "label": "背景音频",
+          "hint": "选择本地音频文件作为蟑螂街区背景音，可在旁按一下播放或暂停",
+          "defaultName": "默认背景音"
+        }
+      }
+    },
+    "rosebrook": {
+      "name": "玫瑰溪畔",
+      "desc": "翠绿草地间清溪蜿蜒，拖动或放下桌面图标时，玫瑰与繁花围绕它悄然盛放，花瓣随风轻落。",
+      "groups": [
+        "溪流与草地",
+        "玫瑰与花瓣"
+      ],
+      "params": {
+        "sigma": {
+          "label": "草地柔边",
+          "hint": "图标周围修剪草坪与鲜花围合的范围大小",
+          "unit": "px"
+        },
+        "stream": {
+          "label": "溪流宽度",
+          "hint": "林间溪水河道的宽窄比例"
+        },
+        "flow": {
+          "label": "水流速度",
+          "hint": "清溪涟漪与日光波纹的前行节奏"
+        },
+        "sunlight": {
+          "label": "水波日照",
+          "hint": "溪面碎金反光与林间暖光强度"
+        },
+        "roses": {
+          "label": "玫瑰花丛",
+          "hint": "放下图标时环绕盛开的玫瑰与草花密度"
+        },
+        "petals": {
+          "label": "飘落花瓣",
+          "hint": "微风中漂浮的玫瑰花瓣与蝴蝶数量"
+        },
+        "breeze": {
+          "label": "林间微风",
+          "hint": "花枝摇曳与花瓣随风飘移的速度"
+        }
+      }
+    },
+    "polarnight": {
+      "name": "极夜极光",
+      "desc": "极地夜湖：极光在天上流动、冰面映着光，图标停在雪松林间的空地上",
+      "groups": [
+        "图标周围",
+        "极光",
+        "冬夜"
+      ],
+      "params": {
+        "sigma": {
+          "label": "空地大小",
+          "hint": "图标四周不留树的空地往外铺多远"
+        },
+        "density": {
+          "label": "森林密度",
+          "hint": "空地之外长得多密，设为 0 就没有树"
+        },
+        "glow": {
+          "label": "极光亮度",
+          "hint": "天上三条飘带有多亮"
+        },
+        "flow": {
+          "label": "流动速度",
+          "hint": "极光流动、湖面波光和落雪有多快"
+        },
+        "palette": {
+          "label": "极光配色",
+          "hint": "飘带的颜色",
+          "options": [
+            "绿粉",
+            "紫青",
+            "金绿"
+          ]
+        },
+        "snow": {
+          "label": "落雪",
+          "hint": "缓缓飘落的雪片有多少，设为 0 可停雪",
+          "unit": "片"
+        },
+        "meteor": {
+          "label": "流星",
+          "hint": "偶尔划过夜空的流星",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "cabin": {
+          "label": "小木屋",
+          "hint": "岸边亮着暖光、冒着炊烟的小木屋，会自动避开图标",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        }
+      }
+    },
+    "desert": {
+      "name": "沙漠绿洲",
+      "desc": "俯瞰金色撒哈拉沙海：图标周围隆起温暖沙丘，骆驼商队与阿拉伯旅人在椰枣绿洲间穿行",
+      "groups": [
+        "图标沙丘",
+        "绿洲与阳光",
+        "商队与旅人"
+      ],
+      "params": {
+        "sigma": {
+          "label": "沙丘范围",
+          "hint": "图标周围隆起的沙丘向外铺开多远"
+        },
+        "warp": {
+          "label": "风纹起伏",
+          "hint": "沙丘轮廓和沙脊风纹的弯折程度"
+        },
+        "oases": {
+          "label": "绿洲数量",
+          "hint": "低洼沙盆中清水绿洲的数量",
+          "unit": "处"
+        },
+        "warmth": {
+          "label": "日照暖度",
+          "hint": "撒哈拉阳光的温度与金色光泽强度"
+        },
+        "wind": {
+          "label": "风沙与驼速",
+          "hint": "风沙吹拂、棕榈摇曳以及骆驼商队行进的速度"
+        },
+        "camels": {
+          "label": "骆驼数量",
+          "hint": "在绿洲之间穿行的骆驼数量，设为 0 可隐藏",
+          "unit": "峰"
+        },
+        "travelers": {
+          "label": "阿拉伯旅人",
+          "hint": "带领骆驼商队的阿拉伯领路人与绿洲贝都因帐篷",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "palms": {
+          "label": "绿洲椰枣树",
+          "hint": "绿洲岸边郁郁葱葱的椰枣棕榈树数量",
+          "unit": "棵"
+        }
+      }
+    },
+    "zen-archipelago": {
+      "name": "禅意群岛",
+      "desc": "围绕桌面图标生成的荧光锦鲤潟湖、木桥、樱花岛屿与漂浮河灯，点击水面可喂食锦鲤",
+      "groups": [
+        "光影与氛围",
+        "群岛与木桥",
+        "潟湖与河灯"
+      ],
+      "params": {
+        "timeOfDay": {
+          "label": "时段氛围",
+          "hint": "切换荧光夜晚、金色日落或翡翠白昼配色",
+          "options": [
+            "荧光夜晚",
+            "金色日落",
+            "翡翠白昼"
+          ]
+        },
+        "waveIntensity": {
+          "label": "水波强度",
+          "hint": "岸边荧光涟漪与水波波动幅度"
+        },
+        "islandMargin": {
+          "label": "岛屿尺寸",
+          "hint": "图标四周砂石与草坪岛屿的外延半径"
+        },
+        "bridgeDistance": {
+          "label": "木桥距离",
+          "hint": "相邻图标岛屿自动架设木桥的最大间距"
+        },
+        "koiCount": {
+          "label": "锦鲤数量",
+          "hint": "潟湖里自由游弋的锦鲤数量",
+          "unit": "条"
+        },
+        "lanternCount": {
+          "label": "漂浮河灯",
+          "hint": "水面缓缓漂流的木质暖光河灯数量",
+          "unit": "盏"
+        },
+        "sakuraDensity": {
+          "label": "樱花密度",
+          "hint": "岛屿樱树与飘落樱瓣的繁茂程度"
+        },
+        "fireflies": {
+          "label": "萤火虫",
+          "hint": "空中闪烁的荧光粒子数量"
+        }
+      }
+    },
+    "istanbul": {
+      "name": "伊斯坦布尔 — 博斯普鲁斯日落",
+      "desc": "俯瞰伊斯坦布尔：博斯普鲁斯海峡、金角湾、圆顶清真寺、宣礼塔、渡轮与海鸥。陆地图标化作郁金香瓷砖广场，海中图标则延伸出木质码头。",
+      "groups": [
+        "时间与光线",
+        "博斯普鲁斯海峡",
+        "图标周围",
+        "城市"
+      ],
+      "params": {
+        "time": {
+          "label": "时段",
+          "hint": "自动模式会随系统时间切换清晨、正午、日落或夜色",
+          "options": [
+            "自动",
+            "清晨",
+            "正午",
+            "日落",
+            "夜晚"
+          ]
+        },
+        "glow": {
+          "label": "灯光强度",
+          "hint": "水面反光、万家灯火与广场路灯的亮度"
+        },
+        "ferries": {
+          "label": "渡轮数量",
+          "hint": "海峡中穿梭往来的城市渡轮数量",
+          "unit": "艘"
+        },
+        "flow": {
+          "label": "水流与航速",
+          "hint": "海浪与渡轮的整体流动速度"
+        },
+        "gulls": {
+          "label": "海鸥",
+          "hint": "在海面上空盘旋的海鸥数量",
+          "options": [
+            "无",
+            "少许",
+            "成群"
+          ]
+        },
+        "pad": {
+          "label": "广场宽度",
+          "hint": "陆地图标旁瓷砖广场与海面木质码头的延伸范围"
+        },
+        "tulips": {
+          "label": "郁金香",
+          "hint": "广场边缘盛开的郁金香花带",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "cats": {
+          "label": "街猫",
+          "hint": "在广场上晒太阳的伊斯坦布尔街猫",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "landmarks": {
+          "label": "历史地标",
+          "hint": "圣索菲亚、蓝色清真寺、苏莱曼尼耶、加拉达塔与少女塔",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        }
+      }
+    },
+    "solar-system": {
+      "name": "互动太阳系与黑洞",
+      "desc": "将桌面图标化作旋转的太阳系与行星，围绕中央相对论吸积盘黑洞公转，支持图标公转与引力交互。",
+      "groups": [
+        "黑洞与内核",
+        "行星系统",
+        "深空环境",
+        "引力物理",
+        "性能"
+      ],
+      "params": {
+        "centerBodyType": {
+          "label": "中央天体",
+          "options": [
+            "超大质量黑洞",
+            "中央恒星",
+            "深空背景"
+          ]
+        },
+        "blackHoleSize": {
+          "label": "黑洞大小"
+        },
+        "accretionIntensity": {
+          "label": "吸积盘辉光"
+        },
+        "iconOrbitMode": {
+          "label": "图标公转模式",
+          "options": [
+            "绕中心公转",
+            "固定在原位"
+          ]
+        },
+        "globalOrbitSpeed": {
+          "label": "图标公转速度"
+        },
+        "planetCount": {
+          "label": "行星数量"
+        },
+        "orbitSize": {
+          "label": "轨道半径"
+        },
+        "orbitSpeed": {
+          "label": "行星转速"
+        },
+        "planetSize": {
+          "label": "行星大小"
+        },
+        "starDensity": {
+          "label": "星辰密度"
+        },
+        "nebulaIntensity": {
+          "label": "星云浓度"
+        },
+        "asteroidDensity": {
+          "label": "小行星密度"
+        },
+        "shootingStars": {
+          "label": "流星",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "gravityStrength": {
+          "label": "中心引力"
+        },
+        "systemAttraction": {
+          "label": "星系潮汐"
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "winter": {
+      "name": "冬夜雪屋",
+      "desc": "静谧暮雪世界：远处雪山与松林环抱，木屋暖窗飘起炊烟，桌面图标自然落入柔和雪堆之中",
+      "groups": [
+        "雪景与风",
+        "风景与木屋",
+        "图标与性能"
+      ],
+      "params": {
+        "snowIntensity": {
+          "label": "降雪量"
+        },
+        "snowSpeed": {
+          "label": "飘雪速度"
+        },
+        "windStrength": {
+          "label": "微风风力"
+        },
+        "atmosphereDensity": {
+          "label": "冬雾氛围"
+        },
+        "mountainVisibility": {
+          "label": "雪山可见度"
+        },
+        "treeDensity": {
+          "label": "松林密度"
+        },
+        "smokeAmount": {
+          "label": "烟囱炊烟"
+        },
+        "iconSnowAmount": {
+          "label": "图标积雪"
+        },
+        "animSpeed": {
+          "label": "动画速率"
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "neumorph": {
+      "name": "新拟态触感表面",
+      "desc": "柔和光影塑形的新拟态交互桌面：微凹凸纹理矩阵、旋钮与滑块控制项随指针与点击产生真实弹性压感，桌面图标安放于柔光底座之中",
+      "groups": [
+        "质感与光影",
+        "触感与律动",
+        "图标与性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "表面配色",
+          "options": [
+            "柔白石膏",
+            "暖沙陶土",
+            "暗夜石板",
+            "鼠尾草雾"
+          ]
+        },
+        "accentColor": {
+          "label": "指示灯色",
+          "options": [
+            "钴蓝",
+            "珊瑚",
+            "翡翠",
+            "琥珀"
+          ]
+        },
+        "reliefDepth": {
+          "label": "浮雕深度"
+        },
+        "lightFollowCursor": {
+          "label": "光线跟随指针",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "waveSpeed": {
+          "label": "呼吸波速"
+        },
+        "tileDensity": {
+          "label": "纹理密度"
+        },
+        "rippleStrength": {
+          "label": "点击压感波纹"
+        },
+        "iconStyle": {
+          "label": "图标底座样式",
+          "options": [
+            "凸起底座",
+            "内凹槽位",
+            "极简光环"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "claymorph": {
+      "name": "黏土拟态糖果世界",
+      "desc": "蓬松 Q 弹的 3D 黏土拟态桌面：悬浮糖果色黏土球与胶囊随鼠标轻推产生果冻般回弹形变，桌面图标安放于饱满立体黏土托垫之上",
+      "groups": [
+        "黏土与配色",
+        "悬浮雕塑",
+        "图标与性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "糖果配色",
+          "options": [
+            "马卡龙粉彩",
+            "莓果奶油",
+            "抹茶陶土",
+            "暮色黏土"
+          ]
+        },
+        "puffiness": {
+          "label": "蓬松厚度"
+        },
+        "squishStrength": {
+          "label": "Q 弹挤压感"
+        },
+        "blobCount": {
+          "label": "黏土球数量"
+        },
+        "floatSpeed": {
+          "label": "漂浮速率"
+        },
+        "cursorRepel": {
+          "label": "指针推弹力"
+        },
+        "iconCradle": {
+          "label": "图标托垫样式",
+          "options": [
+            "彩色糖果垫",
+            "奶油枕垫",
+            "立体圆环"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "neobrutalism": {
+      "name": "新粗野主义海报",
+      "desc": "高对比撞色块、粗黑描边与硬朗零模糊偏移投影构成的动态平面海报桌面，支持点击机械按压回馈与桌面图标贴纸相框",
+      "groups": [
+        "配色与描边",
+        "动态与交互",
+        "图标与性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "海报配色",
+          "options": [
+            "包豪斯撞色",
+            "酸性霓虹",
+            "复古印刷",
+            "暗夜刊物"
+          ]
+        },
+        "borderWeight": {
+          "label": "描边粗细"
+        },
+        "shadowDepth": {
+          "label": "硬投影偏移"
+        },
+        "halftonePattern": {
+          "label": "网点纹理",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "shapeCount": {
+          "label": "几何色块数量"
+        },
+        "motionSpeed": {
+          "label": "律动速率"
+        },
+        "cursorPush": {
+          "label": "指针推弹力"
+        },
+        "iconFrame": {
+          "label": "图标边框样式",
+          "options": [
+            "撞色卡片",
+            "倾斜贴纸",
+            "极简线框"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "voxelcraft": {
+      "name": "体素工艺世界",
+      "desc": "像素风体素生态桌面：支持四季生物群系、昼夜方块日月循环、闪烁火把与萤火虫、点击碎块经验球，并在桌面图标下方生成漂浮方块岛台",
+      "groups": [
+        "世界与天时",
+        "生态与粒子",
+        "图标与性能"
+      ],
+      "params": {
+        "biome": {
+          "label": "生物群系",
+          "options": [
+            "橡树平原",
+            "樱花树林",
+            "雪原针叶林",
+            "绯红下界"
+          ]
+        },
+        "timeOfDay": {
+          "label": "昼夜时段",
+          "options": [
+            "自动循环",
+            "正午晴空",
+            "日落黄昏",
+            "星夜萤火"
+          ]
+        },
+        "blockSize": {
+          "label": "方块尺寸"
+        },
+        "cloudDensity": {
+          "label": "方块云量"
+        },
+        "weatherAmount": {
+          "label": "落叶/萤火/雪花"
+        },
+        "critterAmount": {
+          "label": "像素蜜蜂"
+        },
+        "torchGlow": {
+          "label": "火把辉光"
+        },
+        "animSpeed": {
+          "label": "时间流速"
+        },
+        "iconBlockStyle": {
+          "label": "图标底座方块",
+          "options": [
+            "漂浮草岛",
+            "木板平台",
+            "像素线框"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "liquidglass": {
+      "name": "液态玻璃折射",
+      "creditPrefix": "光学算法源自",
+      "desc": "基于 WebGL2 多信道光学渲染的真实苹果风格液态玻璃：斯涅尔定律边缘折射、RGB 色散棱镜、双信道高斯磨砂、LCH 菲涅尔高光与液态融合（smin），支持弹簧光标透镜与桌面图标玻璃底座",
+      "groups": [
+        "玻璃与流光",
+        "流体与水滴",
+        "图标与性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "流光配色",
+          "options": [
+            "太浩冰蓝",
+            "极光棱镜",
+            "日落丝绸",
+            "黑曜烟熏",
+            "经典流光"
+          ]
+        },
+        "refraction": {
+          "label": "光学折射率"
+        },
+        "frostAmount": {
+          "label": "磨砂雾度"
+        },
+        "dispersion": {
+          "label": "边缘色散"
+        },
+        "mergeRate": {
+          "label": "液态融合度",
+          "hint": "水滴、光标透镜与桌面图标玻璃靠近时像液态玻璃般融合的程度"
+        },
+        "dropletCount": {
+          "label": "液态水滴数"
+        },
+        "flowSpeed": {
+          "label": "流光流速"
+        },
+        "cursorLens": {
+          "label": "指针光学透镜",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "iconGlassStyle": {
+          "label": "图标玻璃样式",
+          "options": [
+            "磨砂胶囊",
+            "晶莹水滴",
+            "棱镜描边"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "papercut": {
+      "name": "纸艺花园 — Katı 之光",
+      "desc": "层叠剪纸光影盒花园：郁金香、康乃馨、风信子、柏树、梧桐与远方博斯普鲁斯天际线，桌面图标化作三环纸雕拱窗",
+      "groups": [
+        "光影与时段",
+        "纸张",
+        "花园",
+        "动效",
+        "图标窗口",
+        "性能"
+      ],
+      "params": {
+        "time": {
+          "label": "时段",
+          "hint": "自动模式依系统时间切换清晨、正午、日落或夜晚配色",
+          "options": [
+            "自动",
+            "清晨",
+            "正午",
+            "日落",
+            "夜晚"
+          ]
+        },
+        "light": {
+          "label": "光照方向",
+          "hint": "光线来源角度，投影向反方向落下（225° 为左上）"
+        },
+        "shadow": {
+          "label": "阴影深度",
+          "hint": "纸层之间投射阴影的浓淡程度"
+        },
+        "palette": {
+          "label": "配色方案",
+          "hint": "纸层与花卉的整体色系",
+          "options": [
+            "玫瑰花园",
+            "松石珊瑚",
+            "靛蓝鎏金",
+            "柔和粉彩"
+          ]
+        },
+        "grain": {
+          "label": "纸张纹理",
+          "hint": "纸张纤维与颗粒质感的强弱"
+        },
+        "gap": {
+          "label": "纸层间距",
+          "hint": "各纸层之间的距离，越大景深盒越立体"
+        },
+        "flowers": {
+          "label": "花卉密度",
+          "hint": "前景中郁金香、康乃馨与风信子的数量"
+        },
+        "trees": {
+          "label": "柏树与梧桐",
+          "hint": "画面两侧带镂空叶纹的树影纸层",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "critters": {
+          "label": "飞鸟与蝴蝶",
+          "hint": "空中掠过的剪纸小鸟与花间飞舞的蝴蝶",
+          "options": [
+            "无",
+            "少",
+            "多"
+          ]
+        },
+        "skyline": {
+          "label": "城市天际线",
+          "hint": "穹顶、宣礼塔与加拉达塔剪影",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "frame": {
+          "label": "光影盒边框",
+          "hint": "屏幕边缘的浮雕纸质外框",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "sway": {
+          "label": "微风",
+          "hint": "花朵随风轻摆的幅度"
+        },
+        "fw": {
+          "label": "边框宽度",
+          "hint": "围绕图标的三层纸环总宽度"
+        },
+        "fstyle": {
+          "label": "窗口形状",
+          "hint": "拱形壁龛上圆下方，圆形为全圆角",
+          "options": [
+            "拱形壁龛",
+            "圆角"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "绘制分辨率与花卉数量预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "software-world": {
+      "name": "软件世界",
+      "desc": "实时软件生态系统：桌面图标化作交互式节点，呈现代理连接、数据包流动、Git 分支与终端氛围",
+      "groups": [
+        "生态系统",
+        "氛围细节",
+        "性能"
+      ],
+      "params": {
+        "animSpeed": {
+          "label": "动画速度",
+          "hint": "数据包、节点脉冲、Git 分支与环境漂移的整体速度"
+        },
+        "networkActivity": {
+          "label": "网络活跃度",
+          "hint": "沿节点连接穿梭的数据包频率与输送量"
+        },
+        "connectionIntensity": {
+          "label": "连接强度",
+          "hint": "节点之间相依与数据流连接的可见度与覆盖范围"
+        },
+        "particleDensity": {
+          "label": "粒子密度",
+          "hint": "环境网络粒子与背景系统微粒的密度"
+        },
+        "codeParticleDensity": {
+          "label": "代码符号密度",
+          "hint": "背景中漂浮代码符号粒子的密度"
+        },
+        "envDetail": {
+          "label": "环境细节",
+          "hint": "Git 分支、终端记录、构建圆弧与网格的细节层级"
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "渲染分辨率缩放与生态细节预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "thinking-orbs": {
+      "name": "ThinkingOrbs 3D 思维球",
+      "desc": "中心悬浮大型真 3D 点阵球体，支持 9 种 ThinkingOrbs 动态模式切换、悬停 3D 视差磁吸场与点击波纹交互，并可与桌面图标连接呼应",
+      "groups": [
+        "球体与模式",
+        "动效与交互",
+        "外观与性能"
+      ],
+      "params": {
+        "orbDesign": {
+          "label": "球体模式",
+          "hint": "在 9 种 3D 点阵思考球体动画之间实时切换",
+          "options": [
+            "工作中",
+            "搜索中",
+            "解决中",
+            "聆听中",
+            "连接中",
+            "编织中",
+            "创作中",
+            "呼吸中",
+            "塑形中"
+          ]
+        },
+        "autoCycle": {
+          "label": "自动轮换模式",
+          "hint": "打开后定期在 9 种动画之间平滑切换",
+          "options": [
+            "关闭",
+            "打开"
+          ]
+        },
+        "orbScale": {
+          "label": "球体尺寸",
+          "hint": "调节屏幕中央主球体的整体大小"
+        },
+        "dotDensity": {
+          "label": "点阵密度",
+          "hint": "调节球体表面粒子与晶格点的密集程度"
+        },
+        "animSpeed": {
+          "label": "动画速度",
+          "hint": "球体旋转、扫描与波纹演化的整体速度"
+        },
+        "hoverReaction": {
+          "label": "悬停交互反应",
+          "hint": "鼠标悬停或触摸时 3D 视差倾斜、磁力排斥与点击波纹的强度",
+          "options": [
+            "关闭",
+            "柔和",
+            "强烈"
+          ]
+        },
+        "dotGlow": {
+          "label": "光晕强度",
+          "hint": "内核环境光晕与高亮点的辉光亮度"
+        },
+        "palette": {
+          "label": "色彩风格",
+          "options": [
+            "极简深黑",
+            "极简浅白",
+            "钴蓝智算",
+            "琥珀脉冲",
+            "翡翠矩阵"
+          ]
+        },
+        "iconLinks": {
+          "label": "图标连接脉冲",
+          "hint": "激活自适应时，在桌面图标与中心球体之间绘制虚点引力连接",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    },
+    "material-impulse-gl": {
+      "name": "DiyarDesk Impulse · OpenGL (Rust)",
+      "creditPrefix": "灵感源自",
+      "desc": "原生 Rust OpenGL 3.3 Core 硬件加速引擎（diyardesk_gl.dll）：无需 WebView2 壁纸进程，极低内存占用即可呈现 12 瓣曲奇混合时钟、实时磨砂玻璃卡片、波浪音乐播放器、日历、任务与系统环。（WebView2 版本仍然保留）",
+      "groups": [
+        "Material You 配色与背景",
+        "DiyarDesk 小工具",
+        "卡片外观与图标",
+        "性能"
+      ],
+      "params": {
+        "palette": {
+          "label": "动态调色板",
+          "hint": "实时切换 Material You 动态色调与表面容器色彩",
+          "options": [
+            "薰衣草夜色",
+            "鼠尾草森系",
+            "落日珊瑚",
+            "深海青蓝",
+            "极简墨色"
+          ]
+        },
+        "colorMode": {
+          "label": "明暗模式",
+          "hint": "自动模式依本地时段在浅色与深色 Material 表面间切换",
+          "options": [
+            "自动时段",
+            "深色",
+            "浅色"
+          ]
+        },
+        "backdrop": {
+          "label": "背景质感",
+          "hint": "动态流体光晕、等高线丝带或星尘微光背景",
+          "options": [
+            "流体光晕",
+            "几何丝带",
+            "星尘微光"
+          ]
+        },
+        "motion": {
+          "label": "背景动效",
+          "hint": "背景流动渐层与微光的呼吸速度"
+        },
+        "layout": {
+          "label": "小工具版面",
+          "hint": "选择默认桌面排布（也可直接按住卡片标题列自由拖动）",
+          "options": [
+            "Impulse 分栏",
+            "右侧边栏",
+            "居中便当盒",
+            "极简时钟"
+          ]
+        },
+        "showClock": {
+          "label": "DiyarDesk 时钟",
+          "hint": "显示 Material 3 曲奇混合时钟或速览信息卡片",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "clockStyle": {
+          "label": "时钟样式",
+          "hint": "在 12 瓣波浪曲奇混合指针时钟与速览卡片之间切换",
+          "options": [
+            "曲奇混合",
+            "速览卡片"
+          ]
+        },
+        "showMedia": {
+          "label": "DiyarDesk 波形音乐",
+          "hint": "实时同步 Windows 播放中媒体（Spotify/YouTube 等）并搭配动态波浪进度条，也可点击封面播放本地音乐",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showCalendar": {
+          "label": "DiyarDesk 日历 (.ics)",
+          "hint": "交互月历与日程清单，支持 100% 离线导入 .ics 日历文件",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showTasks": {
+          "label": "DiyarDesk 任务",
+          "hint": "交互式本地待办清单，支持星号标记与筛选",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "showTools": {
+          "label": "DiyarDesk 工具栏",
+          "hint": "支持 /todo 快捷指令、离线计算器与单位换算、便签及番茄钟/系统环",
+          "options": [
+            "隐藏",
+            "显示"
+          ]
+        },
+        "clock24": {
+          "label": "时间格式",
+          "hint": "切换 24 小时制或 12 小时制（AM/PM）",
+          "options": [
+            "12 小时",
+            "24 小时"
+          ]
+        },
+        "widgetScale": {
+          "label": "小工具缩放",
+          "hint": "整体调整所有桌面小工具卡片大小"
+        },
+        "cardOpacity": {
+          "label": "卡片不透明度",
+          "hint": "调整 Material You 表面容器的半透明质感"
+        },
+        "glassBlur": {
+          "label": "磨砂模糊",
+          "hint": "卡片背后的模糊半径（Eco 模式下自动停用以省电）"
+        },
+        "cornerRadius": {
+          "label": "圆角弧度",
+          "hint": "Material 3 Expressive 卡片与图标底座的圆角大小"
+        },
+        "iconStyle": {
+          "label": "图标底座样式",
+          "hint": "自适应模式下桌面图标下方的 Material You 托盘样式",
+          "options": [
+            "柔和胶囊",
+            "描边卡片",
+            "柔光晕",
+            "关闭"
+          ]
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "背景画布绘制分辨率预算",
+          "options": [
+            "低",
+            "平衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "ai-mascots": {
+      "name": "AI 吉祥物实验室 · OpenGL (Rust)",
+      "desc": "由原生 Rust + OpenGL 3.3 驱动的宁静夜间未来 AI 研究园区：8 位原创 AI 吉祥物在自适应桌面图标工作站周围生活、工作与巡逻，步道与树木则会沿着你的文件自然蜿蜒。",
+      "groups": [
+        "园区氛围",
+        "AI 吉祥物与动态",
+        "性能"
+      ],
+      "params": {
+        "timeMode": {
+          "label": "环境时间",
+          "hint": "选择宁静夜晚、黄昏傍晚、柔和日间或缓慢日夜循环",
+          "options": [
+            "夜晚",
+            "傍晚",
+            "白天",
+            "缓慢循环"
+          ]
+        },
+        "lightingGlow": {
+          "label": "园区灯光",
+          "hint": "实验室窗户、终端与中庭路灯的柔和发光强度"
+        },
+        "iconHalo": {
+          "label": "工作站光晕",
+          "hint": "自适应桌面图标工作站周围的边缘光与连接路径光晕"
+        },
+        "mascotActivity": {
+          "label": "吉祥物活跃度",
+          "hint": "8 位 AI 吉祥物行走、工作、充电与巡视图标的自主节奏"
+        },
+        "particleDensity": {
+          "label": "数据粒子与无人机",
+          "hint": "漂浮数据微粒与小型巡逻无人机的密度"
+        },
+        "parallax": {
+          "label": "细微视差",
+          "hint": "随光标轻柔反应的固定镜头景深视差"
+        },
+        "quality": {
+          "label": "画质",
+          "hint": "粒子与特效渲染预算",
+          "options": [
+            "低",
+            "中",
+            "高"
+          ]
+        }
+      }
+    }
   }
 }

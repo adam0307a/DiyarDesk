@@ -1,4 +1,5 @@
 import Cocoa
+import Darwin
 import DiyarDeskCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -13,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var manualPause = false
     private var screenLocked = false
     private var lastEnvSent = Date.distantPast
+    private var lastMemSent = Date.distantPast
     private var lastPlaylistSwitch = Date()
     private var lastShareURL: URL?
 
@@ -70,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        menu.autoenablesItems = false
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
@@ -82,6 +85,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lowItem.state = store.settings.lowMode ? .on : .off
         lowItem.target = self
         menu.addItem(lowItem)
+
+        let rustGlItem = NSMenuItem(title: "Rust OpenGL 3.3", action: #selector(toggleRustOpenGl), keyEquivalent: "")
+        rustGlItem.isEnabled = NativeGlLibrary.isAvailable
+        rustGlItem.state = (store.settings.rustOpenGl && NativeGlLibrary.isAvailable) ? .on : .off
+        rustGlItem.target = self
+        menu.addItem(rustGlItem)
 
         let reloadItem = NSMenuItem(title: "Reload", action: #selector(reloadWallpapers), keyEquivalent: "r")
         reloadItem.target = self
@@ -120,6 +129,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsController?.postJSON(["t": "lowMode", "v": store.settings.lowMode])
     }
 
+    @objc private func toggleRustOpenGl() {
+        guard NativeGlLibrary.isAvailable else { return }
+        store.settings.rustOpenGl.toggle()
+        store.save()
+        rebuildMenu()
+        let page = store.pageFor(themeId: store.settings.theme)
+        for wp in wallpapers { wp.loadPage(page, themeId: store.settings.theme) }
+        let nativeNow = wallpapers.contains { $0.isNativeActive }
+        settingsController?.postJSON([
+            "t": "rustOpenGl",
+            "v": store.settings.rustOpenGl,
+            "nativeActive": nativeNow
+        ])
+    }
+
+    private func currentProcessRamMb() -> Int {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<integer_t>.size)
+        let kr = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return 0 }
+        return Int((Double(info.resident_size) / 1_048_576.0).rounded())
+    }
+
     @objc private func reloadWallpapers() {
         for wp in wallpapers { wp.reloadPage() }
     }
@@ -141,7 +177,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             screens = NSScreen.screens
         }
-        let page = store.pageFor(themeId: store.settings.theme)
+        let tid = store.settings.theme
+        let page = store.pageFor(themeId: tid)
         for scr in screens {
             let wp = WallpaperWindow(screen: scr, store: store, schemeHandler: schemeHandler)
             wp.onReady = { [weak self, weak wp] in
@@ -149,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.pushInitialWallpaperState(wp)
             }
             wp.orderFrontRegardless()
-            wp.loadPage(page)
+            wp.loadPage(page, themeId: tid)
             wallpapers.append(wp)
         }
     }
@@ -229,6 +266,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 lastPlaylistSwitch = Date()
             }
         }
+
+        if let sc = settingsController, Date().timeIntervalSince(lastMemSent) >= 3.0 {
+            lastMemSent = Date()
+            let ramMb = currentProcessRamMb()
+            if ramMb > 0 {
+                sc.postJSON(["t": "memStats", "ramMb": ramMb])
+            }
+        }
     }
 
     private func switchTheme(id: String) {
@@ -236,7 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.save()
         lastPlaylistSwitch = Date()
         let page = store.pageFor(themeId: id)
-        for wp in wallpapers { wp.loadPage(page) }
+        for wp in wallpapers { wp.loadPage(page, themeId: id) }
         settingsController?.postJSON(["t": "themeChanged", "id": id])
     }
 
@@ -279,6 +324,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 "windowAware": store.settings.windowAware,
                 "playlistEnabled": store.settings.playlistEnabled,
                 "playlistIntervalMin": store.settings.playlistIntervalMin,
+                "rustOpenGl": store.settings.rustOpenGl && NativeGlLibrary.isAvailable,
+                "rustGlAvailable": NativeGlLibrary.isAvailable,
+                "nativeActive": wallpapers.contains { $0.isNativeActive },
+                "preferMpv": store.settings.nativeVideo,
+                "ramMb": currentProcessRamMb(),
                 "canSaveSnapshot": true
             ])
         case "set":
@@ -346,10 +396,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     controller.postJSON(["t": "importError", "msg": error.localizedDescription])
                 }
             }
+        case "rustOpenGl":
+            if NativeGlLibrary.isAvailable {
+                store.settings.rustOpenGl = (msg["v"] as? Bool) ?? true
+                store.save()
+                rebuildMenu()
+                let page = store.pageFor(themeId: store.settings.theme)
+                for wp in wallpapers { wp.loadPage(page, themeId: store.settings.theme) }
+                controller.postJSON([
+                    "t": "rustOpenGl",
+                    "v": store.settings.rustOpenGl,
+                    "nativeActive": wallpapers.contains { $0.isNativeActive }
+                ])
+            }
+        case "preferMpv":
+            store.settings.nativeVideo = (msg["v"] as? Bool) ?? true
+            store.save()
+            let page = store.pageFor(themeId: store.settings.theme)
+            for wp in wallpapers { wp.loadPage(page, themeId: store.settings.theme) }
+            controller.postJSON(["t": "preferMpv", "v": store.settings.nativeVideo])
         case "removeTheme":
             if let id = msg["id"] as? String, store.removeCustomTheme(id: id) {
                 let page = store.pageFor(themeId: store.settings.theme)
-                for wp in wallpapers { wp.loadPage(page) }
+                for wp in wallpapers { wp.loadPage(page, themeId: store.settings.theme) }
                 controller.postJSON(["t": "themeRemoved", "id": id, "active": store.settings.theme])
             }
         case "share":

@@ -88,6 +88,10 @@ pub const GL_DEPTH_ATTACHMENT: GLenum = 0x8D00;
 pub const GL_DEPTH_COMPONENT24: GLenum = 0x81A6;
 pub const GL_FRAMEBUFFER_BINDING: GLenum = 0x8CA6;
 pub const GL_FRAMEBUFFER_COMPLETE: GLenum = 0x8CD5;
+pub const GL_NO_ERROR: GLenum = 0;
+pub const GL_VERSION: GLenum = 0x1F02;
+pub const GL_EXTENSIONS: GLenum = 0x1F03;
+pub const GL_NUM_EXTENSIONS: GLenum = 0x821D;
 
 #[cfg(target_os = "windows")]
 const WGL_CONTEXT_MAJOR_VERSION_ARB: c_int = 0x2091;
@@ -107,6 +111,9 @@ type WglSwapIntervalExt = unsafe extern "system" fn(c_int) -> c_int;
 // Redirect FBO 0 bindings to a host-supplied target FBO (GtkGLArea, Qt6 FBO, or headless EGL FBO)
 // without modifying any theme renderer. When DEFAULT_FRAMEBUFFER == 0, binds FBO 0 directly.
 static REAL_BIND_FRAMEBUFFER: AtomicUsize = AtomicUsize::new(0);
+static REAL_ENABLE: AtomicUsize = AtomicUsize::new(0);
+static REAL_DISABLE: AtomicUsize = AtomicUsize::new(0);
+static REAL_TEX_IMAGE_2D: AtomicUsize = AtomicUsize::new(0);
 
 thread_local! {
     static DEFAULT_FRAMEBUFFER: Cell<GLuint> = const { Cell::new(0) };
@@ -122,6 +129,62 @@ unsafe extern "system" fn bind_framebuffer_redirect(target: GLenum, fb: GLuint) 
     if addr != 0 {
         let real_fn: unsafe extern "system" fn(GLenum, GLuint) = std::mem::transmute(addr);
         real_fn(target, actual);
+    }
+}
+
+/// OpenGL ES 3.0 always enables `gl_PointSize` in vertex shaders and rejects
+/// `GL_PROGRAM_POINT_SIZE` with `GL_INVALID_ENUM`. Skip it transparently on GLES.
+unsafe extern "system" fn enable_gles_safe(cap: GLenum) {
+    if cap == GL_PROGRAM_POINT_SIZE {
+        return;
+    }
+    let addr = REAL_ENABLE.load(Ordering::Relaxed);
+    if addr != 0 {
+        let real_fn: unsafe extern "system" fn(GLenum) = std::mem::transmute(addr);
+        real_fn(cap);
+    }
+}
+
+unsafe extern "system" fn disable_gles_safe(cap: GLenum) {
+    if cap == GL_PROGRAM_POINT_SIZE {
+        return;
+    }
+    let addr = REAL_DISABLE.load(Ordering::Relaxed);
+    if addr != 0 {
+        let real_fn: unsafe extern "system" fn(GLenum) = std::mem::transmute(addr);
+        real_fn(cap);
+    }
+}
+
+/// On OpenGL ES 3.0 without `OES_texture_float_linear`, `GL_R32F` textures with
+/// `GL_LINEAR` filtering are texture-incomplete and sample as 0. Promoting
+/// `GL_R32F` (`GL_RED` + `GL_FLOAT`) to `GL_R16F` keeps full GLES 3.0 core
+/// hardware linear filtering and valid float uploads (GLES 3.0 Table 3.2 & 3.12).
+unsafe extern "system" fn tex_image_2d_gles_safe(
+    target: GLenum,
+    level: GLint,
+    internalformat: GLint,
+    width: GLsizei,
+    height: GLsizei,
+    border: GLint,
+    format: GLenum,
+    ty: GLenum,
+    pixels: *const c_void,
+) {
+    let resolved_internal = if internalformat == GL_R32F as GLint
+        && format == GL_RED
+        && ty == GL_FLOAT
+    {
+        GL_R16F as GLint
+    } else {
+        internalformat
+    };
+    let addr = REAL_TEX_IMAGE_2D.load(Ordering::Relaxed);
+    if addr != 0 {
+        let real_fn: unsafe extern "system" fn(
+            GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, *const c_void,
+        ) = std::mem::transmute(addr);
+        real_fn(target, level, resolved_internal, width, height, border, format, ty, pixels);
     }
 }
 
@@ -216,9 +279,15 @@ pub struct GlFns {
     pub FramebufferRenderbuffer: unsafe extern "system" fn(GLenum, GLenum, GLenum, GLuint),
     pub CheckFramebufferStatus: unsafe extern "system" fn(GLenum) -> GLenum,
     pub GetIntegerv: unsafe extern "system" fn(GLenum, *mut GLint),
+    pub GetError: unsafe extern "system" fn() -> GLenum,
+    pub GetString: unsafe extern "system" fn(GLenum) -> *const u8,
+    pub GetStringi: unsafe extern "system" fn(GLenum, GLuint) -> *const u8,
     pub ReadPixels: unsafe extern "system" fn(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, *mut c_void),
     pub Flush: unsafe extern "system" fn(),
     pub Finish: unsafe extern "system" fn(),
+    pub is_gles: bool,
+    pub has_float_linear: bool,
+    pub has_color_buffer_float: bool,
 }
 
 #[cfg(target_os = "windows")]
@@ -259,7 +328,13 @@ mod unix_dl {
     use std::ffi::{c_char, c_int, c_void};
 
     pub const RTLD_LAZY: c_int = 0x0001;
+    #[cfg(target_os = "macos")]
+    pub const RTLD_LOCAL: c_int = 0x0004;
+    #[cfg(not(target_os = "macos"))]
     pub const RTLD_LOCAL: c_int = 0x0000;
+    #[cfg(target_os = "macos")]
+    pub const RTLD_NOLOAD: c_int = 0x0010;
+    #[cfg(not(target_os = "macos"))]
     pub const RTLD_NOLOAD: c_int = 0x0004;
 
     extern "C" {
@@ -284,6 +359,7 @@ struct GlProcLoader {
     egl_get_proc: Option<unsafe extern "C" fn(*const c_char) -> *const c_void>,
     glx_get_proc: Option<unsafe extern "C" fn(*const u8) -> *const c_void>,
     prefer_egl: bool,
+    lib_gles: *mut c_void,
     lib_gl: *mut c_void,
     lib_opengl: *mut c_void,
 }
@@ -291,13 +367,49 @@ struct GlProcLoader {
 #[cfg(not(target_os = "windows"))]
 impl GlProcLoader {
     unsafe fn open() -> Result<Self, String> {
-        let lib_egl = unix_dl::open_any(&[b"libEGL.so.1\0", b"libEGL.so\0"]);
-        let lib_glx = unix_dl::open_any(&[b"libGLX.so.0\0", b"libGL.so.1\0", b"libGL.so\0"]);
-        let lib_gl = unix_dl::open_any(&[b"libGL.so.1\0", b"libGL.so\0"]);
-        let lib_opengl = unix_dl::open_any(&[b"libOpenGL.so.0\0", b"libOpenGL.so\0"]);
+        if cfg!(target_os = "macos") {
+            let lib_opengl = unix_dl::open_any(&[
+                b"/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL\0",
+                b"/System/Library/Frameworks/OpenGL.framework/OpenGL\0",
+            ]);
+            if lib_opengl.is_null() {
+                return Err("Could not open macOS OpenGL.framework".into());
+            }
+            return Ok(Self {
+                egl_get_proc: None,
+                glx_get_proc: None,
+                prefer_egl: false,
+                lib_gles: std::ptr::null_mut(),
+                lib_gl: std::ptr::null_mut(),
+                lib_opengl,
+            });
+        }
+
+        let lib_egl = unix_dl::open_any(&[b"libEGL.so\0", b"libEGL.so.1\0"]);
+        let lib_gles = unix_dl::open_any(&[
+            b"libGLESv3.so\0",
+            b"libGLESv3.so.3\0",
+            b"libGLESv2.so.2\0",
+            b"libGLESv2.so\0",
+        ]);
+        let lib_glx = if cfg!(target_os = "android") {
+            std::ptr::null_mut()
+        } else {
+            unix_dl::open_any(&[b"libGLX.so.0\0", b"libGL.so.1\0", b"libGL.so\0"])
+        };
+        let lib_gl = if cfg!(target_os = "android") {
+            std::ptr::null_mut()
+        } else {
+            unix_dl::open_any(&[b"libGL.so.1\0", b"libGL.so\0"])
+        };
+        let lib_opengl = if cfg!(target_os = "android") {
+            std::ptr::null_mut()
+        } else {
+            unix_dl::open_any(&[b"libOpenGL.so.0\0", b"libOpenGL.so\0"])
+        };
 
         let mut egl_get_proc = None;
-        let mut prefer_egl = false;
+        let mut prefer_egl = cfg!(target_os = "android");
         if !lib_egl.is_null() {
             let p = unix_dl::dlsym(lib_egl, b"eglGetProcAddress\0".as_ptr() as *const c_char);
             if !p.is_null() {
@@ -306,7 +418,9 @@ impl GlProcLoader {
             let cur_p = unix_dl::dlsym(lib_egl, b"eglGetCurrentContext\0".as_ptr() as *const c_char);
             if !cur_p.is_null() {
                 let get_cur: unsafe extern "C" fn() -> *mut c_void = std::mem::transmute(cur_p);
-                prefer_egl = !get_cur().is_null();
+                if !get_cur().is_null() {
+                    prefer_egl = true;
+                }
             }
         }
 
@@ -323,14 +437,23 @@ impl GlProcLoader {
             }
         }
 
-        if egl_get_proc.is_none() && glx_get_proc.is_none() && lib_gl.is_null() && lib_opengl.is_null() {
-            return Err("Could not open libEGL.so.1, libGLX.so.0, libGL.so.1 or libOpenGL.so.0".into());
+        if egl_get_proc.is_none()
+            && glx_get_proc.is_none()
+            && lib_gles.is_null()
+            && lib_gl.is_null()
+            && lib_opengl.is_null()
+        {
+            return Err(
+                "Could not open libEGL.so, libGLESv3.so, libGLX.so.0, libGL.so.1 or libOpenGL.so.0"
+                    .into(),
+            );
         }
 
         Ok(Self {
             egl_get_proc,
             glx_get_proc,
             prefer_egl,
+            lib_gles,
             lib_gl,
             lib_opengl,
         })
@@ -353,6 +476,23 @@ impl GlProcLoader {
             }
         };
 
+        // On Android, dlsym on libGLESv3.so is the fastest and most reliable path for core ES 3.0
+        // entry points (older drivers may return null from eglGetProcAddress for core symbols).
+        if cfg!(target_os = "android") && !self.lib_gles.is_null() {
+            let p = unix_dl::dlsym(self.lib_gles, cname.as_ptr());
+            if !p.is_null() {
+                return Ok(p as *const c_void);
+            }
+        }
+
+        // On macOS, core OpenGL 3.3 symbols live directly inside OpenGL.framework.
+        if cfg!(target_os = "macos") && !self.lib_opengl.is_null() {
+            let p = unix_dl::dlsym(self.lib_opengl, cname.as_ptr());
+            if !p.is_null() {
+                return Ok(p as *const c_void);
+            }
+        }
+
         let first = if self.prefer_egl { try_egl() } else { try_glx() };
         if !first.is_null() {
             return Ok(first);
@@ -361,7 +501,10 @@ impl GlProcLoader {
         if !second.is_null() {
             return Ok(second);
         }
-        for lib in [self.lib_opengl, self.lib_gl, std::ptr::null_mut()] {
+        for lib in [self.lib_gles, self.lib_opengl, self.lib_gl, std::ptr::null_mut()] {
+            if lib.is_null() && !self.lib_gles.is_null() {
+                continue;
+            }
             let p = unix_dl::dlsym(lib, cname.as_ptr());
             if !p.is_null() {
                 return Ok(p as *const c_void);
@@ -390,6 +533,60 @@ pub unsafe extern "C" fn host_gl_get_proc(name: *const c_char) -> *const c_void 
     }
 }
 
+const GLES3_DEFAULT_PRECISION: &str =
+    "precision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler2D;\nprecision highp usampler2D;\n";
+
+/// Translates a desktop GLSL `#version 330 core` shader into OpenGL ES 3.00 (`#version 300 es`).
+/// Preserves `#extension` directives immediately after `#version 300 es` before injecting
+/// default high-precision qualifiers for `float`, `int`, and 2D sampler types (`sampler2D`,
+/// `isampler2D`, `usampler2D`).
+pub fn translate_glsl_330_to_300_es(src: &str) -> String {
+    let clean = src.trim_start_matches('\u{feff}');
+    let mut lines = clean.lines();
+    let Some(first) = lines.next() else {
+        return String::new();
+    };
+    let first_trimmed = first.trim();
+    if first_trimmed.starts_with("#version 300 es") {
+        return clean.to_string();
+    }
+
+    let mut out = String::with_capacity(clean.len() + GLES3_DEFAULT_PRECISION.len() + 32);
+    if first_trimmed.starts_with("#version") {
+        out.push_str("#version 300 es\n");
+    } else {
+        out.push_str("#version 300 es\n");
+        out.push_str(GLES3_DEFAULT_PRECISION);
+        out.push_str(first);
+        out.push('\n');
+        for line in lines {
+            out.push_str(line);
+            out.push('\n');
+        }
+        return out;
+    }
+
+    let mut precision_emitted = false;
+    for line in lines {
+        let trimmed = line.trim_start();
+        if !precision_emitted {
+            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("#extension") {
+                out.push_str(line);
+                out.push('\n');
+                continue;
+            }
+            out.push_str(GLES3_DEFAULT_PRECISION);
+            precision_emitted = true;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    if !precision_emitted {
+        out.push_str(GLES3_DEFAULT_PRECISION);
+    }
+    out
+}
+
 impl GlFns {
     pub unsafe fn load() -> Result<Self, String> {
         let loader = GlProcLoader::open()?;
@@ -399,12 +596,73 @@ impl GlFns {
             };
         }
         let raw_bind_fb = loader.load_proc("glBindFramebuffer")?;
+        let raw_enable = loader.load_proc("glEnable")?;
+        let raw_disable = loader.load_proc("glDisable")?;
+        let raw_tex_image_2d = loader.load_proc("glTexImage2D")?;
         REAL_BIND_FRAMEBUFFER.store(raw_bind_fb as usize, Ordering::Relaxed);
+        REAL_ENABLE.store(raw_enable as usize, Ordering::Relaxed);
+        REAL_DISABLE.store(raw_disable as usize, Ordering::Relaxed);
+        REAL_TEX_IMAGE_2D.store(raw_tex_image_2d as usize, Ordering::Relaxed);
+
+        let get_integerv: unsafe extern "system" fn(GLenum, *mut GLint) = ld!("glGetIntegerv");
+        let get_string: unsafe extern "system" fn(GLenum) -> *const u8 = ld!("glGetString");
+        let get_stringi: unsafe extern "system" fn(GLenum, GLuint) -> *const u8 = ld!("glGetStringi");
+
+        let ver_ptr = get_string(GL_VERSION);
+        let ver_str = if ver_ptr.is_null() {
+            ""
+        } else {
+            std::ffi::CStr::from_ptr(ver_ptr as *const c_char)
+                .to_str()
+                .unwrap_or("")
+        };
+        let is_gles = cfg!(target_os = "android") || ver_str.contains("OpenGL ES");
+
+        let mut has_float_linear = !is_gles;
+        let mut has_color_buffer_float = !is_gles;
+        if is_gles {
+            let mut num_ext: GLint = 0;
+            get_integerv(GL_NUM_EXTENSIONS, &mut num_ext);
+            for i in 0..num_ext.max(0) as GLuint {
+                let p = get_stringi(GL_EXTENSIONS, i);
+                if p.is_null() {
+                    continue;
+                }
+                if let Ok(ext) = std::ffi::CStr::from_ptr(p as *const c_char).to_str() {
+                    if ext == "GL_OES_texture_float_linear" {
+                        has_float_linear = true;
+                    } else if ext == "GL_EXT_color_buffer_float"
+                        || ext == "GL_EXT_color_buffer_half_float"
+                    {
+                        has_color_buffer_float = true;
+                    }
+                }
+            }
+        }
+
+        let enable_fn: unsafe extern "system" fn(GLenum) = if is_gles {
+            enable_gles_safe
+        } else {
+            std::mem::transmute(raw_enable)
+        };
+        let disable_fn: unsafe extern "system" fn(GLenum) = if is_gles {
+            disable_gles_safe
+        } else {
+            std::mem::transmute(raw_disable)
+        };
+        let tex_image_2d_fn: unsafe extern "system" fn(
+            GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, *const c_void,
+        ) = if is_gles && !has_float_linear {
+            tex_image_2d_gles_safe
+        } else {
+            std::mem::transmute(raw_tex_image_2d)
+        };
+
         Ok(Self {
             Viewport: ld!("glViewport"),
             Scissor: ld!("glScissor"),
-            Enable: ld!("glEnable"),
-            Disable: ld!("glDisable"),
+            Enable: enable_fn,
+            Disable: disable_fn,
             BlendFunc: ld!("glBlendFunc"),
             BlendFuncSeparate: ld!("glBlendFuncSeparate"),
             DepthMask: ld!("glDepthMask"),
@@ -416,7 +674,7 @@ impl GlFns {
             DeleteTextures: ld!("glDeleteTextures"),
             BindTexture: ld!("glBindTexture"),
             TexParameteri: ld!("glTexParameteri"),
-            TexImage2D: ld!("glTexImage2D"),
+            TexImage2D: tex_image_2d_fn,
             TexSubImage2D: ld!("glTexSubImage2D"),
             PixelStorei: ld!("glPixelStorei"),
             GenerateMipmap: ld!("glGenerateMipmap"),
@@ -464,10 +722,16 @@ impl GlFns {
             RenderbufferStorage: ld!("glRenderbufferStorage"),
             FramebufferRenderbuffer: ld!("glFramebufferRenderbuffer"),
             CheckFramebufferStatus: ld!("glCheckFramebufferStatus"),
-            GetIntegerv: ld!("glGetIntegerv"),
+            GetIntegerv: get_integerv,
+            GetError: ld!("glGetError"),
+            GetString: get_string,
+            GetStringi: get_stringi,
             ReadPixels: ld!("glReadPixels"),
             Flush: ld!("glFlush"),
             Finish: ld!("glFinish"),
+            is_gles,
+            has_float_linear,
+            has_color_buffer_float,
         })
     }
 
@@ -501,15 +765,24 @@ impl GlFns {
     }
 
     unsafe fn compile_shader(&self, kind: GLenum, src: &str) -> Result<GLuint, String> {
+        let translated;
+        let effective_src = if self.is_gles {
+            translated = translate_glsl_330_to_300_es(src);
+            #[cfg(test)]
+            record_gles_shader_if_enabled(kind, &translated);
+            translated.as_str()
+        } else {
+            src
+        };
         let sh = (self.CreateShader)(kind);
-        let csrc = CString::new(src).unwrap();
+        let csrc = CString::new(effective_src).unwrap();
         let ptr = csrc.as_ptr();
         (self.ShaderSource)(sh, 1, &ptr, std::ptr::null());
         (self.CompileShader)(sh);
         let mut ok: GLint = 0;
         (self.GetShaderiv)(sh, GL_COMPILE_STATUS, &mut ok);
         if ok == 0 {
-            let mut buf = vec![0u8; 1024];
+            let mut buf = vec![0u8; 2048];
             let mut len: GLsizei = 0;
             (self.GetShaderInfoLog)(sh, buf.len() as GLsizei, &mut len, buf.as_mut_ptr() as *mut c_char);
             (self.DeleteShader)(sh);
@@ -522,6 +795,42 @@ impl GlFns {
     pub unsafe fn uniform_loc(&self, prog: GLuint, name: &str) -> GLint {
         let c = CString::new(name).unwrap();
         (self.GetUniformLocation)(prog, c.as_ptr())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn force_gles_minimal_caps(&mut self) {
+        self.has_float_linear = false;
+        self.has_color_buffer_float = false;
+        self.TexImage2D = tex_image_2d_gles_safe;
+    }
+}
+
+#[cfg(test)]
+static RECORDED_GLES_SHADERS: std::sync::Mutex<Option<Vec<(GLenum, String)>>> =
+    std::sync::Mutex::new(None);
+
+#[cfg(test)]
+fn record_gles_shader_if_enabled(kind: GLenum, src: &str) {
+    if let Ok(mut guard) = RECORDED_GLES_SHADERS.lock() {
+        if let Some(vec) = guard.as_mut() {
+            vec.push((kind, src.to_string()));
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn start_gles_shader_recording() {
+    if let Ok(mut guard) = RECORDED_GLES_SHADERS.lock() {
+        *guard = Some(Vec::new());
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn take_recorded_gles_shaders() -> Vec<(GLenum, String)> {
+    if let Ok(mut guard) = RECORDED_GLES_SHADERS.lock() {
+        guard.take().unwrap_or_default()
+    } else {
+        Vec::new()
     }
 }
 
@@ -649,6 +958,14 @@ unsafe impl Send for EglHeadlessContext {}
 #[cfg(not(target_os = "windows"))]
 impl EglHeadlessContext {
     pub unsafe fn create() -> Result<Self, String> {
+        Self::create_with_api(cfg!(target_os = "android"))
+    }
+
+    pub unsafe fn create_gles3() -> Result<Self, String> {
+        Self::create_with_api(true)
+    }
+
+    unsafe fn create_with_api(use_gles3: bool) -> Result<Self, String> {
         const EGL_NONE: c_int = 0x3038;
         const EGL_RED_SIZE: c_int = 0x3024;
         const EGL_GREEN_SIZE: c_int = 0x3023;
@@ -658,7 +975,10 @@ impl EglHeadlessContext {
         const EGL_SURFACE_TYPE: c_int = 0x3033;
         const EGL_PBUFFER_BIT: c_int = 0x0001;
         const EGL_RENDERABLE_TYPE: c_int = 0x3040;
+        const EGL_OPENGL_ES2_BIT: c_int = 0x0004;
+        const EGL_OPENGL_ES3_BIT: c_int = 0x0040;
         const EGL_OPENGL_BIT: c_int = 0x0008;
+        const EGL_OPENGL_ES_API: c_uint = 0x30A0;
         const EGL_OPENGL_API: c_uint = 0x30A2;
         const EGL_WIDTH: c_int = 0x3057;
         const EGL_HEIGHT: c_int = 0x3056;
@@ -668,9 +988,9 @@ impl EglHeadlessContext {
         const EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT: c_int = 0x0000_0001;
         const EGL_PLATFORM_SURFACELESS_MESA: c_uint = 0x31DD;
 
-        let lib = unix_dl::open_any(&[b"libEGL.so.1\0", b"libEGL.so\0"]);
+        let lib = unix_dl::open_any(&[b"libEGL.so\0", b"libEGL.so.1\0"]);
         if lib.is_null() {
-            return Err("Failed to dlopen libEGL.so.1".into());
+            return Err("Failed to dlopen libEGL.so / libEGL.so.1".into());
         }
 
         macro_rules! egl_sym {
@@ -727,34 +1047,36 @@ impl EglHeadlessContext {
         let egl_terminate: unsafe extern "C" fn(*mut c_void) -> c_uint =
             egl_sym!("eglTerminate");
 
-        // Prefer surfaceless Mesa platform so headless rendering works without X11/Wayland
+        // Prefer surfaceless Mesa platform on Linux so headless rendering works without X11/Wayland
         let mut display: *mut c_void = std::ptr::null_mut();
-        let get_platform_ext_ptr = egl_get_proc(b"eglGetPlatformDisplayEXT\0".as_ptr() as *const c_char);
-        if !get_platform_ext_ptr.is_null() {
-            let get_platform_ext: unsafe extern "C" fn(
-                c_uint,
-                *mut c_void,
-                *const c_int,
-            ) -> *mut c_void = std::mem::transmute(get_platform_ext_ptr);
-            display = get_platform_ext(
-                EGL_PLATFORM_SURFACELESS_MESA,
-                std::ptr::null_mut(),
-                std::ptr::null(),
-            );
-        }
-        if display.is_null() {
-            let get_platform_ptr = unix_dl::dlsym(lib, b"eglGetPlatformDisplay\0".as_ptr() as *const c_char);
-            if !get_platform_ptr.is_null() {
-                let get_platform: unsafe extern "C" fn(
+        if !cfg!(target_os = "android") {
+            let get_platform_ext_ptr = egl_get_proc(b"eglGetPlatformDisplayEXT\0".as_ptr() as *const c_char);
+            if !get_platform_ext_ptr.is_null() {
+                let get_platform_ext: unsafe extern "C" fn(
                     c_uint,
                     *mut c_void,
-                    *const isize,
-                ) -> *mut c_void = std::mem::transmute(get_platform_ptr);
-                display = get_platform(
+                    *const c_int,
+                ) -> *mut c_void = std::mem::transmute(get_platform_ext_ptr);
+                display = get_platform_ext(
                     EGL_PLATFORM_SURFACELESS_MESA,
                     std::ptr::null_mut(),
                     std::ptr::null(),
                 );
+            }
+            if display.is_null() {
+                let get_platform_ptr = unix_dl::dlsym(lib, b"eglGetPlatformDisplay\0".as_ptr() as *const c_char);
+                if !get_platform_ptr.is_null() {
+                    let get_platform: unsafe extern "C" fn(
+                        c_uint,
+                        *mut c_void,
+                        *const isize,
+                    ) -> *mut c_void = std::mem::transmute(get_platform_ptr);
+                    display = get_platform(
+                        EGL_PLATFORM_SURFACELESS_MESA,
+                        std::ptr::null_mut(),
+                        std::ptr::null(),
+                    );
+                }
             }
         }
         if display.is_null() {
@@ -769,11 +1091,13 @@ impl EglHeadlessContext {
         if egl_initialize(display, &mut major, &mut minor) == 0 {
             return Err("eglInitialize failed".into());
         }
-        if egl_bind_api(EGL_OPENGL_API) == 0 {
+        let target_api = if use_gles3 { EGL_OPENGL_ES_API } else { EGL_OPENGL_API };
+        if egl_bind_api(target_api) == 0 {
             egl_terminate(display);
-            return Err("eglBindAPI(EGL_OPENGL_API) failed".into());
+            return Err(format!("eglBindAPI(0x{:X}) failed", target_api));
         }
 
+        let renderable = if use_gles3 { EGL_OPENGL_ES3_BIT } else { EGL_OPENGL_BIT };
         let cfg_attribs = [
             EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
             EGL_RED_SIZE, 8,
@@ -781,7 +1105,7 @@ impl EglHeadlessContext {
             EGL_BLUE_SIZE, 8,
             EGL_ALPHA_SIZE, 8,
             EGL_DEPTH_SIZE, 24,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+            EGL_RENDERABLE_TYPE, renderable,
             EGL_NONE,
         ];
         let mut config: *mut c_void = std::ptr::null_mut();
@@ -789,33 +1113,46 @@ impl EglHeadlessContext {
         if egl_choose_config(display, cfg_attribs.as_ptr(), &mut config, 1, &mut num_cfg) == 0
             || num_cfg < 1
         {
-            // Retry without pbuffer requirement (surfaceless-only drivers)
+            // Retry without pbuffer requirement (or ES2 bit for older ES3 drivers)
+            let fallback_renderable = if use_gles3 { EGL_OPENGL_ES2_BIT } else { EGL_OPENGL_BIT };
             let cfg_attribs2 = [
                 EGL_RED_SIZE, 8,
                 EGL_GREEN_SIZE, 8,
                 EGL_BLUE_SIZE, 8,
                 EGL_ALPHA_SIZE, 8,
-                EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+                EGL_RENDERABLE_TYPE, fallback_renderable,
                 EGL_NONE,
             ];
             if egl_choose_config(display, cfg_attribs2.as_ptr(), &mut config, 1, &mut num_cfg) == 0
                 || num_cfg < 1
             {
                 egl_terminate(display);
-                return Err("eglChooseConfig failed for OpenGL".into());
+                return Err("eglChooseConfig failed".into());
             }
         }
 
-        let ctx_attribs = [
-            EGL_CONTEXT_MAJOR_VERSION, 3,
-            EGL_CONTEXT_MINOR_VERSION, 3,
-            EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-            EGL_NONE,
-        ];
-        let context = egl_create_context(display, config, std::ptr::null_mut(), ctx_attribs.as_ptr());
+        let context = if use_gles3 {
+            let ctx_attribs = [
+                EGL_CONTEXT_MAJOR_VERSION, 3,
+                EGL_NONE,
+            ];
+            egl_create_context(display, config, std::ptr::null_mut(), ctx_attribs.as_ptr())
+        } else {
+            let ctx_attribs = [
+                EGL_CONTEXT_MAJOR_VERSION, 3,
+                EGL_CONTEXT_MINOR_VERSION, 3,
+                EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+                EGL_NONE,
+            ];
+            egl_create_context(display, config, std::ptr::null_mut(), ctx_attribs.as_ptr())
+        };
         if context.is_null() {
             egl_terminate(display);
-            return Err("eglCreateContext(OpenGL 3.3 Core) failed".into());
+            return Err(if use_gles3 {
+                "eglCreateContext(OpenGL ES 3.0) failed".into()
+            } else {
+                "eglCreateContext(OpenGL 3.3 Core) failed".into()
+            });
         }
 
         const EGL_DRAW: c_int = 0x3059;

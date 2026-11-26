@@ -1,6 +1,7 @@
 package com.diyardesk.tablet
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -52,6 +53,27 @@ class ThemeStoreTest {
         val init = s.buildInitMessage(2560, 1600, "en")
         assertEquals("init", init.getString("t"))
         assertEquals("en", init.getString("langEff"))
+        assertTrue(init.getBoolean("rustOpenGl"))
+        assertTrue(init.has("rustGlAvailable"))
+        assertTrue(init.has("nativeActive"))
+    }
+
+    @Test
+    fun persistsRustOpenGlPreferenceAcrossRestarts() {
+        val dir = tmp.newFolder("store_gl")
+        val s1 = ThemeStore(dir)
+        assertTrue(s1.rustOpenGl)
+
+        s1.setRustOpenGlEnabled(false)
+        val s2 = ThemeStore(dir)
+        assertFalse(s2.rustOpenGl)
+
+        val initOff = s2.buildInitMessage(1920, 1200, "tr")
+        assertFalse(initOff.getBoolean("rustOpenGl"))
+
+        s2.setRustOpenGlEnabled(true)
+        val s3 = ThemeStore(dir)
+        assertTrue(s3.rustOpenGl)
     }
 
     @Test

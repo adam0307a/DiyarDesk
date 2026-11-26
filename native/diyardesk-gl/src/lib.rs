@@ -1,11 +1,15 @@
 mod ai_mascots;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+mod android_jni;
 mod aurora;
 mod beach;
 mod cat_shore;
 mod claymorph;
+mod cosmic_eye;
 mod custom_glsl;
 mod custom_plugin;
 mod desert;
+mod eye_within_words;
 mod gl;
 mod glade;
 mod istanbul;
@@ -86,6 +90,8 @@ pub const NATIVE_GL_THEMES: &[&str] = &[
     "ai-mascots",
     "cat-shore",
     "persephone",
+    "eye-within-words",
+    "cosmic-eye",
 ];
 
 fn apply_low_mode_to_state(st: &mut AppState, is_low: bool) {
@@ -99,6 +105,8 @@ fn apply_low_mode_to_state(st: &mut AppState, is_low: bool) {
     st.ai_mascots.set_low_mode(is_low);
     st.cat_shore.set_low_mode(is_low);
     st.persephone.set_low_mode(is_low);
+    st.eye_within_words.set_low_mode(is_low);
+    st.cosmic_eye.set_low_mode(is_low);
 }
 
 fn flip_rgba_vertical(src: &[u8], dst: &mut [u8], width: usize, height: usize) {
@@ -352,27 +360,29 @@ pub struct GlEmbeddedEngine {
     destroyed_gl: bool,
 }
 
+pub(crate) unsafe fn create_embedded_engine_checked(
+    width: i32,
+    height: i32,
+    dpi_scale: f32,
+) -> Result<*mut GlEmbeddedEngine, String> {
+    let gl = GlFns::load()?;
+    let renderer = Renderer::new(&gl)?;
+    let state = AppState::new(width, height, dpi_scale);
+    Ok(Box::into_raw(Box::new(GlEmbeddedEngine {
+        gl,
+        renderer,
+        state,
+        destroyed_gl: false,
+    })))
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ddgl_embedded_create(
     width: i32,
     height: i32,
     dpi_scale: f32,
 ) -> *mut GlEmbeddedEngine {
-    let gl = match GlFns::load() {
-        Ok(g) => g,
-        Err(_) => return std::ptr::null_mut(),
-    };
-    let renderer = match Renderer::new(&gl) {
-        Ok(r) => r,
-        Err(_) => return std::ptr::null_mut(),
-    };
-    let state = AppState::new(width, height, dpi_scale);
-    Box::into_raw(Box::new(GlEmbeddedEngine {
-        gl,
-        renderer,
-        state,
-        destroyed_gl: false,
-    }))
+    create_embedded_engine_checked(width, height, dpi_scale).unwrap_or(std::ptr::null_mut())
 }
 
 #[no_mangle]
@@ -777,7 +787,8 @@ pub unsafe extern "C" fn ddgl_headless_create(
             return std::ptr::null_mut();
         }
     };
-    let state = AppState::new(width, height, dpi_scale);
+    let mut state = AppState::new(width, height, dpi_scale);
+    state.sync_bake = true;
     let mut inner = HeadlessInner {
         ctx,
         gl,
@@ -2786,5 +2797,367 @@ mod linux_tests {
 
             ddgl_headless_destroy(eng);
         }
+    }
+
+    #[test]
+    fn gles3_egl_compiles_all_shaders_and_renders_all_native_themes() {
+        let _guard = LINUX_EGL_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            let ctx = EglHeadlessContext::create_gles3()
+                .expect("OpenGL ES 3.0 headless EGL context failed");
+            assert!(ctx.make_current(), "GLES3 EGL make_current failed");
+            let gl = GlFns::load().expect("GLES3 GlFns::load failed");
+            assert!(gl.is_gles, "Expected OpenGL ES context, got desktop OpenGL");
+
+            // 1. Core shaders must compile & link under GLSL ES 3.00
+            gl::start_gles_shader_recording();
+            for (name, vert, frag) in [
+                ("backdrop", FULLSCREEN_VERT, BACKDROP_FRAG),
+                ("blur", FULLSCREEN_VERT, BLUR_FRAG),
+                ("blit", FULLSCREEN_VERT, BLIT_FRAG),
+                ("sdf_ui", SDF_UI_VERT, SDF_UI_FRAG),
+                ("text", TEXT_VERT, TEXT_FRAG),
+            ] {
+                let p = gl
+                    .compile_program(vert, frag)
+                    .unwrap_or_else(|e| panic!("Core shader '{name}' failed on GLES 3.0: {e}"));
+                (gl.DeleteProgram)(p);
+            }
+
+            // 2. Directly instantiate EVERY specialized theme renderer under GLES 3.0
+            //    so no shader compilation failure can hide behind Renderer's fallback path.
+            macro_rules! check_renderer {
+                ($name:literal, $ty:ty) => {{
+                    let mut r = <$ty>::new(&gl)
+                        .unwrap_or_else(|e| panic!("Specialized renderer '{}' failed on GLES 3.0: {e}", $name));
+                    r.destroy(&gl);
+                }};
+            }
+            check_renderer!("studio-glass", crate::studio_glass::StudioGlassRenderer);
+            check_renderer!("quietsnow", crate::quiet_snow::QuietSnowRenderer);
+            check_renderer!("voxelcraft", crate::voxelcraft::VoxelcraftRenderer);
+            check_renderer!("desert", crate::desert::DesertRenderer);
+            check_renderer!("papercut", crate::papercut::PapercutRenderer);
+            check_renderer!("claymorph", crate::claymorph::ClaymorphRenderer);
+            check_renderer!("neobrutalism", crate::neobrutalism::NeobrutalismRenderer);
+            check_renderer!("liquidglass", crate::liquidglass::LiquidGlassRenderer);
+            check_renderer!("zen-archipelago", crate::zen_archipelago::ZenArchipelagoRenderer);
+            check_renderer!("software-world", crate::software_world::SoftwareWorldRenderer);
+            check_renderer!("meadow", crate::meadow::MeadowRenderer);
+            check_renderer!("beach", crate::beach::BeachRenderer);
+            check_renderer!("aurora", crate::aurora::AuroraRenderer);
+            check_renderer!("glade", crate::glade::GladeRenderer);
+            check_renderer!("rift", crate::rift::RiftRenderer);
+            check_renderer!("strike", crate::strike::StrikeRenderer);
+            check_renderer!("pocket", crate::pocket::PocketRenderer);
+            check_renderer!("roach", crate::roach::RoachRenderer);
+            check_renderer!("polarnight", crate::polarnight::PolarNightRenderer);
+            check_renderer!("rosebrook", crate::rosebrook::RosebrookRenderer);
+            check_renderer!("neumorph", crate::neumorph::NeumorphRenderer);
+            check_renderer!("winter", crate::winter::WinterRenderer);
+            check_renderer!("istanbul", crate::istanbul::IstanbulRenderer);
+            check_renderer!("solar-system", crate::solar_system::SolarSystemRenderer);
+            check_renderer!("thinking-orbs", crate::thinking_orbs::ThinkingOrbsRenderer);
+            check_renderer!("ai-mascots", crate::ai_mascots::AiMascotsRenderer);
+            check_renderer!("cat-shore", crate::cat_shore::CatShoreRenderer);
+            check_renderer!("persephone", crate::persephone::PersephoneRenderer);
+            check_renderer!("eye-within-words", crate::eye_within_words::EyeWithinWordsRenderer);
+            check_renderer!("cosmic-eye", crate::cosmic_eye::CosmicEyeRenderer);
+            check_renderer!("custom-glsl", crate::custom_glsl::CustomGlslRenderer);
+
+            // 3. Resolved fallback shaders for all themes under GLSL ES 3.00
+            let mut st = AppState::new(640, 360, 1.0);
+            for &tid in NATIVE_GL_THEMES {
+                st.set_theme(tid);
+                let (frag, _) = resolve_shader_and_params(&st);
+                let p = gl
+                    .compile_program(FULLSCREEN_VERT, &frag)
+                    .unwrap_or_else(|e| panic!("Theme '{tid}' fallback shader failed on GLES 3.0: {e}"));
+                (gl.DeleteProgram)(p);
+            }
+
+            // 3b. Validate EVERY recorded translated GLSL ES 3.00 shader with strict Khronos
+            //     glslangValidator when installed (catches Adreno/Mali spec violations Mesa accepts).
+            let recorded_shaders = gl::take_recorded_gles_shaders();
+            assert!(
+                recorded_shaders.len() > 100,
+                "Expected >100 translated GLES 3.00 shaders, got {}",
+                recorded_shaders.len()
+            );
+            if std::process::Command::new("glslangValidator")
+                .arg("--version")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+            {
+                let tmp_dir = std::env::temp_dir().join(format!("diyardesk_glsl_{}", std::process::id()));
+                let _ = std::fs::create_dir_all(&tmp_dir);
+                let mut seen = std::collections::HashSet::new();
+                for (idx, (kind, src)) in recorded_shaders.iter().enumerate() {
+                    if !seen.insert((*kind, src.as_str())) {
+                        continue;
+                    }
+                    let ext = if *kind == gl::GL_VERTEX_SHADER { "vert" } else { "frag" };
+                    let path = tmp_dir.join(format!("shader_{idx}.{ext}"));
+                    std::fs::write(&path, src).expect("write shader for glslangValidator");
+                    let out = std::process::Command::new("glslangValidator")
+                        .arg(&path)
+                        .output()
+                        .expect("run glslangValidator");
+                    let _ = std::fs::remove_file(&path);
+                    if !out.status.success() {
+                        let _ = std::fs::remove_dir_all(&tmp_dir);
+                        let stdout = String::from_utf8_lossy(&out.stdout);
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        panic!(
+                            "Strict Khronos glslangValidator rejected GLES 3.00 shader #{idx} (.{ext}):\n{stdout}\n{stderr}"
+                        );
+                    }
+                }
+                let _ = std::fs::remove_dir_all(&tmp_dir);
+            }
+
+            // 4. Render every single native theme through ddgl_embedded_* into an FBO under GLES 3.0
+            let mut fbo = 0u32;
+            let mut tex = 0u32;
+            let mut depth_rb = 0u32;
+            let (ew, eh) = (320i32, 180i32);
+            (gl.GenFramebuffers)(1, &mut fbo);
+            (gl.GenTextures)(1, &mut tex);
+            (gl.BindTexture)(gl::GL_TEXTURE_2D, tex);
+            (gl.TexImage2D)(
+                gl::GL_TEXTURE_2D,
+                0,
+                gl::GL_RGBA8 as gl::GLint,
+                ew,
+                eh,
+                0,
+                gl::GL_RGBA,
+                gl::GL_UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
+            (gl.GenRenderbuffers)(1, &mut depth_rb);
+            (gl.BindRenderbuffer)(gl::GL_RENDERBUFFER, depth_rb);
+            (gl.RenderbufferStorage)(gl::GL_RENDERBUFFER, gl::GL_DEPTH_COMPONENT24, ew, eh);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+            (gl.FramebufferTexture2D)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_COLOR_ATTACHMENT0,
+                gl::GL_TEXTURE_2D,
+                tex,
+                0,
+            );
+            (gl.FramebufferRenderbuffer)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_DEPTH_ATTACHMENT,
+                gl::GL_RENDERBUFFER,
+                depth_rb,
+            );
+            assert_eq!(
+                (gl.CheckFramebufferStatus)(gl::GL_FRAMEBUFFER),
+                gl::GL_FRAMEBUFFER_COMPLETE,
+                "GLES3 test offscreen FBO incomplete"
+            );
+
+            let eng = ddgl_embedded_create(ew, eh, 1.0);
+            assert!(!eng.is_null(), "ddgl_embedded_create failed under GLES 3.0");
+            let icons_msg = CString::new(
+                r#"{"t":"icons","vis":true,"r":[[24,24,72,84],[24,104,72,164],[140,48,188,108]]}"#,
+            )
+            .unwrap();
+            ddgl_embedded_post_json(eng, icons_msg.as_ptr());
+
+            let mut rgba = vec![0u8; (ew * eh * 4) as usize];
+            for &tid in NATIVE_GL_THEMES {
+                // Drain any prior errors
+                while (gl.GetError)() != gl::GL_NO_ERROR {}
+                let theme_msg = CString::new(format!(r#"{{"t":"theme","id":"{tid}"}}"#)).unwrap();
+                ddgl_embedded_post_json(eng, theme_msg.as_ptr());
+                (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+                assert_eq!(ddgl_embedded_render(eng, 0.033, u32::MAX), 1);
+                assert_eq!(ddgl_embedded_render(eng, 0.033, u32::MAX), 1);
+                let err = (gl.GetError)();
+                assert_eq!(
+                    err,
+                    gl::GL_NO_ERROR,
+                    "GLES 3.0 error 0x{:X} while rendering theme '{tid}'",
+                    err
+                );
+                let n = ddgl_embedded_read_rgba(eng, fbo, rgba.as_mut_ptr(), rgba.len() as i32);
+                assert_eq!(n, rgba.len() as i32);
+                let non_zero = rgba
+                    .chunks_exact(4)
+                    .filter(|px| px[0] > 4 || px[1] > 4 || px[2] > 4)
+                    .count();
+                assert!(
+                    non_zero > 100,
+                    "Theme '{tid}' rendered blank/black frame under GLES 3.0 (non_zero={non_zero})"
+                );
+            }
+
+            ddgl_embedded_destroy(eng);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+            (gl.DeleteRenderbuffers)(1, &depth_rb);
+            (gl.DeleteTextures)(1, &tex);
+            (gl.DeleteFramebuffers)(1, &fbo);
+            drop(ctx);
+        }
+    }
+
+    #[test]
+    fn gles3_minimal_caps_fallbacks_render_cleanly() {
+        let _guard = LINUX_EGL_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            let ctx = EglHeadlessContext::create_gles3()
+                .expect("OpenGL ES 3.0 headless EGL context failed");
+            assert!(ctx.make_current(), "GLES3 EGL make_current failed");
+            let mut gl = GlFns::load().expect("GLES3 GlFns::load failed");
+            assert!(gl.is_gles);
+            // Simulate a strict baseline OpenGL ES 3.0 mobile GPU without
+            // GL_OES_texture_float_linear or GL_EXT_color_buffer_float.
+            gl.force_gles_minimal_caps();
+
+            let (ew, eh) = (320i32, 180i32);
+            let mut fbo = 0u32;
+            let mut tex = 0u32;
+            let mut depth_rb = 0u32;
+            (gl.GenFramebuffers)(1, &mut fbo);
+            (gl.GenTextures)(1, &mut tex);
+            (gl.BindTexture)(gl::GL_TEXTURE_2D, tex);
+            (gl.TexImage2D)(
+                gl::GL_TEXTURE_2D,
+                0,
+                gl::GL_RGBA8 as gl::GLint,
+                ew,
+                eh,
+                0,
+                gl::GL_RGBA,
+                gl::GL_UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
+            (gl.TexParameteri)(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
+            (gl.GenRenderbuffers)(1, &mut depth_rb);
+            (gl.BindRenderbuffer)(gl::GL_RENDERBUFFER, depth_rb);
+            (gl.RenderbufferStorage)(gl::GL_RENDERBUFFER, gl::GL_DEPTH_COMPONENT24, ew, eh);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, fbo);
+            (gl.FramebufferTexture2D)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_COLOR_ATTACHMENT0,
+                gl::GL_TEXTURE_2D,
+                tex,
+                0,
+            );
+            (gl.FramebufferRenderbuffer)(
+                gl::GL_FRAMEBUFFER,
+                gl::GL_DEPTH_ATTACHMENT,
+                gl::GL_RENDERBUFFER,
+                depth_rb,
+            );
+            assert_eq!(
+                (gl.CheckFramebufferStatus)(gl::GL_FRAMEBUFFER),
+                gl::GL_FRAMEBUFFER_COMPLETE
+            );
+
+            let mut renderer = Renderer::new(&gl).expect("Renderer::new failed under minimal GLES3");
+            let mut st = AppState::new(ew, eh, 1.0);
+            st.handle_json(r#"{"t":"icons","vis":true,"r":[[24,24,72,84],[140,48,188,108]]}"#);
+
+            let fallback_sensitive = [
+                "liquidglass",
+                "studio-glass",
+                "meadow",
+                "beach",
+                "aurora",
+                "glade",
+                "rift",
+                "strike",
+                "pocket",
+                "rosebrook",
+                "roach",
+                "eye-within-words",
+                "cosmic-eye",
+            ];
+            let mut rgba = vec![0u8; (ew * eh * 4) as usize];
+            for tid in fallback_sensitive {
+                while (gl.GetError)() != gl::GL_NO_ERROR {}
+                st.set_theme(tid);
+                st.step(0.033);
+                let _fbo_guard = DefaultFboGuard::new(fbo);
+                (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+                (gl.Disable)(gl::GL_DEPTH_TEST);
+                (gl.Disable)(gl::GL_SCISSOR_TEST);
+                (gl.Disable)(gl::GL_CULL_FACE);
+                (gl.Disable)(gl::GL_BLEND);
+                (gl.DepthMask)(gl::GL_TRUE);
+                renderer.render(&gl, &mut st);
+                st.step(0.033);
+                renderer.render(&gl, &mut st);
+                let err = (gl.GetError)();
+                assert_eq!(
+                    err,
+                    gl::GL_NO_ERROR,
+                    "Minimal-caps GLES 3.0 error 0x{:X} on theme '{tid}'",
+                    err
+                );
+                (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+                (gl.Finish)();
+                (gl.ReadPixels)(
+                    0,
+                    0,
+                    ew,
+                    eh,
+                    gl::GL_RGBA,
+                    gl::GL_UNSIGNED_BYTE,
+                    rgba.as_mut_ptr() as *mut c_void,
+                );
+                drop(_fbo_guard);
+                let non_zero = rgba
+                    .chunks_exact(4)
+                    .filter(|px| px[0] > 4 || px[1] > 4 || px[2] > 4)
+                    .count();
+                assert!(
+                    non_zero > 100,
+                    "Minimal-caps GLES 3.0 theme '{tid}' rendered blank (non_zero={non_zero})"
+                );
+            }
+
+            renderer.destroy(&gl);
+            (gl.BindFramebuffer)(gl::GL_FRAMEBUFFER, 0);
+            (gl.DeleteRenderbuffers)(1, &depth_rb);
+            (gl.DeleteTextures)(1, &tex);
+            (gl.DeleteFramebuffers)(1, &fbo);
+            drop(ctx);
+        }
+    }
+
+    #[test]
+    fn glsl_330_to_300_es_translator_edge_cases() {
+        // 1. Standard 330 core shader
+        let s1 = gl::translate_glsl_330_to_300_es("#version 330 core\nin vec2 v_uv;\nvoid main(){}");
+        assert!(s1.starts_with(
+            "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler2D;\nprecision highp usampler2D;\n"
+        ));
+        assert!(s1.contains("in vec2 v_uv;"));
+
+        // 2. Preserves #extension before precision declarations
+        let s2 = gl::translate_glsl_330_to_300_es(
+            "#version 330 core\n#extension GL_OES_standard_derivatives : enable\nuniform float t;\n",
+        );
+        let ext_pos = s2.find("#extension").unwrap();
+        let prec_pos = s2.find("precision highp float;").unwrap();
+        assert!(ext_pos < prec_pos, "#extension must appear before precision: {s2}");
+
+        // 3. Already 300 es passthrough (with UTF-8 BOM stripped)
+        let s3 = gl::translate_glsl_330_to_300_es("\u{feff}#version 300 es\nprecision mediump float;\nvoid main(){}");
+        assert!(s3.starts_with("#version 300 es\nprecision mediump float;"));
+
+        // 4. Missing #version header
+        let s4 = gl::translate_glsl_330_to_300_es("void main(){}");
+        assert!(s4.starts_with("#version 300 es\nprecision highp float;"));
+        assert!(s4.contains("precision highp usampler2D;"));
+        assert!(s4.contains("void main(){}"));
     }
 }

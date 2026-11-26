@@ -1,0 +1,11 @@
+{
+  "sources": [
+    {
+      "url": "https://github.com/mishratanya2311/eye_python",
+      "file": "main.py",
+      "recorded_with": "CPython 3.14 with a stubbed pygame module; only the pure math/controller functions (geometry, eyelid curves, streamlines, seeded quote generator, BlinkController, CinematicCamera) and the global random.Random stream were exercised",
+      "note": "Original project: THE EYE WITHIN WORDS - Python generative typography animation"
+    }
+  ],
+  "caseCount": 7
+}

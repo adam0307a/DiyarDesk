@@ -153,6 +153,8 @@ def format_param_value(param: dict[str, Any], value: Any) -> str:
 def is_toggle_param(param: dict[str, Any]) -> bool:
     if param.get("options") or param.get("type") in ("audio", "color"):
         return False
+    if param.get("type") == "toggle":
+        return True
     return (
         param.get("min") == 0
         and param.get("max") == 1
@@ -184,6 +186,30 @@ _CSS = b"""
     color: #58a6ff;
     border-radius: 999px;
     padding: 1px 8px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.dd-tier-light {
+    background-color: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.dd-tier-medium {
+    background-color: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.dd-tier-heavy {
+    background-color: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border-radius: 999px;
+    padding: 1px 7px;
     font-size: 10px;
     font-weight: 700;
 }
@@ -239,6 +265,7 @@ class NativeSettingsWindow:
         self._preview_gl: NativeGlArea | None = None
         self._theme_rows: dict[str, Any] = {}
         self._filter_text = ""
+        self._mem_timer_id: int | None = None
 
         # Install lightweight CSS styling once per screen
         provider = Gtk.CssProvider()
@@ -274,7 +301,9 @@ class NativeSettingsWindow:
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
         hb.set_title("DiyarDesk")
-        hb.set_subtitle("Rust OpenGL 3.3 Core · GTK3")
+        self._hb = hb
+        self._update_ram_subtitle()
+        self._start_mem_timer()
 
         # Left: Import theme button
         self._import_btn = Gtk.Button(label="+ " + self._i18n.ui("importTheme", "Import theme"))
@@ -532,7 +561,7 @@ class NativeSettingsWindow:
             "systemBridge", "Local audio & system stats bridge", lambda v: self.host.set_system_bridge(v)
         )
         self._mpv_lbl, self._mpv_sw = make_switch_row(
-            "preferMpv", "Hardware mpv video backend (X11)", lambda v: self.host.set_prefer_mpv(v)
+            "preferMpv", "Hardware video backend (Wayland / X11)", lambda v: self.host.set_prefer_mpv(v)
         )
 
         # Multi-monitor display mode
@@ -619,6 +648,7 @@ class NativeSettingsWindow:
                 nlbl.set_ellipsize(Pango.EllipsizeMode.END)
                 top.pack_start(nlbl, True, True, 0)
 
+                is_video = str(theme.get("mediaType") or "").lower() == "video"
                 is_gl = (
                     is_custom_gl_theme(theme)
                     or is_native_gl_theme(tid)
@@ -628,11 +658,24 @@ class NativeSettingsWindow:
                     badge_txt = "Rust Plugin"
                 elif str(theme.get("engine") or "") == "opengl-glsl":
                     badge_txt = "GLSL · GL"
+                elif is_video:
+                    badge_txt = "Native Video"
                 else:
                     badge_txt = "Rust GL" if is_gl else "HTML/Web"
                 badge = Gtk.Label(label=badge_txt)
-                badge.get_style_context().add_class("dd-badge-gl" if is_gl else "dd-badge-web")
+                badge.get_style_context().add_class("dd-badge-gl" if (is_gl or is_video) else "dd-badge-web")
                 top.pack_end(badge, False, False, 0)
+                tier = str(theme.get("memoryTier") or "")
+                tier_map = {
+                    "light": ("ramTierLight", "Light", "dd-tier-light"),
+                    "medium": ("ramTierMedium", "Medium", "dd-tier-medium"),
+                    "heavy": ("ramTierHeavy", "Heavy", "dd-tier-heavy"),
+                }
+                if tier in tier_map:
+                    ukey, udef, tcls = tier_map[tier]
+                    tlbl = Gtk.Label(label=self._i18n.ui(ukey, udef))
+                    tlbl.get_style_context().add_class(tcls)
+                    top.pack_end(tlbl, False, False, 0)
                 vbox.pack_start(top, False, False, 0)
 
                 if desc:
@@ -725,9 +768,14 @@ class NativeSettingsWindow:
             self._preview_gl.set_paused(True)
             self._preview_gl.widget.hide()
         name = self._i18n.theme_name(tid, tid)
+        subtitle = (
+            "Native Hardware Video · Wayland / X11 (0 WebKitGTK)"
+            if str(theme_meta.get("mediaType") or "").lower() == "video"
+            else "HTML / CSS / JS · WebKit / WebEngine"
+        )
         self._preview_fallback_lbl.set_markup(
             f"<b>{self._GLib.markup_escape_text(name)}</b>\n"
-            f"<small>HTML / CSS / JS · WebKit / WebEngine</small>"
+            f"<small>{self._GLib.markup_escape_text(subtitle)}</small>"
         )
         self._preview_fallback_box.show_all()
 
@@ -1176,6 +1224,7 @@ class NativeSettingsWindow:
         self._playlist_lbl.set_text(self._i18n.ui("playlist", "Theme playlist rotation"))
         self._diag_lbl.set_text(self._i18n.ui("diagnostics", "Diagnostics"))
         self._diag_btn.set_label(self._i18n.ui("exportDiagnostics", "Export log"))
+        self._update_ram_subtitle()
         self._populate_lang_combo()
         self._populate_theme_list()
         self._select_theme_row(self.host.settings.theme)
@@ -1256,10 +1305,25 @@ class NativeSettingsWindow:
         self.hide()
         return True
 
+    def _start_mem_timer(self) -> None:
+        if self._closed or self._mem_timer_id is not None:
+            return
+        self._mem_timer_id = self._GLib.timeout_add_seconds(3, self._on_mem_tick)
+
+    def _stop_mem_timer(self) -> None:
+        if self._mem_timer_id is not None:
+            try:
+                self._GLib.source_remove(self._mem_timer_id)
+            except Exception:
+                pass
+            self._mem_timer_id = None
+
     def show(self) -> None:
         if self._closed:
             return
         self._sync_system_controls()
+        self._update_ram_subtitle()
+        self._start_mem_timer()
         self.window.show_all()
         theme_now = self.host.themes.find(self.host.settings.theme) or {}
         self._remove_theme_btn.set_visible(bool(theme_now.get("custom") or theme_now.get("imported")))
@@ -1267,14 +1331,46 @@ class NativeSettingsWindow:
         self._sync_preview()
 
     def hide(self) -> None:
+        self._stop_mem_timer()
         if self._preview_gl is not None:
             self._preview_gl.set_paused(True)
         self.window.hide()
+
+    @staticmethod
+    def _read_process_ram_mb() -> int:
+        for path, key in (("/proc/self/smaps_rollup", "Pss:"), ("/proc/self/status", "VmRSS:")):
+            try:
+                for line in Path(path).read_text(encoding="utf-8").splitlines():
+                    if line.startswith(key):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            return max(1, round(int(parts[1]) / 1024))
+            except OSError:
+                continue
+        return 0
+
+    def _update_ram_subtitle(self) -> None:
+        if self._closed or not hasattr(self, "_hb"):
+            return
+        ram_mb = self._read_process_ram_mb()
+        if ram_mb > 0:
+            ram_txt = self._i18n.ui("ramLiveBadge", "RAM: {mb} MB").replace("{mb}", str(ram_mb))
+            self._hb.set_subtitle(f"Rust OpenGL 3.3 Core · GTK3 · {ram_txt}")
+        else:
+            self._hb.set_subtitle("Rust OpenGL 3.3 Core · GTK3")
+
+    def _on_mem_tick(self) -> bool:
+        if self._closed:
+            self._mem_timer_id = None
+            return False
+        self._update_ram_subtitle()
+        return True
 
     def destroy(self) -> None:
         if self._closed:
             return
         self._closed = True
+        self._stop_mem_timer()
         if self._preview_gl is not None:
             try:
                 self._preview_gl.destroy()

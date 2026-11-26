@@ -138,6 +138,15 @@
     display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 20px; font-size: 10px; line-height: 1.5;
     background: var(--panel-2); color: var(--muted);
   }
+  .theme-badges { display: inline-flex; align-items: center; gap: 5px; min-width: 0; flex-wrap: wrap; }
+  .tier-badge {
+    display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px;
+    font-size: 10px; font-weight: 650; line-height: 1.5; white-space: nowrap;
+  }
+  .tier-light { background: rgba(16, 185, 129, .14); color: #047857; }
+  .tier-medium { background: rgba(245, 158, 11, .14); color: #b45309; }
+  .tier-heavy { background: rgba(239, 68, 68, .14); color: #b91c1c; }
+  .live-ram-pill { font-variant-numeric: tabular-nums; }
   .theme.on .badge { background: var(--accent); color: var(--accent-ink); }
   .theme.on .badge::before { content: ""; width: 4px; height: 4px; background: currentColor; border-radius: 50%; }
   .theme .name { margin-top: 12px; font-weight: 650; font-size: 22px; line-height: 1.2; letter-spacing: -.035em; }
@@ -157,6 +166,12 @@
   .stage { display: flex; justify-content: center; }
   .preview { position: relative; overflow: hidden; border-radius: 16px; background: var(--panel-2); }
   .preview iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .preview iframe[hidden] { display: none; }
+  .preview-static { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start; padding: 12px; background-size: cover; background-position: center; }
+  .preview-static[hidden] { display: none; }
+  .preview-static img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .preview-static img[hidden] { display: none; }
+  .preview-static-badge { position: relative; z-index: 1; padding: 4px 10px; border-radius: 999px; background: rgba(8, 12, 18, 0.72); border: 1px solid rgba(255, 255, 255, 0.16); color: #eef5ff; font-size: 11px; font-weight: 600; letter-spacing: .02em; backdrop-filter: blur(6px); }
   .preview-foot { margin-top: 12px; color: var(--muted); font-size: 10px; display: flex; align-items: center; gap: 6px; }
   .live-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--text); }
 
@@ -343,6 +358,9 @@
   @media (prefers-color-scheme: dark) {
     .engine-pill { background: rgba(74, 222, 128, .15); color: #86efac; border-color: rgba(74, 222, 128, .32); }
     .ram-pill { background: rgba(56, 189, 248, .15); color: #7dd3fc; border-color: rgba(56, 189, 248, .32); }
+    .tier-light { background: rgba(16, 185, 129, .20); color: #6ee7b7; }
+    .tier-medium { background: rgba(245, 158, 11, .20); color: #fcd34d; }
+    .tier-heavy { background: rgba(239, 68, 68, .20); color: #fca5a5; }
     .rust-gl-card {
       background: linear-gradient(135deg, rgba(16, 185, 129, .14) 0%, rgba(14, 165, 233, .11) 100%);
       border-color: rgba(52, 211, 153, .42);
@@ -357,6 +375,7 @@
   <div class="top-left">
     <div class="brand">DiyarDesk</div>
     <div class="section-title" data-i18n="themes">主题</div>
+    <span class="ram-pill live-ram-pill" id="liveRamBadge" hidden></span>
   </div>
   <div class="top-right">
     <label class="lang-row" data-i18n-title="displayModeTitle" title="Multi-monitor display mode">
@@ -474,7 +493,7 @@
         </div>
       </div>
       <p class="theme-credit" id="themeCredit" hidden><span id="themeCreditPrefix"></span> <a id="themeCreditLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
-      <div class="stage" id="stage"><div class="preview" id="previewBox"><iframe id="preview" data-i18n-title="livePreview" title="实时预览" tabindex="-1"></iframe></div></div>
+      <div class="stage" id="stage"><div class="preview" id="previewBox"><iframe id="preview" data-i18n-title="livePreview" title="实时预览" tabindex="-1"></iframe><div class="preview-static" id="previewStatic" hidden><img id="previewStaticImg" alt="" decoding="async"><span class="preview-static-badge" id="previewStaticBadge">Rust OpenGL</span></div></div></div>
       <p class="preview-foot"><span class="live-dot"></span><span id="previewFoot">实时预览</span></p>
       <div class="preview-actions">
         <input type="file" id="audioFileInput" accept="audio/*" hidden>
@@ -634,6 +653,7 @@ const send = m => { if (host) host.postMessage(JSON.stringify(m)); };
 
 const state = { registry0: null, registry: null, theme: 'papercut', params: {}, screen: null, icons: null,
   langSetting: 'auto', langSys: 'zh-CN', autostartWarn: false, autostartSw: '', canSaveSnapshot: false,
+  ramMb: null, ramGlMb: null,
   updateVersion: '', updateStatus: '', updateProgress: -1, updateError: '' };
 const $ = id => document.getElementById(id);
 const frame = $('preview');
@@ -716,7 +736,7 @@ async function setLang(code) {
 // 换了语言：界面上的字都重新填一遍（预览不用重新加载）
 function rerenderTexts() {
   if (!state.screen) return;
-  renderHead(); renderThemes(); renderControls(); updateFoot(); shareBusy(shareState); showAutostartWarn(); showUpdate();
+  renderHead(); renderThemes(); renderControls(); updateFoot(); updateLiveRamBadge(); shareBusy(shareState); showAutostartWarn(); showUpdate();
 }
 $('lang').addEventListener('change', e => {
   state.langSetting = e.target.value;
@@ -779,12 +799,23 @@ const thumbUrl = (value, id) => {
   const raw = window.DESKLAND_THUMBS?.[id] || String(value || '').match(/^url\(['"]?([^)'"]+)['"]?\)/)?.[1] || '';
   return raw.startsWith('__custom/') ? resolveCustomPath(raw) : raw;
 };
+function tierLabel(tier) {
+  if (tier === 'light') return t('ramTierLight');
+  if (tier === 'medium') return t('ramTierMedium');
+  if (tier === 'heavy') return t('ramTierHeavy');
+  return '';
+}
+function tierBadgeHtml(tier) {
+  const lbl = tierLabel(tier);
+  if (!lbl) return '';
+  return `<span class="tier-badge tier-${tier}" title="${escHtml(t('ramTierTitle'))}">${escHtml(lbl)}</span>`;
+}
 function renderThemes() {
   $('themes').innerHTML = state.registry.themes.map(th => {
     const ready = th.status === 'ready', on = th.id === state.theme;
     const tUrl = thumbUrl(th.thumb, th.id);
     return `<button class="theme${on ? ' on' : ''}" data-id="${th.id}" aria-pressed="${on}" aria-label="${th.name}" ${ready ? '' : 'disabled'}>
-      <div class="theme-copy"><div class="theme-meta"><span class="badge">${t(on ? 'badgeOn' : ready ? 'badgeReady' : 'badgeSoon')}</span>
+      <div class="theme-copy"><div class="theme-meta"><div class="theme-badges"><span class="badge">${t(on ? 'badgeOn' : ready ? 'badgeReady' : 'badgeSoon')}</span>${tierBadgeHtml(th.memoryTier)}</div>
         <svg class="theme-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></div>
         <div class="name">${th.name}</div></div>
       <div class="thumb" style="background:${resolveThumbBg(th.thumb || '#ccc')}">${tUrl ? `<img src="${tUrl}" alt="" decoding="async">` : ''}</div></button>`;
@@ -1022,6 +1053,27 @@ if ($('systemBridge')) {
   if (window.DiyarNative && $('systemBridge').parentElement) $('systemBridge').parentElement.hidden = true;
   $('systemBridge').addEventListener('change', e => send({ t: 'systemBridge', v: !!e.target.checked }));
 }
+function updateLiveRamBadge() {
+  const mb = (typeof state.ramMb === 'number' && isFinite(state.ramMb) && state.ramMb > 0) ? Math.round(state.ramMb) : null;
+  const pill = $('liveRamBadge');
+  if (pill) {
+    if (mb !== null) {
+      pill.textContent = t('ramLiveBadge', { mb });
+      pill.hidden = false;
+    } else {
+      pill.hidden = true;
+    }
+  }
+  const stBadge = $('previewStaticBadge');
+  if (stBadge) {
+    const th = state.theme ? themeById(state.theme) : null;
+    if (shouldUseStaticPreview(th) && mb !== null) {
+      stBadge.textContent = t('rustOpenGl') + ' · ' + t('ramLiveBadge', { mb });
+    } else {
+      stBadge.textContent = t('rustOpenGl');
+    }
+  }
+}
 function updateRustGlHint(nativeActive, memMb) {
   const hint = $('rustOpenGlHint');
   if (!hint) return;
@@ -1035,8 +1087,13 @@ function updateRustGlHint(nativeActive, memMb) {
   }
 }
 if ($('rustOpenGl')) {
-  if (window.DiyarNative && $('rustOpenGlRow')) $('rustOpenGlRow').hidden = true;
-  $('rustOpenGl').addEventListener('change', e => send({ t: 'rustOpenGl', v: !!e.target.checked }));
+  $('rustOpenGl').addEventListener('change', e => {
+    const v = !!e.target.checked;
+    state.rustOpenGl = v;
+    if (v) unloadPreviewIframe();
+    send({ t: 'rustOpenGl', v });
+    if (state.theme && themeById(state.theme)) showTheme();
+  });
 }
 if ($('releaseWebView2Btn')) {
   $('releaseWebView2Btn').addEventListener('click', () => {
@@ -1109,7 +1166,7 @@ $('updateProgram').addEventListener('click', () => {
 });
 
 /* ---------- 实时预览：iframe 按整块桌面的尺寸排版，再整体缩小 ---------- */
-const toPreview = m => { if (frame.contentWindow) frame.contentWindow.postMessage(JSON.stringify(m), '*'); };
+const toPreview = m => { if (!frame.hidden && frame.contentWindow) frame.contentWindow.postMessage(JSON.stringify(m), '*'); };
 let previewScale = 1;
 function screenCss() {
   const k = window.devicePixelRatio || 1;
@@ -1167,7 +1224,8 @@ frame.addEventListener('load', () => {
   previewReadyTimer = setTimeout(sendPreviewBootstrap, 180);
 });
 function updateFoot() {
-  $('previewFoot').textContent = t('livePreview');
+  const th = themeById(state.theme);
+  $('previewFoot').textContent = shouldUseStaticPreview(th) ? t('rustOpenGl') : t('livePreview');
 }
 
 function renderHead() {
@@ -1203,15 +1261,60 @@ $('removeTheme').addEventListener('click', () => {
   if (!th || !th.imported || !host) return;
   send({ t: 'removeTheme', id: th.id });
 });
+const GL_ONLY_PREVIEW_IDS = new Set([
+  'material-impulse-gl',
+  'ai-mascots',
+  'cat-shore',
+  'persephone',
+  'eye-within-words',
+  'cosmic-eye',
+]);
+function shouldUseStaticPreview(th) {
+  if (!th) return false;
+  if (state.rustOpenGl || state.nativeActive) return true;
+  return !!(host && GL_ONLY_PREVIEW_IDS.has(th.id));
+}
+function unloadPreviewIframe() {
+  previewReady = false;
+  clearTimeout(previewReadyTimer);
+  frame.hidden = true;
+  if (frame.getAttribute('src') !== 'about:blank') {
+    frame.src = 'about:blank';
+  }
+}
 function showTheme() {
   renderHead();
   renderThemes();
   renderControls();
   updateFoot();
+  updateLiveRamBadge();
   layoutPreview();
+  const th = themeById(state.theme);
+  const staticEl = $('previewStatic');
+  const staticImg = $('previewStaticImg');
+  if (shouldUseStaticPreview(th)) {
+    unloadPreviewIframe();
+    if (staticEl) {
+      staticEl.style.background = resolveThumbBg((th && th.thumb) || '#11161f');
+      const tUrl = th ? thumbUrl(th.thumb, th.id) : '';
+      if (staticImg) {
+        if (tUrl) {
+          staticImg.src = tUrl;
+          staticImg.hidden = false;
+        } else {
+          staticImg.removeAttribute('src');
+          staticImg.hidden = true;
+        }
+      }
+      staticEl.hidden = false;
+    }
+    return;
+  }
+  if (staticEl) staticEl.hidden = true;
+  frame.hidden = false;
   previewReady = false;
   clearTimeout(previewReadyTimer);
-  frame.src = resolveCustomPath(themeById(state.theme).page) + '?preview=1';
+  frame.src = resolveCustomPath(th.page) + '?preview=1';
 }
 
 /* ---------- 分享：宿主让壁纸页面画一张图 / 录一段动画（示例图标、名字是色块），保存、复制到剪贴板，再把预览发回来 ---------- */
@@ -1252,6 +1355,7 @@ function showShare(r) {
 }
 function closeShare() { $('shareModal').hidden = true; $('shareVid').pause(); }
 function canAccessPreviewFn(name) {
+  if (frame.hidden) return false;
   try { return !!(frame.contentWindow && typeof frame.contentWindow[name] === 'function'); }
   catch (_) { return false; }
 }
@@ -1414,9 +1518,12 @@ function onHost(m) {
       if ($('windowAware')) $('windowAware').checked = !!m.windowAware;
       if ($('systemBridge')) $('systemBridge').checked = !!m.systemBridge;
       if ($('preferMpv')) $('preferMpv').checked = !!m.preferMpv;
-      if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.rustOpenGl;
+      state.rustOpenGl = !!m.rustOpenGl;
+      state.nativeActive = !!m.nativeActive;
+      if ($('rustOpenGl')) $('rustOpenGl').checked = state.rustOpenGl;
       if ($('rustOpenGlRow') && m.rustGlAvailable === false) $('rustOpenGlRow').hidden = true;
-      updateRustGlHint(!!m.nativeActive, m.webview2MemMb);
+      if (typeof m.ramMb === 'number') state.ramMb = m.ramMb;
+      updateRustGlHint(state.nativeActive, m.webview2MemMb);
       if ($('qualityProfile') && m.qualityProfile) $('qualityProfile').value = m.qualityProfile;
       if ($('playlistMode')) {
         const iv = m.playlistEnabled ? String(m.playlistIntervalMin || 30) : '0';
@@ -1477,8 +1584,15 @@ function onHost(m) {
   } else if (m.t === 'preferMpv') {
     if ($('preferMpv')) $('preferMpv').checked = !!m.v;
   } else if (m.t === 'rustOpenGl') {
-    if ($('rustOpenGl')) $('rustOpenGl').checked = !!m.v;
-    updateRustGlHint(!!m.nativeActive, m.webview2MemMb);
+    state.rustOpenGl = !!m.v;
+    state.nativeActive = !!m.nativeActive;
+    if ($('rustOpenGl')) $('rustOpenGl').checked = state.rustOpenGl;
+    updateRustGlHint(state.nativeActive, m.webview2MemMb);
+    if (state.theme && themeById(state.theme)) showTheme();
+  } else if (m.t === 'memStats') {
+    state.ramMb = typeof m.ramMb === 'number' ? m.ramMb : state.ramMb;
+    state.ramGlMb = typeof m.glMb === 'number' ? m.glMb : null;
+    updateLiveRamBadge();
   } else if (m.t === 'webview2Released') {
     const freed = (typeof m.freedMb === 'number') ? m.freedMb : 0;
     const txt = $('rustOpenGlHintText');

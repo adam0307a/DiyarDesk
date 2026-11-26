@@ -181,6 +181,8 @@ class ThemeStore(private val storageDir: File) {
         private set
     var qualityProfile: String = "balanced"
         private set
+    var rustOpenGl: Boolean = true
+        private set
     private var paramsByTheme: MutableMap<String, JSONObject> = mutableMapOf()
     private var iconBoxes: MutableList<NormalizedBox> = IconLayoutMath.presetTablet5x6().toMutableList()
 
@@ -209,6 +211,7 @@ class ThemeStore(private val storageDir: File) {
                 disableAutoPause = root.optBoolean("disableAutoPause", false)
                 val qp = root.optString("qualityProfile", "balanced")
                 qualityProfile = if (qp in setOf("eco", "balanced", "high")) qp else "balanced"
+                rustOpenGl = root.optBoolean("rustOpenGl", true)
 
                 paramsByTheme = mutableMapOf()
                 val paramsObj = root.optJSONObject("params")
@@ -243,6 +246,7 @@ class ThemeStore(private val storageDir: File) {
             put("lowMode", lowMode)
             put("disableAutoPause", disableAutoPause)
             put("qualityProfile", qualityProfile)
+            put("rustOpenGl", rustOpenGl)
             put("params", JSONObject().apply {
                 for ((k, v) in paramsByTheme) put(k, v)
             })
@@ -335,6 +339,14 @@ class ThemeStore(private val storageDir: File) {
         listeners.forEach { it.onSettingsChanged(this) }
     }
 
+    fun setRustOpenGlEnabled(enabled: Boolean) {
+        synchronized(lock) {
+            rustOpenGl = enabled
+            saveLocked()
+        }
+        listeners.forEach { it.onSettingsChanged(this) }
+    }
+
     fun notifyThemesRegistryChanged() {
         listeners.forEach { it.onThemesRegistryChanged(this) }
     }
@@ -380,6 +392,11 @@ class ThemeStore(private val storageDir: File) {
             put("lowMode", lowMode)
             put("disableAutoPause", disableAutoPause)
             put("qualityProfile", qualityProfile)
+            val glAvailable = NativeGlBridge.isLibraryLoaded
+            val nativeActive = NativeGlProtocol.shouldUseNativeWallpaper(activeTheme, rustOpenGl, glAvailable, null)
+            put("rustOpenGl", rustOpenGl)
+            put("rustGlAvailable", glAvailable)
+            put("nativeActive", nativeActive)
             put("lang", lang)
             put("langEff", effLang)
             put("langSys", systemLang)

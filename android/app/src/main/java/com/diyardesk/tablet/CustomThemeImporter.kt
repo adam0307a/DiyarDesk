@@ -115,6 +115,32 @@ class CustomThemeImporter(private val customThemesRoot: File) {
         return true
     }
 
+    fun resolveCustomVideoFile(themeId: String): File? {
+        if (!themeId.startsWith("custom-")) return null
+        val entry = loadCustomThemes().firstOrNull { it.optString("id") == themeId }
+        if (entry != null) {
+            val mediaType = entry.optString("mediaType", "")
+            val mediaFile = entry.optString("mediaFile", "")
+            if (mediaType == "video" && mediaFile.isNotBlank()) {
+                val resolved = resolveCustomAsset("$themeId/$mediaFile")
+                if (resolved != null && resolved.isFile) return resolved
+            }
+        }
+        val htmlFile = resolveCustomAsset("$themeId/index.html")
+        val hasVideoWrapper = htmlFile != null && htmlFile.isFile && try {
+            htmlFile.readText(Charsets.UTF_8).contains("<video ")
+        } catch (_: Exception) {
+            false
+        }
+        if (hasVideoWrapper) {
+            for (ext in VIDEO_EXTS) {
+                val candidate = resolveCustomAsset("$themeId/media.$ext")
+                if (candidate != null && candidate.isFile) return candidate
+            }
+        }
+        return null
+    }
+
     fun resolveCustomAsset(subPath: String): File? {
         val trimmed = subPath.trimStart('/')
         if (trimmed.isEmpty()) return null
@@ -678,7 +704,11 @@ class CustomThemeImporter(private val customThemesRoot: File) {
             adaptive = true,
             groups = groups,
             thumb = DEFAULT_VIDEO_THUMB
-        )
+        ).apply {
+            put("mediaType", "video")
+            put("mediaFile", "media.$ext")
+            put("memoryTier", "light")
+        }
     }
 
     private fun buildEntry(

@@ -50,6 +50,7 @@ from .importer import (
 from .ipc import IpcServer
 from .lan_sync import LanPairingServer
 from .lockscreen import apply_linux_lockscreen, make_blurred_lockscreen
+from .mpv_player import find_theme_video_file
 from .native_gl import NativeGlLibrary, is_custom_gl_theme, is_native_gl_theme
 from .native_settings import NativeSettingsWindow
 from .scheduler import PlaylistController
@@ -497,17 +498,27 @@ class DesklandHost:
         val = bool(enabled)
         self.settings.prefer_mpv = val
         self.schedule_save()
+        page = self.current_page
         for wp in self._all_wallpapers():
+            wp.load_page(page, theme_id=self.settings.theme)
             wp.sync_mpv_video()
         self._post_settings({"t": "preferMpv", "v": val})
-        self.log.write("mpv donanım video arka ucu tercih ediliyor" if val else "WebView video oynatıcı aktif")
+        self.log.write("Donanim video arka ucu tercih ediliyor" if val else "WebView video oynatici aktif")
 
     def set_rust_opengl(self, enabled: bool) -> None:
         available = NativeGlLibrary.is_available()
         val = bool(enabled) if available else False
         self.settings.rust_opengl = val
         theme_switched = False
-        if val and not is_native_gl_theme(self.settings.theme, self.themes.find(self.settings.theme)):
+        cur_meta = self.themes.find(self.settings.theme)
+        is_video_theme = bool(
+            isinstance(cur_meta, dict)
+            and (
+                cur_meta.get("mediaType") == "video"
+                or find_theme_video_file(self.custom_themes_dir / self.settings.theme) is not None
+            )
+        )
+        if val and not is_video_theme and not is_native_gl_theme(self.settings.theme, cur_meta):
             fallback = "papercut" if self.themes.allowed("papercut") else "meadow"
             self.log.write(
                 f"Rust OpenGL aktif: özel HTML temasından yerleşik OpenGL temasına geçildi "

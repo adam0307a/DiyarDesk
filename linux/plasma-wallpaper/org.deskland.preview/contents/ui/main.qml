@@ -69,10 +69,14 @@ WallpaperItem {
         "strike": true,
         "pocket": true,
         "roach": true,
-        "ai-mascots": true
+        "ai-mascots": true,
+        "cat-shore": true,
+        "persephone": true,
+        "eye-within-words": true,
+        "cosmic-eye": true
     })
 
-    readonly property bool isGlOnlyTheme: theme === "material-impulse-gl" || theme === "ai-mascots"
+    readonly property bool isGlOnlyTheme: theme === "material-impulse-gl" || theme === "ai-mascots" || theme === "cat-shore" || theme === "persephone" || theme === "eye-within-words" || theme === "cosmic-eye"
     readonly property bool wantNativeGl: !nativeGlFailed && (isGlOnlyTheme || (rustOpenGl && !!nativeGlThemes[theme]))
 
     onShowingDesktopChanged: pauseEvalTimer.restart()

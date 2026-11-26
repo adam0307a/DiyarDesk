@@ -18,7 +18,12 @@ let package = Package(
         .executableTarget(
             name: "DiyarDeskMac",
             dependencies: ["DiyarDeskCore"],
-            path: "Sources/DiyarDeskMac"
+            path: "Sources/DiyarDeskMac",
+            linkerSettings: [
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("OpenGL"),
+                .linkedFramework("QuartzCore")
+            ]
         ),
         .testTarget(
             name: "DiyarDeskMacTests",

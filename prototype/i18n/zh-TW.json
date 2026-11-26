@@ -182,7 +182,14 @@
     "rustOpenGlHint": "此主題運行在本地原生引擎上，無需 WebView2，背景可能仍佔用約 {mb} MB。可點擊下方按鈕釋放。",
     "webview2Release": "釋放 WebView2 記憶體",
     "webview2Released": "WebView2 記憶體已釋放（釋放約 {mb} MB）。",
-    "webview2Nothing": "沒有可釋放的 WebView2 記憶體。"
+    "webview2Nothing": "沒有可釋放的 WebView2 記憶體。",
+    "ramTierLight": "輕量",
+    "ramTierMedium": "中等",
+    "ramTierHeavy": "較高",
+    "ramTierTitle": "預估記憶體與 GPU 紋理佔用",
+    "ramLiveBadge": "應用程式總記憶體: {mb} MB",
+    "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
+    "nativeVideoBadge": "硬體影片 · MediaPlayer (零 WebView)"
   },
   "host": {
     "traySettings": "設定…",
@@ -2003,6 +2010,89 @@
             "中",
             "高"
           ]
+        }
+      }
+    },
+    "eye-within-words": {
+      "name": "字中之眼 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 生成式排版藝術：整個螢幕邊緣到邊緣布滿可讀的哲思短句，上千詞彙共同拼成一隻會自然眨眼、凝視滑鼠的巨大人眼，電影感鏡頭在全景與 2.55 倍特寫之間緩緩推移（mishratanya2311/eye_python 的 1:1 移植）。",
+      "groups": [
+        "調色盤與編排",
+        "烘焙與種子"
+      ],
+      "params": {
+        "palette": {
+          "label": "詞彙調色盤",
+          "hint": "午夜詩意（原版青藍紫）、生物螢光綠松石或星象手稿紫羅蘭",
+          "options": [
+            "午夜詩意",
+            "生物螢光",
+            "星象手稿"
+          ]
+        },
+        "autoBlink": {
+          "label": "自然眨眼",
+          "hint": "每 3-6 秒一次的生物眨眼節奏（偶爾雙重眨眼）"
+        },
+        "autoZoom": {
+          "label": "電影感鏡頭",
+          "hint": "在全景（1.0x）與特寫（2.55x）之間連續緩慢變焦"
+        },
+        "adaptive": {
+          "label": "圖示可讀襯底",
+          "hint": "在桌面圖示後疊加柔和深色圓角襯底，讓文字海洋上的圖示保持清晰"
+        },
+        "seed": {
+          "label": "詞彙隨機種子",
+          "hint": "重新排布整片詞彙海洋的隨機種子（更改即重新生成）"
+        },
+        "quality": {
+          "label": "烘焙品質",
+          "hint": "虛擬排版畫布的烘焙解析度",
+          "options": [
+            "低",
+            "均衡",
+            "高"
+          ]
+        }
+      }
+    },
+    "cosmic-eye": {
+      "name": "宇宙字元之眼 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 即時 ASCII 藝術循環：從瞳孔深處旋轉的木星與星環出發，平滑拉遠展現整隻金色虹膜人眼，左右張望並自然眨眼，再無縫潛回瞳孔宇宙形成無限循環。",
+      "groups": [
+        "ASCII 風格與配色",
+        "鏡頭循環與互動"
+      ],
+      "params": {
+        "palette": {
+          "label": "主題配色",
+          "hint": "原版暖金琥珀（1:1 復刻）、翡翠宇宙或青藍星雲",
+          "options": [
+            "暖金琥珀",
+            "翡翠宇宙",
+            "青藍星雲"
+          ]
+        },
+        "charSize": {
+          "label": "字元密度",
+          "hint": "ASCII 等寬字元網格尺寸（越小越細膩）"
+        },
+        "speed": {
+          "label": "循環速度",
+          "hint": "鏡頭推拉、眼神轉動、眨眼與行星自轉的整體節奏"
+        },
+        "autoLoop": {
+          "label": "無限穿越循環",
+          "hint": "瞳孔行星 → 拉遠全眼 → 左右張望與眨眼 → 潛回瞳孔的無縫循環"
+        },
+        "mouseFollow": {
+          "label": "目光跟隨游標",
+          "hint": "在全眼畫面下讓視線輕柔跟隨滑鼠位置（點擊桌面可即時眨眼）"
+        },
+        "adaptive": {
+          "label": "圖示可讀襯底",
+          "hint": "在桌面圖示後方疊加柔和深色圓角襯底"
         }
       }
     }

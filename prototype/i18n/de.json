@@ -182,7 +182,14 @@
     "rustOpenGlHint": "Dieses Thema läuft auf der lokalen nativen Engine, WebView2 wird nicht benötigt und hält ggf. noch ~{mb} MB im Hintergrund. Zum Freigeben unten klicken.",
     "webview2Release": "WebView2-Speicher freigeben",
     "webview2Released": "WebView2-Speicher freigegeben (~{mb} MB freigegeben).",
-    "webview2Nothing": "Kein WebView2-Speicher zum Freigeben."
+    "webview2Nothing": "Kein WebView2-Speicher zum Freigeben.",
+    "ramTierLight": "Leicht",
+    "ramTierMedium": "Mittel",
+    "ramTierHeavy": "Hoch",
+    "ramTierTitle": "Geschätzter RAM- & GPU-Texturbedarf",
+    "ramLiveBadge": "App-Gesamt-RAM: {mb} MB",
+    "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
+    "nativeVideoBadge": "Hardware-Video · MediaPlayer (0 WebView)"
   },
   "host": {
     "traySettings": "Einstellungen…",
@@ -258,7 +265,7 @@
           "label": "Widget-Layout",
           "hint": "Voreinstellung wählen (oder Karten per Kopfzeile frei verschieben)",
           "options": [
-            "Impulse Split",
+            "Impulse-Teilung",
             "Rechte Leiste",
             "Bento-Mitte",
             "Minimal-Uhr"
@@ -276,7 +283,7 @@
           "label": "Uhrstil",
           "hint": "Zwischen gewellter 12-Lappen-Cookie-Hybriduhr und At-a-Glance-Karte wechseln",
           "options": [
-            "Cookie Hybrid",
+            "Cookie-Hybrid",
             "At-a-Glance-Karte"
           ]
         },
@@ -917,7 +924,7 @@
       "desc": "Eine Polarnacht an einem zugefrorenen See: Die Aurora wallt über den Himmel und spiegelt sich im Eis, und deine Symbole ruhen in einer Lichtung des verschneiten Kiefernwaldes",
       "groups": [
         "Um die Symbole",
-        "Aurora",
+        "Nordlicht",
         "Winternacht"
       ],
       "params": {
@@ -1599,7 +1606,7 @@
           "hint": "Dunkelheit der zwischen den Papierschichten geworfenen Schatten"
         },
         "palette": {
-          "label": "Palette",
+          "label": "Farbpalette",
           "hint": "Farbfamilie für Papierschichten und Blumen",
           "options": [
             "Rosengarten",
@@ -1782,7 +1789,7 @@
           "hint": "Umgebender Kernhof und Lumineszenz der aktiven Punkte"
         },
         "palette": {
-          "label": "Palette",
+          "label": "Farbpalette",
           "options": [
             "Obsidian-Mono",
             "Papier-Mono",
@@ -1857,7 +1864,7 @@
           "label": "Widget-Layout",
           "hint": "Voreinstellung wählen (oder Karten per Kopfzeile frei verschieben)",
           "options": [
-            "Impulse Split",
+            "Impulse-Teilung",
             "Rechte Leiste",
             "Bento-Mitte",
             "Minimal-Uhr"
@@ -1875,7 +1882,7 @@
           "label": "Uhrstil",
           "hint": "Zwischen gewellter 12-Lappen-Cookie-Hybriduhr und At-a-Glance-Karte wechseln",
           "options": [
-            "Cookie Hybrid",
+            "Cookie-Hybrid",
             "At-a-Glance-Karte"
           ]
         },
@@ -2003,6 +2010,89 @@
             "Mittel",
             "Hoch"
           ]
+        }
+      }
+    },
+    "eye-within-words": {
+      "name": "Das Auge in den Worten · OpenGL (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 generative Typografie: Der gesamte Bildschirm wird randvoll mit lesbaren philosophischen Zitaten gefüllt; tausende Wörter formen ein riesiges menschliches Auge, das natürlich blinkt und dem Cursor folgt, während eine filmische Kamera langsam zwischen Gesamtansicht und 2,55-fachen Nahaufnahmen fährt (1:1-Port von mishratanya2311/eye_python).",
+      "groups": [
+        "Palette & Choreografie",
+        "Backen & Seed"
+      ],
+      "params": {
+        "palette": {
+          "label": "Vokabular-Palette",
+          "hint": "Mitternachtspoesie (original Cyan-Blau-Violett), bioluminiszentes Türkis oder astrales Amethyst-Manuskript",
+          "options": [
+            "Mitternachtspoesie",
+            "Bioluminiszenz",
+            "Astrales Manuskript"
+          ]
+        },
+        "autoBlink": {
+          "label": "Natürliches Blinzeln",
+          "hint": "Biologischer Blinkrhythmus alle 3-6 Sekunden mit gelegentlichem Doppelblinzeln"
+        },
+        "autoZoom": {
+          "label": "Filmische Kamera",
+          "hint": "Kontinuierlicher langsamer Zoom zwischen Gesamtansicht (1,0x) und Nahaufnahme (2,55x)"
+        },
+        "adaptive": {
+          "label": "Symbol-Hintergründe",
+          "hint": "Weiche dunkle abgerundete Hintergründe hinter Desktop-Symbolen für bessere Lesbarkeit über dem Wortmeer"
+        },
+        "seed": {
+          "label": "Wort-Seed",
+          "hint": "Zufalls-Seed für das gesamte Wortfeld (Ändern erzeugt ein neues Layout)"
+        },
+        "quality": {
+          "label": "Back-Qualität",
+          "hint": "Backauflösung der virtuellen Typografie-Leinwand",
+          "options": [
+            "Niedrig",
+            "Ausgewogen",
+            "Hoch"
+          ]
+        }
+      }
+    },
+    "cosmic-eye": {
+      "name": "Kosmisches ASCII-Auge · OpenGL (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 Echtzeit-ASCII-Schleife: startet tief in der Pupille bei einem rotierenden Ringplaneten, zoomt sanft zum ganzen goldbraunen Auge mit Blickbewegungen und Blinzeln heraus und taucht nahtlos zurück in den Kosmos.",
+      "groups": [
+        "ASCII-Stil & Palette",
+        "Kamera-Loop & Interaktion"
+      ],
+      "params": {
+        "palette": {
+          "label": "Farbpalette",
+          "hint": "Klassisches Warm-Bernstein (1:1 Original), Smaragd-Kosmos oder Cyan-Nebel",
+          "options": [
+            "Bernstein Klassik",
+            "Smaragd-Kosmos",
+            "Cyan-Nebel"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII-Zellengröße",
+          "hint": "Rastergröße der Monospace-Zeichen (kleiner = feinere Details)"
+        },
+        "speed": {
+          "label": "Schleifengeschwindigkeit",
+          "hint": "Gesamttempo von Zoom, Blickbewegungen, Blinzeln und Planetenrotation"
+        },
+        "autoLoop": {
+          "label": "Nahtlose Kosmos-Schleife",
+          "hint": "Endlosschleife: Planet in der Pupille → Zoom heraus → Blick & Blinzeln → Zoom hinein"
+        },
+        "mouseFollow": {
+          "label": "Mauszeiger verfolgen",
+          "hint": "Sanftes Folgen des Mauszeigers in der Vollansicht (Klick löst Blinzeln aus)"
+        },
+        "adaptive": {
+          "label": "Symbol-Hintergrund",
+          "hint": "Weicher dunkler Hintergrund hinter Desktop-Symbolen"
         }
       }
     }

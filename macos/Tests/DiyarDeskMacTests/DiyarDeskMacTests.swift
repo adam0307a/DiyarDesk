@@ -69,4 +69,43 @@ final class DiyarDeskMacTests: XCTestCase {
         XCTAssertTrue(html.contains("uniform vec4 u_icons[32];"))
         XCTAssertTrue(store2.removeCustomTheme(id: id))
     }
+
+    func testNativeGlSupportAndVideoDiscovery() throws {
+        XCTAssertTrue(NativeGlSupport.isNativeGlTheme("papercut"))
+        XCTAssertTrue(NativeGlSupport.isNativeGlTheme("EYE-WITHIN-WORDS"))
+        XCTAssertFalse(NativeGlSupport.isNativeGlTheme("custom-video-123"))
+
+        XCTAssertTrue(NativeGlSupport.shouldUseNativeGl(page: "papercut.html", themeId: "papercut", rustOpenGl: true, glAvailable: true))
+        XCTAssertFalse(NativeGlSupport.shouldUseNativeGl(page: "papercut.html", themeId: "papercut", rustOpenGl: false, glAvailable: true))
+        XCTAssertTrue(NativeGlSupport.shouldUseNativeGl(page: "cosmic-eye.html", themeId: "cosmic-eye", rustOpenGl: false, glAvailable: true))
+        XCTAssertFalse(NativeGlSupport.shouldUseNativeGl(page: "cosmic-eye.html", themeId: "cosmic-eye", rustOpenGl: true, glAvailable: false))
+
+        XCTAssertEqual(NativeGlSupport.clampVideoSpeed(0.05), 0.25, accuracy: 0.001)
+        XCTAssertEqual(NativeGlSupport.clampVideoSpeed(4.0), 2.0, accuracy: 0.001)
+        XCTAssertEqual(NativeGlSupport.brightnessOverlayStyle(1.0).alpha, 0.0, accuracy: 0.001)
+        XCTAssertFalse(NativeGlSupport.brightnessOverlayStyle(0.6).isWhite)
+        XCTAssertEqual(NativeGlSupport.brightnessOverlayStyle(0.6).alpha, 0.4, accuracy: 0.001)
+        XCTAssertTrue(NativeGlSupport.brightnessOverlayStyle(1.2).isWhite)
+
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("diyardesk-mac-video-\(UUID().uuidString)")
+        let proto = tmp.appendingPathComponent("prototype", isDirectory: true)
+        try FileManager.default.createDirectory(at: proto, withIntermediateDirectories: true)
+        try "{\"themes\":[]}".write(to: proto.appendingPathComponent("themes.json"), atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let store = ThemeStore(dataDir: tmp.appendingPathComponent("data", isDirectory: true), prototypeDir: proto)
+        let mp4 = tmp.appendingPathComponent("clip.mp4")
+        try Data("fake-mp4".utf8).write(to: mp4)
+        let entry = try store.importFile(at: mp4)
+        let vidId = try XCTUnwrap(entry["id"] as? String)
+        XCTAssertEqual(entry["mediaType"] as? String, "video")
+        XCTAssertEqual(entry["memoryTier"] as? String, "light")
+        XCTAssertNotNil(store.resolveAVPlayerVideoURL(themeId: vidId))
+
+        let webm = tmp.appendingPathComponent("clip.webm")
+        try Data("fake-webm".utf8).write(to: webm)
+        let webmEntry = try store.importFile(at: webm)
+        let webmId = try XCTUnwrap(webmEntry["id"] as? String)
+        XCTAssertNil(store.resolveAVPlayerVideoURL(themeId: webmId))
+    }
 }

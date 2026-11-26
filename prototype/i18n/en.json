@@ -182,7 +182,14 @@
     "rustOpenGlHint": "This theme runs on the native engine, so WebView2 is not needed and may still hold ~{mb} MB in the background. Click below to release it.",
     "webview2Release": "Release WebView2 memory",
     "webview2Released": "WebView2 memory released (~{mb} MB freed).",
-    "webview2Nothing": "No WebView2 memory to release."
+    "webview2Nothing": "No WebView2 memory to release.",
+    "ramTierLight": "Light",
+    "ramTierMedium": "Medium",
+    "ramTierHeavy": "Heavy",
+    "ramTierTitle": "Estimated RAM & GPU texture usage",
+    "ramLiveBadge": "App Total RAM: {mb} MB",
+    "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
+    "nativeVideoBadge": "Hardware Video · MediaPlayer (0 WebView)"
   },
   "host": {
     "traySettings": "Settings…",
@@ -2101,6 +2108,89 @@
         "parallax": {
           "label": "Mouse Parallax",
           "hint": "Subtle depth response following the cursor"
+        }
+      }
+    },
+    "eye-within-words": {
+      "name": "The Eye Within Words · OpenGL (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 generative typography: the entire screen is filled edge-to-edge with readable philosophical quotes, thousands of words forming one enormous human eye that blinks naturally and follows your cursor, with a cinematic camera slowly pushing between the wide view and 2.55x close-ups (a 1:1 port of mishratanya2311/eye_python).",
+      "groups": [
+        "Palette & Choreography",
+        "Baking & Seed"
+      ],
+      "params": {
+        "palette": {
+          "label": "Vocabulary Palette",
+          "hint": "Midnight Poetry (original cyan-blue-violet), Bioluminescent turquoise, or Astral amethyst manuscript",
+          "options": [
+            "Midnight Poetry",
+            "Bioluminescent Verse",
+            "Astral Manuscript"
+          ]
+        },
+        "autoBlink": {
+          "label": "Natural Blinking",
+          "hint": "Biological blink rhythm every 3-6 seconds with occasional double blinks"
+        },
+        "autoZoom": {
+          "label": "Cinematic Camera",
+          "hint": "Continuous slow zoom between the wide view (1.0x) and close-ups (2.55x)"
+        },
+        "adaptive": {
+          "label": "Icon Backdrops",
+          "hint": "Soft dark rounded scrims behind desktop icons to keep them readable over the sea of words"
+        },
+        "seed": {
+          "label": "Word Seed",
+          "hint": "Random seed arranging the whole vocabulary field (changing it regenerates the layout)"
+        },
+        "quality": {
+          "label": "Bake Quality",
+          "hint": "Baking resolution of the virtual typography canvas",
+          "options": [
+            "Low",
+            "Balanced",
+            "High"
+          ]
+        }
+      }
+    },
+    "cosmic-eye": {
+      "name": "Cosmic ASCII Eye · OpenGL (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 live ASCII-art loop: begins deep inside the pupil around a spinning ringed gas giant, pulls back smoothly to reveal the full golden-amber eye looking left and right with natural blinks, then dives back seamlessly into the cosmic pupil.",
+      "groups": [
+        "ASCII Style & Palette",
+        "Camera Loop & Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Color Palette",
+          "hint": "Classic warm amber-gold (1:1 original), Emerald Cosmos, or Cyan Nebula",
+          "options": [
+            "Amber Classic",
+            "Emerald Cosmos",
+            "Cyan Nebula"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Cell Size",
+          "hint": "Monospace ASCII grid resolution (smaller = finer detail)"
+        },
+        "speed": {
+          "label": "Loop Speed",
+          "hint": "Overall pace of zoom transitions, eye glances, blinks, and planet rotation"
+        },
+        "autoLoop": {
+          "label": "Seamless Cosmic Loop",
+          "hint": "Infinite cycle: spinning planet inside pupil → zoom out to full eye → look left/right & blink → zoom back into pupil"
+        },
+        "mouseFollow": {
+          "label": "Cursor Gaze",
+          "hint": "Subtle cursor-tracking gaze during the full-eye phase (clicking triggers a blink)"
+        },
+        "adaptive": {
+          "label": "Icon Backing",
+          "hint": "Soft dark rounded scrim behind desktop icons for crisp legibility"
         }
       }
     }

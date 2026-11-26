@@ -10,7 +10,13 @@ from deskland_linux.config import SettingsStore
 from deskland_linux.ctl import build_command_payload
 from deskland_linux.importer import import_theme_file
 from deskland_linux.lockscreen import make_blurred_lockscreen
-from deskland_linux.mpv_player import build_mpv_command, find_theme_video_file
+from deskland_linux.mpv_player import (
+    build_mpv_command,
+    clamp_video_speed,
+    find_theme_video_file,
+    map_brightness_to_mpv,
+    select_video_backend,
+)
 from deskland_linux.sysbridge import (
     SystemStatsSampler,
     compute_pcm16_spectrum,
@@ -63,6 +69,19 @@ def test_mpv_command_and_video_discovery(tmp_path: Path) -> None:
     assert "--wid=12345" in cmd
     assert "--speed=1.50" in cmd
     assert str(vid) == cmd[-1]
+
+    assert clamp_video_speed(0.05) == 0.25
+    assert clamp_video_speed(5.0) == 2.0
+    assert map_brightness_to_mpv(1.0) == 0
+    assert map_brightness_to_mpv(0.4) == -36
+
+    # Wayland & X11 zero-WebKitGTK backend selection
+    assert select_video_backend("layer-shell", has_libmpv=True, has_gst_gtk=True, has_mpv_cli=True) == "libmpv-gl"
+    assert select_video_backend("layer-shell", has_libmpv=False, has_gst_gtk=True, has_mpv_cli=True) == "gstreamer"
+    assert select_video_backend("layer-shell", has_libmpv=False, has_gst_gtk=False, has_mpv_cli=True) is None
+    assert select_video_backend("x11", has_libmpv=False, has_gst_gtk=False, has_mpv_cli=True) == "mpv-wid"
+    assert select_video_backend("static", has_libmpv=True, has_gst_gtk=True, has_mpv_cli=True) is None
+    assert select_video_backend("plasma-plugin", has_libmpv=True, has_gst_gtk=True, has_mpv_cli=True) is None
 
 
 def test_system_stats_and_audio_spectrum(tmp_path: Path) -> None:

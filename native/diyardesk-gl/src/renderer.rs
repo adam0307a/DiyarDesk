@@ -3,8 +3,10 @@ use crate::aurora::AuroraRenderer;
 use crate::beach::BeachRenderer;
 use crate::cat_shore::CatShoreRenderer;
 use crate::claymorph::ClaymorphRenderer;
+use crate::cosmic_eye::CosmicEyeRenderer;
 use crate::custom_glsl::CustomGlslRenderer;
 use crate::custom_plugin::CustomPluginRenderer;
+use crate::eye_within_words::EyeWithinWordsRenderer;
 use crate::neobrutalism::NeobrutalismRenderer;
 use crate::gl::*;
 use crate::liquidglass::LiquidGlassRenderer;
@@ -121,8 +123,13 @@ pub struct Renderer {
     ai_mascots_renderer: Option<AiMascotsRenderer>,
     cat_shore_renderer: Option<CatShoreRenderer>,
     persephone_renderer: Option<PersephoneRenderer>,
+    eye_within_words_renderer: Option<EyeWithinWordsRenderer>,
+    eye_within_words_failed: bool,
+    cosmic_eye_renderer: Option<CosmicEyeRenderer>,
+    cosmic_eye_failed: bool,
     custom_glsl_renderer: Option<CustomGlslRenderer>,
     custom_plugin_renderer: Option<CustomPluginRenderer>,
+    active_theme_id: String,
     theme_progs: HashMap<String, GLuint>,
 }
 
@@ -189,8 +196,13 @@ impl Renderer {
             ai_mascots_renderer: None,
             cat_shore_renderer: None,
             persephone_renderer: None,
+            eye_within_words_renderer: None,
+            eye_within_words_failed: false,
+            cosmic_eye_renderer: None,
+            cosmic_eye_failed: false,
             custom_glsl_renderer: None,
             custom_plugin_renderer: None,
+            active_theme_id: String::new(),
             theme_progs: HashMap::new(),
         })
     }
@@ -282,6 +294,12 @@ impl Renderer {
         }
         if let Some(mut pr) = self.persephone_renderer.take() {
             pr.destroy(gl);
+        }
+        if let Some(mut er) = self.eye_within_words_renderer.take() {
+            er.destroy(gl);
+        }
+        if let Some(mut cr) = self.cosmic_eye_renderer.take() {
+            cr.destroy(gl);
         }
         if let Some(mut cgr) = self.custom_glsl_renderer.take() {
             cgr.destroy(gl);
@@ -497,12 +515,118 @@ impl Renderer {
         (gl.DrawArrays)(GL_TRIANGLES, 0, 3);
     }
 
-    pub unsafe fn render(&mut self, gl: &GlFns, st: &mut AppState) {
-        if !st.is_custom_plugin_theme() {
-            if let Some(mut cpr) = self.custom_plugin_renderer.take() {
-                cpr.destroy(gl);
-            }
+    /// Returns the number of currently instantiated per-theme sub-renderers.
+    #[allow(dead_code)]
+    pub fn loaded_renderer_count(&self) -> usize {
+        let flags = [
+            self.studio_renderer.is_some(),
+            self.quiet_snow_renderer.is_some(),
+            self.papercut_renderer.is_some(),
+            self.voxelcraft_renderer.is_some(),
+            self.desert_renderer.is_some(),
+            self.claymorph_renderer.is_some(),
+            self.neobrutalism_renderer.is_some(),
+            self.liquidglass_renderer.is_some(),
+            self.zen_archipelago_renderer.is_some(),
+            self.software_world_renderer.is_some(),
+            self.meadow_renderer.is_some(),
+            self.beach_renderer.is_some(),
+            self.aurora_renderer.is_some(),
+            self.glade_renderer.is_some(),
+            self.rift_renderer.is_some(),
+            self.strike_renderer.is_some(),
+            self.pocket_renderer.is_some(),
+            self.roach_renderer.is_some(),
+            self.rosebrook_renderer.is_some(),
+            self.polarnight_renderer.is_some(),
+            self.winter_renderer.is_some(),
+            self.neumorph_renderer.is_some(),
+            self.istanbul_renderer.is_some(),
+            self.solar_system_renderer.is_some(),
+            self.thinking_orbs_renderer.is_some(),
+            self.ai_mascots_renderer.is_some(),
+            self.cat_shore_renderer.is_some(),
+            self.persephone_renderer.is_some(),
+            self.eye_within_words_renderer.is_some(),
+            self.cosmic_eye_renderer.is_some(),
+            self.custom_glsl_renderer.is_some(),
+            self.custom_plugin_renderer.is_some(),
+        ];
+        flags.iter().filter(|&&b| b).count()
+    }
+
+    /// Destroys GPU resources (FBOs, textures, VAOs, programs) owned by inactive themes
+    /// whenever `st.theme_id` changes, keeping resident VRAM/RAM bounded across theme switches.
+    unsafe fn evict_inactive_renderers(&mut self, gl: &GlFns, st: &AppState) {
+        if self.active_theme_id == st.theme_id {
+            return;
         }
+        if !self.active_theme_id.is_empty() {
+            macro_rules! evict_slot {
+                ($field:ident, $keep:expr) => {
+                    if !$keep {
+                        if let Some(mut sub) = self.$field.take() {
+                            sub.destroy(gl);
+                        }
+                    }
+                };
+            }
+            evict_slot!(custom_plugin_renderer, st.is_custom_plugin_theme());
+            evict_slot!(custom_glsl_renderer, st.is_custom_glsl_theme());
+            evict_slot!(studio_renderer, st.is_studio_glass_theme());
+            evict_slot!(quiet_snow_renderer, st.is_quiet_snow_theme());
+            evict_slot!(papercut_renderer, st.is_papercut_theme());
+            evict_slot!(voxelcraft_renderer, st.is_voxelcraft_theme());
+            evict_slot!(desert_renderer, st.is_desert_theme());
+            evict_slot!(claymorph_renderer, st.is_claymorph_theme());
+            evict_slot!(neobrutalism_renderer, st.is_neobrutalism_theme());
+            evict_slot!(liquidglass_renderer, st.is_liquidglass_theme());
+            evict_slot!(zen_archipelago_renderer, st.is_zen_archipelago_theme());
+            evict_slot!(software_world_renderer, st.is_software_world_theme());
+            evict_slot!(meadow_renderer, st.is_meadow_theme());
+            evict_slot!(beach_renderer, st.is_beach_theme());
+            evict_slot!(aurora_renderer, st.is_aurora_theme());
+            evict_slot!(glade_renderer, st.is_glade_theme());
+            evict_slot!(rift_renderer, st.is_rift_theme());
+            evict_slot!(strike_renderer, st.is_strike_theme());
+            evict_slot!(pocket_renderer, st.is_pocket_theme());
+            evict_slot!(roach_renderer, st.is_roach_theme());
+            evict_slot!(rosebrook_renderer, st.is_rosebrook_theme());
+            evict_slot!(polarnight_renderer, st.is_polarnight_theme());
+            evict_slot!(winter_renderer, st.is_winter_theme());
+            evict_slot!(neumorph_renderer, st.is_neumorph_theme());
+            evict_slot!(istanbul_renderer, st.is_istanbul_theme());
+            evict_slot!(solar_system_renderer, st.is_solar_system_theme());
+            evict_slot!(thinking_orbs_renderer, st.is_thinking_orbs_theme());
+            evict_slot!(ai_mascots_renderer, st.is_ai_mascots_theme());
+            evict_slot!(cat_shore_renderer, st.is_cat_shore_theme());
+            evict_slot!(persephone_renderer, st.is_persephone_theme());
+            evict_slot!(eye_within_words_renderer, st.is_eye_within_words_theme());
+            evict_slot!(cosmic_eye_renderer, st.is_cosmic_eye_theme());
+
+            if !st.is_impulse_theme() {
+                self.scene_fbo.destroy(gl);
+                self.blur_a.destroy(gl);
+                self.blur_b.destroy(gl);
+            }
+
+            let keep_id = st.theme_id.as_str();
+            self.theme_progs.retain(|k, prog| {
+                if k == keep_id {
+                    true
+                } else {
+                    if *prog != 0 {
+                        (gl.DeleteProgram)(*prog);
+                    }
+                    false
+                }
+            });
+        }
+        self.active_theme_id = st.theme_id.clone();
+    }
+
+    pub unsafe fn render(&mut self, gl: &GlFns, st: &mut AppState) {
+        self.evict_inactive_renderers(gl, st);
         if st.is_custom_plugin_theme() {
             if self.custom_plugin_renderer.is_none() {
                 if let Ok(cpr) = CustomPluginRenderer::new(gl) {
@@ -830,6 +954,36 @@ impl Renderer {
             }
             if let Some(pr) = self.persephone_renderer.as_mut() {
                 pr.render(gl, st, &mut self.text);
+                return;
+            }
+        }
+        if st.is_eye_within_words_theme() {
+            if self.eye_within_words_renderer.is_none() && !self.eye_within_words_failed {
+                match EyeWithinWordsRenderer::new(gl) {
+                    Ok(er) => self.eye_within_words_renderer = Some(er),
+                    Err(err) => {
+                        eprintln!("DiyarDeskGl: eye-within-words init failed: {err}");
+                        self.eye_within_words_failed = true;
+                    }
+                }
+            }
+            if let Some(er) = self.eye_within_words_renderer.as_mut() {
+                er.render(gl, st);
+                return;
+            }
+        }
+        if st.is_cosmic_eye_theme() {
+            if self.cosmic_eye_renderer.is_none() && !self.cosmic_eye_failed {
+                match CosmicEyeRenderer::new(gl) {
+                    Ok(cr) => self.cosmic_eye_renderer = Some(cr),
+                    Err(err) => {
+                        eprintln!("DiyarDeskGl: cosmic-eye init failed: {err}");
+                        self.cosmic_eye_failed = true;
+                    }
+                }
+            }
+            if let Some(cr) = self.cosmic_eye_renderer.as_mut() {
+                cr.render(gl, st);
                 return;
             }
         }
@@ -1904,5 +2058,80 @@ fn weekday_tr(sun0: u32) -> &'static str {
         0 => "Pazar", 1 => "Pazartesi", 2 => "Salı", 3 => "Çarşamba",
         4 => "Perşembe", 5 => "Cuma", 6 => "Cumartesi",
         _ => "",
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+    use crate::gl::WglContext;
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleA;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        CreateWindowExA, DefWindowProcA, DestroyWindow, RegisterClassA, WNDCLASSA, WS_POPUP,
+    };
+
+    #[test]
+    fn evicts_inactive_theme_renderers_on_theme_switch() {
+        unsafe {
+            let hinst = GetModuleHandleA(std::ptr::null());
+            let cls = b"DiyarGlEvictionTest\0";
+            let wc = WNDCLASSA {
+                style: 0x0020,
+                lpfnWndProc: Some(DefWindowProcA),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: hinst,
+                hIcon: std::ptr::null_mut(),
+                hCursor: std::ptr::null_mut(),
+                hbrBackground: std::ptr::null_mut(),
+                lpszMenuName: std::ptr::null(),
+                lpszClassName: cls.as_ptr(),
+            };
+            RegisterClassA(&wc);
+            let hwnd = CreateWindowExA(
+                0, cls.as_ptr(), b"evict\0".as_ptr(), WS_POPUP,
+                0, 0, 128, 128, std::ptr::null_mut(), std::ptr::null_mut(), hinst, std::ptr::null(),
+            );
+            assert!(!hwnd.is_null(), "Failed to create dummy test HWND");
+            let ctx = WglContext::create(hwnd).expect("WGL context failed");
+            assert!(ctx.make_current());
+            let gl = GlFns::load().expect("OpenGL load failed");
+
+            let mut renderer = Renderer::new(&gl).expect("Renderer::new failed");
+            let mut st = AppState::new(128, 128, 1.0);
+
+            // 1. Render Papercut
+            st.theme_id = "papercut".to_string();
+            renderer.render(&gl, &mut st);
+            assert_eq!(renderer.loaded_renderer_count(), 1);
+            assert!(renderer.papercut_renderer.is_some());
+
+            // 2. Switch to Desert -> Papercut must be evicted
+            st.theme_id = "desert".to_string();
+            renderer.render(&gl, &mut st);
+            assert_eq!(renderer.loaded_renderer_count(), 1);
+            assert!(renderer.papercut_renderer.is_none());
+            assert!(renderer.desert_renderer.is_some());
+
+            // 3. Switch to Impulse -> Desert evicted, scene_fbo allocated
+            st.theme_id = "material-impulse-gl".to_string();
+            renderer.render(&gl, &mut st);
+            assert_eq!(renderer.loaded_renderer_count(), 0);
+            assert!(renderer.desert_renderer.is_none());
+            assert_ne!(renderer.scene_fbo.fbo, 0);
+
+            // 4. Switch back to Papercut -> Impulse FBOs destroyed
+            st.theme_id = "papercut".to_string();
+            renderer.render(&gl, &mut st);
+            assert_eq!(renderer.loaded_renderer_count(), 1);
+            assert!(renderer.papercut_renderer.is_some());
+            assert_eq!(renderer.scene_fbo.fbo, 0);
+            assert_eq!(renderer.blur_a.fbo, 0);
+            assert_eq!(renderer.blur_b.fbo, 0);
+
+            renderer.destroy(&gl);
+            drop(ctx);
+            DestroyWindow(hwnd);
+        }
     }
 }

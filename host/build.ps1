@@ -62,6 +62,13 @@ if ((Test-Path -LiteralPath (Join-Path $wpfDir 'PresentationCore.dll')) -and (Te
         "/r:$(Join-Path $wpfDir 'PresentationCore.dll')",
         "/r:$(Join-Path $wpfDir 'WindowsBase.dll')"
     )
+    $presFramework = Join-Path $wpfDir 'PresentationFramework.dll'
+    $winFormsInt = Join-Path $wpfDir 'WindowsFormsIntegration.dll'
+    if ((Test-Path -LiteralPath $presFramework) -and (Test-Path -LiteralPath $winFormsInt)) {
+        $wpfRefs += '/define:HAS_WPF_VIDEO'
+        $wpfRefs += "/r:$presFramework"
+        $wpfRefs += "/r:$winFormsInt"
+    }
 }
 $winRtRefs = @()
 $winRtDll = Join-Path $rtDir 'System.Runtime.WindowsRuntime.dll'
@@ -86,7 +93,7 @@ if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $
     @wpfRefs `
     @winRtRefs `
     /r:"$lib\Microsoft.Web.WebView2.Core.dll" /r:"$lib\Microsoft.Web.WebView2.WinForms.dll" `
-    "$root\DesktopHost.cs" "$root\ShellIconReader.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$root\NativeGlHost.cs" "$root\NativeSettingsForm.cs" "$versionSource"
+    "$root\DesktopHost.cs" "$root\ShellIconReader.cs" "$root\Themes.cs" "$root\LanSync.cs" "$root\IpcControl.cs" "$root\SystemBridge.cs" "$root\MediaBridge.cs" "$root\NativeGlHost.cs" "$root\NativeVideoHost.cs" "$root\NativeSettingsForm.cs" "$versionSource"
 if ($LASTEXITCODE -ne 0) { throw '编译失败' }
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath (Join-Path $lib $assembly.Name) -Destination $bin -Force }
 Copy-Item -LiteralPath (Join-Path $root 'DesklandPreview.ico') -Destination (Join-Path $bin 'DesklandPreview.ico') -Force

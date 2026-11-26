@@ -9,9 +9,13 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Debug
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.text.TextUtils
 import android.util.Base64
 import android.view.Gravity
 import android.view.View
@@ -23,6 +27,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -33,17 +38,35 @@ import androidx.core.view.WindowInsetsCompat
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 /**
- * Main tablet configuration UI hosting the shared `prototype/settings.html` interface,
- * custom theme SAF importer, Live Wallpaper picker launcher, and Icon/Widget layout editor.
+ * Main tablet configuration UI.
+ *
+ * When Rust + OpenGL ES 3.0 mode is active, mounts [NativeSettingsController] (pure native
+ * Android Views + static preview thumbnails, completely closing and avoiding [WebView]).
+ * When switched to WebView mode, hosts the shared `prototype/settings.html` interface.
  */
 class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
 
     private lateinit var store: ThemeStore
     private lateinit var importer: CustomThemeImporter
-    private lateinit var webView: WebView
+    private lateinit var brandLabel: TextView
+    private lateinit var contentHost: FrameLayout
+    private var webView: WebView? = null
+    private var nativeSettings: NativeSettingsController? = null
     private var lastSavedShareUri: Uri? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val memExecutor = Executors.newSingleThreadExecutor()
+    private var webMemPolling = false
+    private val webMemRunnable = object : Runnable {
+        override fun run() {
+            if (!webMemPolling || webView == null) return
+            dispatchWebMemStats()
+            mainHandler.postDelayed(this, 3000L)
+        }
+    }
 
     private val importPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@registerForActivityResult
@@ -61,42 +84,82 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             setBackgroundColor(Color.parseColor("#0E1D19"))
         }
 
-        // Top tablet action bar
+        // Top tablet action bar (two-row layout on narrow/split screens <600dp so brandLabel never squeezes contentHost to 0px)
+        val compactBar = resources.configuration.screenWidthDp < 600
         val bar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = if (compactBar) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
             setBackgroundColor(Color.parseColor("#132A24"))
             setPadding(24, 14, 24, 14)
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = if (compactBar) Gravity.START else Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
 
-        val brand = TextView(this).apply {
+        brandLabel = TextView(this).apply {
             text = getString(R.string.app_name) + " Tablet"
             setTextColor(Color.WHITE)
             textSize = 18f
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = if (compactBar) {
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = 10 }
+            } else {
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
         }
-        bar.addView(brand)
 
         val btnIcons = Button(this).apply {
             text = getString(R.string.btn_icon_layout)
             isAllCaps = false
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#24594B"))
+            if (compactBar) {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
             setOnClickListener { startActivity(Intent(this@SettingsActivity, IconLayoutActivity::class.java)) }
         }
-        bar.addView(btnIcons)
 
         val btnWallpaper = Button(this).apply {
             text = getString(R.string.btn_set_wallpaper)
             isAllCaps = false
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#1F6F5B"))
-            val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            val lp = if (compactBar) {
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            } else {
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
             lp.marginStart = 12
             layoutParams = lp
             setOnClickListener { openLiveWallpaperChooser() }
         }
-        bar.addView(btnWallpaper)
+
+        bar.addView(brandLabel)
+        if (compactBar) {
+            val btnRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+            btnRow.addView(btnIcons)
+            btnRow.addView(btnWallpaper)
+            bar.addView(btnRow)
+        } else {
+            bar.addView(btnIcons)
+            bar.addView(btnWallpaper)
+        }
 
         root.addView(bar)
 
@@ -112,9 +175,10 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             root.addView(banner)
         }
 
-        webView = createSettingsWebView()
-        webView.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
-        root.addView(webView)
+        contentHost = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        }
+        root.addView(contentHost)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
@@ -122,19 +186,190 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
         }
         setContentView(root)
 
-        webView.loadUrl("${PrototypeAssets.ORIGIN}/settings.html")
+        syncSettingsEngine()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        nativeSettings?.setPollingActive(true)
+        if (webView != null) startWebMemPolling()
+    }
+
+    override fun onPause() {
+        nativeSettings?.setPollingActive(false)
+        stopWebMemPolling()
+        super.onPause()
     }
 
     override fun onDestroy() {
+        stopWebMemPolling()
+        try {
+            memExecutor.shutdownNow()
+        } catch (_: Exception) {
+        }
         store.removeListener(this)
-        webView.destroy()
+        destroyNativeSettings()
+        destroyWebView()
         super.onDestroy()
+    }
+
+    private fun readProcessMemMb(): Pair<Int, Int> {
+        return try {
+            val mi = Debug.MemoryInfo()
+            Debug.getMemoryInfo(mi)
+            val pssMb = (mi.totalPss / 1024.0).roundToInt().coerceAtLeast(1)
+            val gfxKb = mi.getMemoryStat("summary.graphics")?.toIntOrNull() ?: 0
+            val glMb = (gfxKb / 1024.0).roundToInt()
+            pssMb to glMb
+        } catch (_: Exception) {
+            0 to 0
+        }
+    }
+
+    private fun dispatchWebMemStats() {
+        if (isFinishing || isDestroyed || webView == null || memExecutor.isShutdown) return
+        try {
+            memExecutor.execute {
+                val (pssMb, glMb) = readProcessMemMb()
+                if (pssMb <= 0) return@execute
+                runOnUiThread {
+                    if (isFinishing || isDestroyed || webView == null) return@runOnUiThread
+                    dispatchToWebView(JSONObject().apply {
+                        put("t", "memStats")
+                        put("ramMb", pssMb)
+                        put("glMb", glMb)
+                        put("engine", "webview")
+                    })
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun startWebMemPolling() {
+        if (webView == null) return
+        if (webMemPolling) return
+        webMemPolling = true
+        mainHandler.removeCallbacks(webMemRunnable)
+        mainHandler.postDelayed(webMemRunnable, 3000L)
+    }
+
+    private fun stopWebMemPolling() {
+        webMemPolling = false
+        mainHandler.removeCallbacks(webMemRunnable)
     }
 
     override fun onIconsChanged(store: ThemeStore) {
         runOnUiThread {
+            val wv = webView ?: return@runOnUiThread
             val (w, h) = DiyarAppState.screenPhysicalSize(this)
-            PrototypeAssets.dispatchMessage(webView, store.buildIconsMessage(w, h))
+            PrototypeAssets.dispatchMessage(wv, store.buildIconsMessage(w, h))
+        }
+    }
+
+    override fun onThemesRegistryChanged(store: ThemeStore) {
+        runOnUiThread {
+            nativeSettings?.refresh()
+        }
+    }
+
+    private fun updateBrandLabel(nativeOpenGlActive: Boolean) {
+        val engineTag = when {
+            nativeOpenGlActive -> " · OpenGL ES 3.0"
+            NativeGlBridge.isLibraryLoaded -> " · WebView"
+            else -> ""
+        }
+        brandLabel.text = getString(R.string.app_name) + " Tablet" + engineTag
+    }
+
+    private fun dispatchToWebView(payload: JSONObject) {
+        val wv = webView ?: return
+        PrototypeAssets.dispatchMessage(wv, payload)
+    }
+
+    private fun syncSettingsEngine() {
+        val useNative = NativeGlProtocol.shouldUseNativeSettings(store.rustOpenGl, NativeGlBridge.isLibraryLoaded)
+        updateBrandLabel(useNative)
+        if (useNative) {
+            // Completely shut down WebView in OpenGL mode (zero WebView / zero iframe preview)
+            destroyWebView()
+            if (nativeSettings == null) {
+                contentHost.removeAllViews()
+                val controller = NativeSettingsController(
+                    context = this,
+                    store = store,
+                    importer = importer,
+                    onToggleRustOpenGl = { enabled ->
+                        store.setRustOpenGlEnabled(enabled)
+                        contentHost.post { syncSettingsEngine() }
+                    },
+                    onImportTheme = { importPicker.launch(arrayOf("*/*")) },
+                    onRemoveTheme = { id -> removeCustomTheme(id) }
+                )
+                nativeSettings = controller
+                contentHost.addView(
+                    controller.rootView,
+                    FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                )
+            } else {
+                nativeSettings?.refresh()
+            }
+        } else {
+            destroyNativeSettings()
+            if (webView == null) {
+                contentHost.removeAllViews()
+                val wv = createSettingsWebView()
+                webView = wv
+                contentHost.addView(
+                    wv,
+                    FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                )
+                wv.loadUrl("${PrototypeAssets.ORIGIN}/settings.html")
+                startWebMemPolling()
+            }
+        }
+    }
+
+    private fun destroyWebView() {
+        stopWebMemPolling()
+        val wv = webView ?: return
+        webView = null
+        try {
+            wv.stopLoading()
+            wv.onPause()
+            wv.removeJavascriptInterface("DiyarNative")
+            wv.loadUrl("about:blank")
+            wv.clearHistory()
+            (wv.parent as? ViewGroup)?.removeView(wv)
+            wv.removeAllViews()
+        } catch (_: Exception) {
+        }
+        wv.destroy()
+    }
+
+    private fun destroyNativeSettings() {
+        val ns = nativeSettings ?: return
+        nativeSettings = null
+        try {
+            (ns.rootView.parent as? ViewGroup)?.removeView(ns.rootView)
+        } catch (_: Exception) {
+        }
+        ns.destroy()
+    }
+
+    private fun removeCustomTheme(id: String) {
+        if (importer.removeTheme(id)) {
+            if (store.activeTheme == id) {
+                store.setActiveTheme(ThemeStore.DEFAULT_THEME)
+            } else {
+                store.notifyThemesRegistryChanged()
+            }
+            nativeSettings?.refresh()
+            dispatchToWebView(JSONObject().apply {
+                put("t", "themeRemoved")
+                put("id", id)
+                put("active", store.activeTheme)
+            })
         }
     }
 
@@ -201,8 +436,10 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             "hello" -> {
                 val (w, h) = DiyarAppState.screenPhysicalSize(this)
                 val sysLang = DiyarAppState.systemLangCode()
-                PrototypeAssets.dispatchMessage(webView, store.buildInitMessage(w, h, sysLang))
-                PrototypeAssets.dispatchMessage(webView, store.buildIconsMessage(w, h))
+                dispatchToWebView(store.buildInitMessage(w, h, sysLang))
+                dispatchToWebView(store.buildIconsMessage(w, h))
+                dispatchWebMemStats()
+                startWebMemPolling()
             }
             "set" -> {
                 val th = msg.optString("theme", store.activeTheme)
@@ -220,7 +457,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 val v = msg.optString("v", "auto")
                 store.setLanguage(v)
                 val sysLang = DiyarAppState.systemLangCode()
-                PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                dispatchToWebView(JSONObject().apply {
                     put("t", "lang")
                     put("v", v)
                     put("sys", sysLang)
@@ -239,23 +476,33 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             "qualityProfile" -> {
                 store.setQualityProfileValue(msg.optString("v", "balanced"))
             }
+            "rustOpenGl" -> {
+                val wantGl = msg.optBoolean("v", true) && NativeGlBridge.isLibraryLoaded
+                store.setRustOpenGlEnabled(wantGl)
+                if (NativeGlProtocol.shouldUseNativeSettings(store.rustOpenGl, NativeGlBridge.isLibraryLoaded)) {
+                    // Defer WebView destruction to next UI tick so the JS bridge call unwinds cleanly.
+                    contentHost.post { syncSettingsEngine() }
+                } else {
+                    dispatchToWebView(JSONObject().apply {
+                        put("t", "rustOpenGl")
+                        put("v", store.rustOpenGl)
+                        put(
+                            "nativeActive",
+                            NativeGlProtocol.shouldUseNativeWallpaper(
+                                store.activeTheme,
+                                store.rustOpenGl,
+                                NativeGlBridge.isLibraryLoaded,
+                                null
+                            )
+                        )
+                    })
+                }
+            }
             "importTheme" -> {
                 importPicker.launch(arrayOf("*/*"))
             }
             "removeTheme" -> {
-                val id = msg.optString("id")
-                if (importer.removeTheme(id)) {
-                    if (store.activeTheme == id) {
-                        store.setActiveTheme(ThemeStore.DEFAULT_THEME)
-                    } else {
-                        store.notifyThemesRegistryChanged()
-                    }
-                    PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
-                        put("t", "themeRemoved")
-                        put("id", id)
-                        put("active", store.activeTheme)
-                    })
-                }
+                removeCustomTheme(msg.optString("id"))
             }
             "share" -> savePngSnapshot(msg.optString("dataUrl"))
             "lanSyncConnect" -> {
@@ -283,7 +530,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
     private fun syncFromLanDesktop(rawInput: String, fallbackPin: String) {
         val target = LanSyncClient.parsePairingInput(rawInput, fallbackPin)
         if (target == null) {
-            PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+            dispatchToWebView(JSONObject().apply {
                 put("t", "lanSyncResult")
                 put("ok", false)
                 put("msg", "Invalid private LAN address or 4-digit PIN.")
@@ -312,19 +559,20 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                     store.notifyThemesRegistryChanged()
                 }
                 runOnUiThread {
+                    nativeSettings?.refresh()
                     if (importedObj != null) {
-                        PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                        dispatchToWebView(JSONObject().apply {
                             put("t", "themeImported")
                             put("theme", importedObj)
                             put("select", true)
                         })
                     } else {
-                        PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                        dispatchToWebView(JSONObject().apply {
                             put("t", "themeChanged")
                             put("id", activeTheme)
                         })
                     }
-                    PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                    dispatchToWebView(JSONObject().apply {
                         put("t", "lanSyncResult")
                         put("ok", true)
                         put("theme", activeTheme)
@@ -332,7 +580,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                    dispatchToWebView(JSONObject().apply {
                         put("t", "lanSyncResult")
                         put("ok", false)
                         put("msg", e.message ?: "LAN sync failed")
@@ -351,15 +599,20 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             val newId = entry.optString("id")
             store.setActiveTheme(newId)
             store.notifyThemesRegistryChanged()
-            PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+            nativeSettings?.refresh()
+            dispatchToWebView(JSONObject().apply {
                 put("t", "themeImported")
                 put("theme", entry)
                 put("select", true)
             })
         } catch (t: Throwable) {
-            PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+            val err = t.message ?: "Import failed"
+            if (webView == null) {
+                Toast.makeText(this, err, Toast.LENGTH_LONG).show()
+            }
+            dispatchToWebView(JSONObject().apply {
                 put("t", "importError")
-                put("msg", t.message ?: "Import failed")
+                put("msg", err)
             })
         }
     }
@@ -389,7 +642,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                 lastSavedShareUri = uri
                 Toast.makeText(this, R.string.toast_share_saved, Toast.LENGTH_SHORT).show()
-                PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+                dispatchToWebView(JSONObject().apply {
                     put("t", "shareResult")
                     put("ok", true)
                     put("path", "${Environment.DIRECTORY_PICTURES}/DiyarDesk/$filename")
@@ -397,7 +650,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             }
         } catch (t: Throwable) {
             Toast.makeText(this, R.string.toast_share_failed, Toast.LENGTH_SHORT).show()
-            PrototypeAssets.dispatchMessage(webView, JSONObject().apply {
+            dispatchToWebView(JSONObject().apply {
                 put("t", "shareResult")
                 put("ok", false)
                 put("error", t.message ?: "Save failed")

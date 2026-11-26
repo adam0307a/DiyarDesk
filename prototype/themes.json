@@ -9,6 +9,7 @@
       "page": "material-impulse-gl.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "credit": {
         "prefix": "灵感源自",
         "label": "end-4/dots-hyprland (illogical-impulse)",
@@ -236,6 +237,7 @@
       "page": "material-impulse.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "heavy",
       "credit": {
         "prefix": "灵感源自",
         "label": "end-4/dots-hyprland (illogical-impulse)",
@@ -463,6 +465,7 @@
       "page": "studio-glass.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "credit": {
         "prefix": "灵感源自",
         "label": "Studio Glass · ThreeUI (threeui.com/studio-glass)",
@@ -626,6 +629,7 @@
       "page": "quietsnow.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "credit": {
         "prefix": "灵感源自",
         "label": "Snowhush (github.com/mbezruchko/Snowhush)",
@@ -800,6 +804,7 @@
       "page": "papercut.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/papercut.webp?v=2a7728f549) center / cover no-repeat, linear-gradient(0deg, #2f6f49 0 14%, #4f8f5b 14% 24%, transparent 24%), linear-gradient(0deg, transparent 0 24%, #1f6585 24% 34%, #2b7f9a 34% 44%, #3d9fb5 44% 52%, transparent 52%), linear-gradient(180deg, #9fd8e6 0%, #e9a7a0 100%)",
       "groups": [
         {
@@ -999,6 +1004,7 @@
       "page": "software-world.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/software-world.webp) center / cover no-repeat, linear-gradient(155deg, #0a0d13 0%, #101928 55%, #0f141d 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -1098,6 +1104,7 @@
       "page": "meadow.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "heavy",
       "thumb": "url(thumbs/meadow.webp?v=5d36b1f2d4) center / cover no-repeat, radial-gradient(ellipse 22% 16% at 36% 38%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 22% 16% at 46% 58%, #5f8a3e 70%, transparent 74%), radial-gradient(ellipse 18% 13% at 72% 70%, #fdfeff 60%, #dfe7ef 75%, transparent 78%), radial-gradient(ellipse 18% 13% at 80% 86%, #5f8a3e 70%, transparent 74%), linear-gradient(160deg, #c3d684 0%, #a2c06a 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -1175,6 +1182,7 @@
       "page": "flat.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/beach.webp?v=017578bc5c) center / cover no-repeat, linear-gradient(160deg, #f6ecdf 0%, #f6ecdf 34%, #bfeee0 36%, #57cfd0 55%, #0f9fc4 78%, #0a86b0 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -1271,6 +1279,7 @@
       "page": "aurora.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/aurora.webp) center / cover no-repeat, radial-gradient(circle at 27% 46%, rgba(255, 200, 108, 0.72) 0, rgba(255, 180, 76, 0.16) 7%, transparent 15%), radial-gradient(ellipse 26% 22% at 32% 48%, #3c5276 0, #314463 72%, #8bd6ea 76%, transparent 80%), radial-gradient(ellipse 68% 22% at 68% 36%, rgba(52, 235, 168, 0.56) 0, rgba(35, 198, 214, 0.25) 48%, transparent 78%), radial-gradient(ellipse 52% 20% at 62% 72%, rgba(148, 96, 238, 0.42) 0, transparent 76%), linear-gradient(155deg, #071224 0%, #0d263b 52%, #13384f 100%)",
       "groups": [
         {
@@ -1377,6 +1386,7 @@
       "page": "glade.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/glade.webp) center / cover no-repeat, radial-gradient(circle at 38% 58%, rgba(232,243,168,0.92) 0%, rgba(164,209,104,0.85) 34%, rgba(92,150,74,0.9) 62%, transparent 80%), radial-gradient(circle at 76% 24%, rgba(44,104,58,0.92) 0%, transparent 48%), linear-gradient(155deg, #214e30 0%, #3a7745 45%, #6ba655 100%)",
       "groups": [
         {
@@ -1453,6 +1463,7 @@
       "page": "rift.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/rift.webp) center / cover no-repeat, radial-gradient(circle at 36% 52%, rgba(46,230,214,0.72) 0%, rgba(72,92,98,0.92) 22%, rgba(43,66,54,0.88) 44%, transparent 66%), radial-gradient(circle at 72% 38%, rgba(208,162,74,0.68) 0%, rgba(30,68,54,0.9) 34%, transparent 62%), linear-gradient(140deg, #122620 0%, #1c3d32 45%, #165e68 62%, #244a38 100%)",
       "groups": [
         {
@@ -1559,6 +1570,7 @@
       "page": "strike.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/strike.webp) center / cover no-repeat, radial-gradient(circle at 38% 54%, rgba(110,104,95,0.92) 0%, rgba(164,132,90,0.88) 38%, rgba(212,174,116,0.92) 72%, transparent 88%), radial-gradient(circle at 72% 36%, rgba(242,168,54,0.72) 0%, rgba(138,104,64,0.85) 36%, transparent 64%), linear-gradient(145deg, #685036 0%, #9c7a4c 48%, #c9a46d 100%)",
       "groups": [
         {
@@ -1665,6 +1677,7 @@
       "page": "pocket.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/pocket.webp) center / cover no-repeat, radial-gradient(circle at 38% 52%, rgba(168,46,40,0.92) 0%, rgba(112,56,42,0.88) 32%, rgba(84,112,86,0.9) 62%, transparent 82%), radial-gradient(circle at 72% 36%, rgba(235,190,82,0.75) 0%, rgba(74,98,74,0.88) 38%, transparent 66%), linear-gradient(150deg, #3c4b39 0%, #5e6d52 48%, #7a7352 100%)",
       "groups": [
         {
@@ -1770,6 +1783,7 @@
       "page": "roach.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/roach.webp) center / cover no-repeat, radial-gradient(circle at 32% 45%, rgba(255,196,92,0.85) 0%, rgba(196,108,48,0.72) 28%, transparent 56%), radial-gradient(circle at 70% 54%, rgba(235,96,158,0.68) 0%, rgba(124,62,36,0.75) 34%, transparent 62%), linear-gradient(155deg, #1b202d 0%, #3a2d28 52%, #594435 100%)",
       "groups": [
         {
@@ -1871,6 +1885,7 @@
       "page": "rosebrook.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "groups": [
         {
           "name": "溪流与草地",
@@ -1961,6 +1976,7 @@
       "page": "polarnight.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/polarnight.webp?v=fb23c3b3) center / cover no-repeat, linear-gradient(180deg, #050a1c 0%, #0b1733 40%, #24435f 60%, #8ea2c6 78%, #132c49 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2070,6 +2086,7 @@
       "page": "desert.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/desert.webp?v=1a2b3c4d) center / cover no-repeat, radial-gradient(ellipse 24% 20% at 68% 36%, #2bb8a8 0, #167b7f 62%, #4a823f 76%, transparent 82%), radial-gradient(ellipse 18% 16% at 30% 68%, #2bb8a8 0, #167b7f 62%, #4a823f 76%, transparent 82%), linear-gradient(155deg, #f3d089 0%, #dda259 52%, #b57333 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2177,6 +2194,7 @@
       "page": "zen-archipelago.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/zen-archipelago.webp) center / cover no-repeat, radial-gradient(ellipse 26% 18% at 32% 40%, rgba(255,148,184,0.68) 0%, rgba(78,242,255,0.22) 60%, transparent 78%), radial-gradient(ellipse 22% 16% at 68% 64%, rgba(255,194,217,0.62) 0%, rgba(28,128,148,0.26) 62%, transparent 80%), radial-gradient(circle at 52% 28%, rgba(255,220,140,0.48) 0%, transparent 32%), linear-gradient(155deg, #07131e 0%, #0f384e 52%, #155c6e 100%)",
       "groups": [
         {
@@ -2284,6 +2302,7 @@
       "page": "istanbul.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "heavy",
       "thumb": "url(thumbs/istanbul.webp) center / cover no-repeat, linear-gradient(160deg, #1b2d45 0%, #c97745 55%, #1b3d59 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2411,6 +2430,7 @@
       "page": "solar-system.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/solar-system.webp) center / cover no-repeat, linear-gradient(160deg, #0b1020 0%, #050811 55%, #020307 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2612,6 +2632,7 @@
       "page": "winter.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/winter.webp) center / cover no-repeat, linear-gradient(160deg, #0b1422 0%, #1d2e45 55%, #142030 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2735,6 +2756,7 @@
       "page": "neumorph.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "thumb": "url(thumbs/neumorph.webp) center / cover no-repeat, linear-gradient(155deg, #edf1f7 0%, #e0e5ec 55%, #d2d9e4 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2876,6 +2898,7 @@
       "page": "claymorph.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/claymorph.webp) center / cover no-repeat, linear-gradient(155deg, #f3f5fc 0%, #e1e7f7 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -2996,6 +3019,7 @@
       "page": "neobrutalism.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/neobrutalism.webp) center / cover no-repeat, linear-gradient(155deg, #f6f1e7 0%, #ffe14d 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -3127,6 +3151,7 @@
       "page": "voxelcraft.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "heavy",
       "thumb": "url(thumbs/voxelcraft.webp) center / cover no-repeat, linear-gradient(160deg, #6aaeff 0%, #c6e6ff 60%, #5ca944 100%)",
       "thumbSource": "custom",
       "groups": [
@@ -3273,6 +3298,7 @@
       "page": "liquidglass.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "credit": {
         "prefix": "光学算法源自",
         "label": "@samasante/liquid-glass & liquid-glass-studio",
@@ -3423,6 +3449,7 @@
       "page": "thinking-orbs.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "medium",
       "credit": {
         "prefix": "Thanks to",
         "label": "https://github.com/haplollc",
@@ -3602,6 +3629,7 @@
       "page": "ai-mascots.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "url(thumbs/ai-mascots.webp?v=0b58e9103d) center / cover no-repeat, radial-gradient(circle at 50% 34%, rgba(112,214,240,0.42) 0%, transparent 34%), radial-gradient(circle at 26% 72%, rgba(74,222,128,0.28) 0%, transparent 30%), radial-gradient(circle at 75% 32%, rgba(167,139,250,0.32) 0%, transparent 32%), radial-gradient(circle at 74% 71%, rgba(245,166,75,0.26) 0%, transparent 30%), linear-gradient(165deg, #090d18 0%, #0e1526 52%, #0a101d 100%)",
       "groups": [
         {
@@ -3713,6 +3741,7 @@
       "page": "cat-shore.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "radial-gradient(circle at 44% 59%, rgba(16,18,22,0.92) 0%, rgba(16,18,22,0.88) 10%, rgba(126,204,228,0.45) 14%, transparent 34%), linear-gradient(225deg, #e5c67b 0%, #cda95c 28%, #5ba3bd 54%, #1f506b 100%)",
       "groups": [
         {
@@ -3799,6 +3828,7 @@
       "page": "persephone.html",
       "status": "ready",
       "product": "free",
+      "memoryTier": "light",
       "thumb": "radial-gradient(circle at 50% 34%, rgba(235,242,255,0.44) 0%, rgba(140,152,190,0.22) 24%, transparent 56%), linear-gradient(180deg, #08050f 0%, #110d20 55%, #08050f 100%)",
       "groups": [
         {
@@ -3903,6 +3933,188 @@
               "step": 0.05,
               "default": 0.45,
               "format": "percent"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eye-within-words",
+      "adaptive": true,
+      "name": "字中之眼 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 生成式排版艺术：全屏幕边缘到边缘布满可读的哲思短句，上万词汇共同拼成一只会自然眨眼、凝视鼠标的巨大人眼，并配有在全景与特写之间缓缓推移的电影感镜头（1:1 移植自 mishratanya2311/eye_python）。",
+      "page": "eye-within-words.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "heavy",
+      "credit": {
+        "prefix": "灵感源自",
+        "label": "mishratanya2311/eye_python",
+        "url": "https://github.com/mishratanya2311/eye_python"
+      },
+      "thumb": "radial-gradient(ellipse 46% 26% at 50% 50%, rgba(6,11,22,0.94) 0%, rgba(22,238,218,0.20) 38%, transparent 62%), radial-gradient(circle at 50% 50%, rgba(0,222,252,0.30) 0%, transparent 22%), linear-gradient(180deg, #03060d 0%, #060d18 55%, #03060d 100%)",
+      "groups": [
+        {
+          "name": "调色板与编排",
+          "params": [
+            {
+              "key": "palette",
+              "label": "词汇调色板",
+              "hint": "午夜诗意（原版青蓝紫）、生物荧光绿松石或星象手稿紫罗兰",
+              "options": [
+                "午夜诗意",
+                "生物荧光",
+                "星象手稿"
+              ],
+              "values": [
+                "midnightPoetry",
+                "bioluminescentVerse",
+                "astralManuscript"
+              ],
+              "default": "midnightPoetry"
+            },
+            {
+              "key": "autoBlink",
+              "label": "自然眨眼",
+              "hint": "每 3-6 秒一次的生物眨眼节奏（偶尔双重眨眼）",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "autoZoom",
+              "label": "电影感镜头",
+              "hint": "在全景（1.0x）与特写（2.55x）之间连续缓慢变焦",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标可读衬底",
+              "hint": "在桌面图标后叠加柔和深色圆角衬底，让文字海洋上的图标保持清晰",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        },
+        {
+          "name": "渲染与随机种子",
+          "params": [
+            {
+              "key": "seed",
+              "label": "词汇随机种子",
+              "hint": "重新排布整片词汇海洋的随机种子（更改即重新生成）",
+              "min": 0,
+              "max": 999999,
+              "step": 1,
+              "default": 424242
+            },
+            {
+              "key": "quality",
+              "label": "烘焙质量",
+              "hint": "虚拟排版画布的烘焙分辨率",
+              "options": [
+                "低",
+                "均衡",
+                "高"
+              ],
+              "values": [
+                "low",
+                "balanced",
+                "high"
+              ],
+              "default": "high"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cosmic-eye",
+      "adaptive": true,
+      "name": "宇宙字符之眼 · OpenGL (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 实时 ASCII 艺术循环动画：从瞳孔深处旋转的木星与星环出发，平滑拉远展现整只金色虹膜人眼，左右张望并自然眨眼，再无缝潜回瞳孔宇宙形成无限循环。",
+      "page": "cosmic-eye.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "radial-gradient(circle at 50% 50%, #050507 0%, #050507 15%, rgba(216,155,72,0.82) 23%, rgba(128,76,28,0.68) 33%, rgba(20,11,6,0.92) 40%, rgba(220,224,230,0.28) 54%, transparent 68%), linear-gradient(180deg, #1b100a 0%, #2a1911 50%, #140b07 100%)",
+      "groups": [
+        {
+          "name": "ASCII 风格与色彩",
+          "params": [
+            {
+              "key": "palette",
+              "label": "主题配色",
+              "hint": "原版暖金琥珀（1:1 复刻）、翡翠宇宙或青蓝星云",
+              "options": [
+                "暖金琥珀",
+                "翡翠宇宙",
+                "青蓝星云"
+              ],
+              "values": [
+                "amberClassic",
+                "emeraldCosmos",
+                "cyanNebula"
+              ],
+              "default": "amberClassic"
+            },
+            {
+              "key": "charSize",
+              "label": "字符密度",
+              "hint": "ASCII 等宽字符网格尺寸（越小越细腻）",
+              "min": 5,
+              "max": 14,
+              "step": 1,
+              "default": 7,
+              "unit": "px"
+            }
+          ]
+        },
+        {
+          "name": "镜头循环与互动",
+          "params": [
+            {
+              "key": "speed",
+              "label": "循环速度",
+              "hint": "镜头推拉、眼神转动与行星自转的整体节奏",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1,
+              "format": "times"
+            },
+            {
+              "key": "autoLoop",
+              "label": "无限穿越循环",
+              "hint": "瞳孔行星 → 拉远全眼 → 左右张望与眨眼 → 潜回瞳孔的无缝循环",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "mouseFollow",
+              "label": "目光跟随光标",
+              "hint": "在全眼画面下让视线轻柔跟随鼠标位置（点击桌面可即时眨眼）",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标可读衬底",
+              "hint": "在桌面图标后方叠加柔和深色圆角衬底",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
             }
           ]
         }
