@@ -73,6 +73,16 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up Rust Android targets
+        shell: bash
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - name: Build native Rust + OpenGL ES 3.0 libraries for Android
+        shell: bash
+        run: |
+          bash android/build-native-gl.sh
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:

@@ -6,7 +6,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 LINUX=$(CDPATH= cd -- "$HERE/.." && pwd)
 ROOT=$(CDPATH= cd -- "$LINUX/.." && pwd)
-VERSION="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'] + '~linux1')" "$ROOT/tools/version.json" 2>/dev/null || echo "0.5.4~linux1")"
+VERSION="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'] + '~linux1')" "$ROOT/tools/version.json" 2>/dev/null || echo "0.5.5~linux1")"
 NATIVE_GL_SO=""
 if [ -f "$ROOT/native/diyardesk-gl/target/release/libdiyardesk_gl.so" ]; then
   NATIVE_GL_SO="$ROOT/native/diyardesk-gl/target/release/libdiyardesk_gl.so"

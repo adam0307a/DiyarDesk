@@ -1,6 +1,6 @@
 # Maintainer: DiyarDesk contributors
 pkgname=diyardesk
-pkgver=0.5.4
+pkgver=0.5.5
 pkgrel=1
 pkgdesc="DiyarDesk — native Rust OpenGL 3.3 & HTML/CSS/JS adaptive wallpaper that follows desktop icons"
 arch=('x86_64' 'aarch64')

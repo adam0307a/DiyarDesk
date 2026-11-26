@@ -60,6 +60,17 @@
   </screenshots>
 
   <releases>
+    <release version="0.5.5" date="2026-11-27">
+      <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.5</url>
+      <description>
+        <ul>
+          <li>Added inactive OpenGL theme renderer eviction on theme switch to reduce GPU VRAM and host RAM across Windows, Linux, Android, and macOS</li>
+          <li>Added zero-WebView hardware-accelerated video wallpaper backends across all 4 platforms: Android MediaPlayer, Windows WPF MediaElement (+ mpv.exe), Linux libmpv Gtk.GLArea / GStreamer on Wayland &amp; X11, and macOS AVQueuePlayer</li>
+          <li>Ported the native Rust + OpenGL 3.3 Core engine (libdiyardesk_gl.dylib) to macOS alongside live RAM badges and Light / Medium / Heavy memory tier tags</li>
+          <li>Brought native Rust + OpenGL ES 3.0 (16 KB page-aligned) and fast baked Eye Within Words / Cosmic Eye themes to Android tablets</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.4" date="2026-11-25">
       <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.4</url>
       <description>
