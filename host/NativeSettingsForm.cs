@@ -34,12 +34,14 @@ class NativeSettingsForm : Form
 
     // Layout & controls
     Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel;
-    FlowLayoutPanel topControlsFlow, themeGrid;
+    FlowLayoutPanel topControlsFlow, themeGrid, categoryFlow;
     Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
     TextBox searchBox;
     CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
-    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch;
+    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset;
+    string activeCategory = "all";
+    readonly List<Button> categoryButtons = new List<Button>();
     Font fontBrand, fontTitle, fontSub, fontGroup, fontBody, fontSmall, fontBold;
 
     // Live Rust OpenGL preview
@@ -297,11 +299,11 @@ class NativeSettingsForm : Form
         cmbPlaylist.SelectedIndexChanged += delegate
         {
             if (suppressEvents) return;
-            int[] mins = { 0, 15, 30, 60, 180 };
+            int[] mins = { 0, 15, 30, 60, 180, -1 };
             if (cmbPlaylist.SelectedIndex >= 0 && cmbPlaylist.SelectedIndex < mins.Length)
             {
                 int iv = mins[cmbPlaylist.SelectedIndex];
-                host.SetPlaylistFromUi(iv > 0, iv > 0 ? iv : 30);
+                host.SetPlaylistFromUi(iv != 0, iv == -1 ? -1 : (iv > 0 ? iv : 30));
             }
         };
 
@@ -498,9 +500,23 @@ class NativeSettingsForm : Form
             FlashSaved();
         };
 
+        btnExportPreset = MakeGhostButton("Export");
+        btnExportPreset.Click += delegate
+        {
+            host.ExportPresetFromNative(this);
+        };
+
+        btnImportPreset = MakeGhostButton("Import");
+        btnImportPreset.Click += delegate
+        {
+            host.ImportPresetFromNative(this);
+        };
+
         prevActions.Controls.Add(btnPreviewPause);
         prevActions.Controls.Add(btnReseed);
         prevActions.Controls.Add(btnResetAll);
+        prevActions.Controls.Add(btnExportPreset);
+        prevActions.Controls.Add(btnImportPreset);
 
         previewCard.Controls.Add(prevActions);
         previewCard.Controls.Add(previewFootLabel);
@@ -564,6 +580,14 @@ class NativeSettingsForm : Form
         leftHead.Controls.Add(subtitleLabel);
         leftHead.Controls.Add(searchBox);
 
+        categoryFlow = new FlowLayoutPanel();
+        categoryFlow.Dock = DockStyle.Top;
+        categoryFlow.AutoSize = true;
+        categoryFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        categoryFlow.WrapContents = true;
+        categoryFlow.BackColor = colBg;
+        categoryFlow.Padding = new Padding(0, S(2), 0, S(8));
+
         themeGrid = new FlowLayoutPanel();
         themeGrid.Dock = DockStyle.Fill;
         themeGrid.AutoScroll = true;
@@ -586,10 +610,16 @@ class NativeSettingsForm : Form
         btnClearSearch = MakeGhostButton("Clear search");
         btnClearSearch.Click += delegate
         {
-            if (searchBox != null)
+            activeCategory = "all";
+            RefreshCategoryButtonStyles();
+            if (searchBox != null && !string.IsNullOrEmpty(searchBox.Text))
             {
                 searchBox.Text = "";
                 searchBox.Focus();
+            }
+            else
+            {
+                FilterThemeCards(searchBox != null ? searchBox.Text : "");
             }
         };
 
@@ -605,6 +635,7 @@ class NativeSettingsForm : Form
 
         leftPanel.Controls.Add(themeGrid);
         leftPanel.Controls.Add(searchEmptyPanel);
+        leftPanel.Controls.Add(categoryFlow);
         leftPanel.Controls.Add(leftHead);
 
         bodyPanel.Controls.Add(leftPanel);
@@ -689,6 +720,7 @@ class NativeSettingsForm : Form
         }
         for (int i = 0; i < themeCards.Count; i++)
             themeCards[i].SetPalette(colCard, colCardHover, colBorder, colText, colMuted, colAccent, colAccentSoft);
+        RefreshCategoryButtonStyles();
     }
 
     void ApplyPaletteRecursive(Control root)
@@ -705,7 +737,7 @@ class NativeSettingsForm : Form
             {
                 if (c != previewHostWrap) c.BackColor = colSurface;
             }
-            else if (c == leftPanel || c == themeGrid || c == rightPanel || c == searchEmptyPanel)
+            else if (c == leftPanel || c == themeGrid || c == rightPanel || c == searchEmptyPanel || c == categoryFlow)
             {
                 c.BackColor = colBg;
             }
@@ -714,7 +746,7 @@ class NativeSettingsForm : Form
                 c.BackColor = colBorder;
             }
 
-            if (c is Button && c != btnSwitchWebView)
+            if (c is Button && c != btnSwitchWebView && c.Parent != categoryFlow)
             {
                 var b = (Button)c;
                 b.BackColor = colCard;
@@ -839,6 +871,16 @@ class NativeSettingsForm : Form
             tip.SetToolTip(btnReseed, I18n.Ui("refreshTitle"));
             btnResetAll.Text = I18n.Ui("resetAll");
             tip.SetToolTip(btnResetAll, I18n.Ui("resetAllTitle"));
+            if (btnExportPreset != null)
+            {
+                btnExportPreset.Text = I18n.Ui("exportPreset");
+                tip.SetToolTip(btnExportPreset, I18n.Ui("exportPresetTitle"));
+            }
+            if (btnImportPreset != null)
+            {
+                btnImportPreset.Text = I18n.Ui("importPreset");
+                tip.SetToolTip(btnImportPreset, I18n.Ui("importPresetTitle"));
+            }
             btnPreviewPause.Text = previewPaused ? "▶ " + I18n.Ui("livePreview") : "⏸ " + I18n.Ui("livePreview");
             savedLabel.Text = I18n.Ui("autosave");
             previewFootLabel.Text = "● " + I18n.Ui("livePreview") + " (Rust OpenGL 3.3)";
@@ -857,7 +899,8 @@ class NativeSettingsForm : Form
                 I18n.Ui("playlist15"),
                 I18n.Ui("playlist30"),
                 I18n.Ui("playlist60"),
-                I18n.Ui("playlist180")
+                I18n.Ui("playlist180"),
+                I18n.Ui("playlistSmart")
             });
 
             cmbLang.Items.Clear();
@@ -868,6 +911,7 @@ class NativeSettingsForm : Form
         finally { suppressEvents = false; }
 
         SyncGlobalControlsFromSettings();
+        RebuildCategoryBar();
         RebuildThemeCards();
         SelectThemeUi(Settings.Theme);
     }
@@ -891,7 +935,8 @@ class NativeSettingsForm : Form
             int pIdx = 0;
             if (Settings.PlaylistEnabled)
             {
-                if (Settings.PlaylistIntervalMin <= 15) pIdx = 1;
+                if (Settings.PlaylistIntervalMin == -1) pIdx = 5;
+                else if (Settings.PlaylistIntervalMin <= 15) pIdx = 1;
                 else if (Settings.PlaylistIntervalMin <= 30) pIdx = 2;
                 else if (Settings.PlaylistIntervalMin <= 60) pIdx = 3;
                 else pIdx = 4;
@@ -1025,6 +1070,68 @@ class NativeSettingsForm : Form
         catch { return null; }
     }
 
+    void RebuildCategoryBar()
+    {
+        if (categoryFlow == null) return;
+        categoryFlow.SuspendLayout();
+        categoryFlow.Controls.Clear();
+        categoryButtons.Clear();
+
+        bool hasCustom = false;
+        for (int i = 0; i < allThemes.Count; i++)
+        {
+            string id = allThemes[i].ContainsKey("id") ? (allThemes[i]["id"] as string ?? "") : "";
+            string cat = allThemes[i].ContainsKey("category") ? (allThemes[i]["category"] as string ?? "") : "";
+            if (id.StartsWith("custom-") || string.Equals(cat, "custom", StringComparison.OrdinalIgnoreCase))
+            {
+                hasCustom = true;
+                break;
+            }
+        }
+
+        string[,] defs = {
+            { "all", "catAll" },
+            { "widgets", "catWidgets" },
+            { "design3d", "catDesign3d" },
+            { "nature", "catNature" },
+            { "art", "catArt" },
+            { "custom", "catCustom" }
+        };
+        for (int i = 0; i < defs.GetLength(0); i++)
+        {
+            string key = defs[i, 0];
+            if (key == "custom" && !hasCustom) continue;
+            var btn = MakeGhostButton(I18n.Ui(defs[i, 1]));
+            btn.Tag = key;
+            btn.Padding = new Padding(S(9), S(2), S(9), S(2));
+            btn.Margin = new Padding(0, 0, S(6), S(4));
+            string captured = key;
+            btn.Click += delegate
+            {
+                activeCategory = captured;
+                RefreshCategoryButtonStyles();
+                FilterThemeCards(searchBox != null ? searchBox.Text : "");
+            };
+            categoryButtons.Add(btn);
+            categoryFlow.Controls.Add(btn);
+        }
+        RefreshCategoryButtonStyles();
+        categoryFlow.ResumeLayout();
+    }
+
+    void RefreshCategoryButtonStyles()
+    {
+        for (int i = 0; i < categoryButtons.Count; i++)
+        {
+            var b = categoryButtons[i];
+            bool active = string.Equals(b.Tag as string, activeCategory, StringComparison.OrdinalIgnoreCase);
+            b.BackColor = active ? colAccentSoft : colCard;
+            b.ForeColor = active ? colAccent : colText;
+            b.FlatAppearance.BorderColor = active ? colAccent : colBorder;
+            b.FlatAppearance.MouseOverBackColor = active ? colAccentSoft : colCardHover;
+        }
+    }
+
     void RebuildThemeCards()
     {
         themeGrid.SuspendLayout();
@@ -1043,6 +1150,7 @@ class NativeSettingsForm : Form
             string rawName = th.ContainsKey("name") ? th["name"] as string : id;
             string name = I18n.ThemeName(id, rawName);
             string thumb = th.ContainsKey("thumb") ? th["thumb"] as string : "";
+            string cat = th.ContainsKey("category") ? (th["category"] as string ?? "art") : (id.StartsWith("custom-") ? "custom" : "art");
             string memTier = th.ContainsKey("memoryTier") ? (th["memoryTier"] as string ?? "") : "";
             string tierLabel = string.Equals(memTier, "light", StringComparison.OrdinalIgnoreCase)
                 ? I18n.Ui("ramTierLight")
@@ -1052,7 +1160,7 @@ class NativeSettingsForm : Form
             Color[] grad = ParseThumbGradient(thumb);
             Bitmap thumbBmp = LoadThumbBitmap(id, thumb);
 
-            var card = new ThemeCardControl(id, name, grad, thumbBmp, activeBadge, readyBadge, memTier, tierLabel, fontBold, fontSmall);
+            var card = new ThemeCardControl(id, name, cat, grad, thumbBmp, activeBadge, readyBadge, memTier, tierLabel, fontBold, fontSmall);
             card.Size = new Size(cardW, cardH);
             card.Margin = new Padding(0, 0, S(10), S(10));
             card.SetPalette(colCard, colCardHover, colBorder, colText, colMuted, colAccent, colAccentSoft);
@@ -1106,15 +1214,17 @@ class NativeSettingsForm : Form
         for (int i = 0; i < themeCards.Count; i++)
         {
             var c = themeCards[i];
-            bool match = string.IsNullOrEmpty(q)
+            bool catMatch = activeCategory == "all" || string.Equals(c.ThemeCategory, activeCategory, StringComparison.OrdinalIgnoreCase);
+            bool textMatch = string.IsNullOrEmpty(q)
                 || c.ThemeTitle.ToLowerInvariant().Contains(q)
                 || c.ThemeId.ToLowerInvariant().Contains(q);
+            bool match = catMatch && textMatch;
             c.Visible = match;
             if (match) visibleCount++;
         }
         themeGrid.ResumeLayout();
 
-        bool showEmpty = visibleCount == 0 && !string.IsNullOrEmpty(q);
+        bool showEmpty = visibleCount == 0 && (!string.IsNullOrEmpty(q) || activeCategory != "all");
         if (searchEmptyPanel != null && themeGrid != null)
         {
             if (showEmpty)
@@ -1204,7 +1314,9 @@ class NativeSettingsForm : Form
         string tid = theme["id"] as string;
         object rawGroups;
         var groups = theme.TryGetValue("groups", out rawGroups) ? AsArray(rawGroups) : null;
-        if (groups == null || groups.Length == 0)
+        object rawPresets;
+        var presets = theme.TryGetValue("presets", out rawPresets) ? AsArray(rawPresets) : null;
+        if ((groups == null || groups.Length == 0) && (presets == null || presets.Length == 0))
         {
             var empty = new Label();
             empty.Text = I18n.Ui("noParams");
@@ -1219,6 +1331,62 @@ class NativeSettingsForm : Form
         var saved = Settings.For(tid);
         int y = S(4);
         int fullW = Math.Max(S(320), paramsWrap.ClientSize.Width - S(44));
+
+        if (presets != null && presets.Length > 0)
+        {
+            var lblPr = new Label();
+            lblPr.Text = I18n.Ui("quickPresets");
+            lblPr.Font = fontGroup;
+            lblPr.ForeColor = colAccent;
+            lblPr.AutoSize = true;
+            lblPr.Location = new Point(0, y);
+            paramsWrap.Controls.Add(lblPr);
+            y += S(22);
+
+            var pFlow = new FlowLayoutPanel();
+            pFlow.Location = new Point(0, y);
+            pFlow.Width = fullW;
+            pFlow.AutoSize = true;
+            pFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            pFlow.MaximumSize = new Size(fullW, 0);
+            pFlow.WrapContents = true;
+            pFlow.BackColor = Color.Transparent;
+
+            for (int pi = 0; pi < presets.Length; pi++)
+            {
+                var pr = presets[pi] as Dictionary<string, object>;
+                if (pr == null) continue;
+                string pid = pr.ContainsKey("id") ? (pr["id"] as string ?? "") : "";
+                string pName = pr.ContainsKey("name") ? (pr["name"] as string ?? pid) : pid;
+                if (I18n.Code == "tr" && pr.ContainsKey("nameTr") && pr["nameTr"] is string)
+                    pName = pr["nameTr"] as string;
+                var vals = pr.ContainsKey("values") ? (pr["values"] as Dictionary<string, object>) : null;
+                if (string.IsNullOrEmpty(pName) || vals == null) continue;
+
+                var btn = MakeGhostButton(pName);
+                btn.Margin = new Padding(0, 0, S(6), S(6));
+                var capturedTheme = theme;
+                var capturedVals = vals;
+                btn.Click += delegate
+                {
+                    foreach (var kv in capturedVals)
+                        host.SetParamFromNative(tid, kv.Key, kv.Value);
+                    RebuildParamControls(capturedTheme);
+                    SyncPreviewThemeState();
+                    FlashSaved();
+                };
+                pFlow.Controls.Add(btn);
+            }
+            paramsWrap.Controls.Add(pFlow);
+            int pH = pFlow.GetPreferredSize(new Size(fullW, 0)).Height;
+            y += Math.Max(S(28), pH) + S(10);
+        }
+
+        if (groups == null)
+        {
+            paramsWrap.ResumeLayout();
+            return;
+        }
 
         for (int gi = 0; gi < groups.Length; gi++)
         {
@@ -1693,6 +1861,7 @@ class NativeSettingsForm : Form
     {
         public readonly string ThemeId;
         public readonly string ThemeTitle;
+        public readonly string ThemeCategory;
         readonly Color[] gradColors;
         readonly Bitmap thumbImage;
         readonly string activeBadge, readyBadge, memoryTier, tierLabel;
@@ -1700,10 +1869,11 @@ class NativeSettingsForm : Form
         Color cBg, cHover, cBorder, cText, cMuted, cAccent, cAccentSoft;
         bool selected, hovered;
 
-        public ThemeCardControl(string id, string title, Color[] grad, Bitmap thumbImage, string activeBadge, string readyBadge, string memoryTier, string tierLabel, Font titleFont, Font badgeFont)
+        public ThemeCardControl(string id, string title, string category, Color[] grad, Bitmap thumbImage, string activeBadge, string readyBadge, string memoryTier, string tierLabel, Font titleFont, Font badgeFont)
         {
             ThemeId = id;
             ThemeTitle = title;
+            ThemeCategory = string.IsNullOrEmpty(category) ? "art" : category;
             gradColors = grad;
             this.thumbImage = thumbImage;
             this.activeBadge = activeBadge;

@@ -86,6 +86,27 @@
     return typeof renderLabels === 'function' && ((typeof city !== 'undefined' && city) || (typeof world !== 'undefined' && world));
   }
   function drawSampleIcons(ctx, s) { for (const ic of icons) drawIcon(ctx, ic, s, ic.x, ic.y, 0); }
+  function drawShowcaseBadge(ctx, w, h) {
+    if (window.__hideShowcaseBadge) return;
+    const sc = Math.max(0.75, Math.min(2.2, Math.min(w, h) / 1080));
+    const padX = Math.round(11 * sc), padY = Math.round(6 * sc), margin = Math.round(18 * sc);
+    const label = 'DiyarDesk';
+    ctx.save();
+    ctx.font = '600 ' + Math.round(13 * sc) + 'px "Segoe UI", system-ui, sans-serif';
+    const tw = ctx.measureText(label).width;
+    const bw = Math.round(tw + padX * 2), bh = Math.round(24 * sc);
+    const bx = w - bw - margin, by = h - bh - margin;
+    roundRect(ctx, bx, by, bw, bh, bh / 2);
+    ctx.fillStyle = 'rgba(12, 18, 24, 0.58)';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, sc);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(245, 248, 252, 0.92)';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx + padX, by + bh * 0.52);
+    ctx.restore();
+  }
   // 按 scale（默认是屏幕的实际像素）画一张，画上示例图标，返回一张 2D 画布
   function snapshot(scale) {
     scale = scale || window.devicePixelRatio || 1;
@@ -106,6 +127,7 @@
     if (hasCache) cacheOK = false;
     draw(performance.now());
     drawSampleIcons(ctx, scale);
+    drawShowcaseBadge(ctx, out.width, out.height);
     return out;
   }
   function thumbOf(canvas, maxW) {
@@ -409,6 +431,7 @@
           ctx.strokeRect(Math.min(ax, bx) + 0.5, Math.min(ay, by) + 0.5, Math.abs(bx - ax), Math.abs(by - ay));
         }
         if (cursor) drawCursor(ctx, cursor[0], cursor[1], rs, cursor[2]);
+        drawShowcaseBadge(ctx, outW, outH);
         rctx.drawImage(comp, 0, 0);
         track.requestFrame();
         const prog = Math.min(1, t / total);

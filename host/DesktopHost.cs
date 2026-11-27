@@ -512,7 +512,7 @@ static class Settings
             if (root.TryGetValue("playlistIntervalMin", out v) && (v is int || v is long || v is double))
             {
                 int iv = Convert.ToInt32(v);
-                if (iv < 1) iv = 1;
+                if (iv != -1 && iv < 1) iv = 1;
                 if (iv > 1440) iv = 1440;
                 PlaylistIntervalMin = iv;
             }
@@ -768,6 +768,7 @@ class HostContext : ApplicationContext
     readonly WinMpvBackend mpvBackend = new WinMpvBackend();
     readonly WinSystemBridge sysBridge = new WinSystemBridge();
     DateTime lastSysBridgePush = DateTime.MinValue;
+    int lastSmartSlot = -1;
     readonly Control uiInvoker = new Control();
     IpcControlServer ipcServer;
     SettingsForm settingsWin;
@@ -1040,20 +1041,51 @@ class HostContext : ApplicationContext
         Log.Write(enabled ? "已开启窗口感知场景（Window-Aware）" : "已关闭窗口感知场景");
     }
 
+    int CurrentSmartSlot()
+    {
+        int hr = DateTime.Now.Hour;
+        if (hr >= 8 && hr < 18) return 0;
+        if (hr >= 18 && hr < 22) return 1;
+        return 2;
+    }
+
+    void ApplySmartDayRoutine(bool force)
+    {
+        int slot = CurrentSmartSlot();
+        if (!force && slot == lastSmartSlot) return;
+        lastSmartSlot = slot;
+        string[] picks = slot == 0
+            ? new[] { "material-impulse-gl", "papercut" }
+            : (slot == 1 ? new[] { "istanbul", "papercut" } : new[] { "polarnight", "aurora" });
+        for (int i = 0; i < picks.Length; i++)
+        {
+            string cand = picks[i];
+            if (ThemeAllowed(cand) && (!Settings.RustOpenGl || WallpaperForm.IsNativeGlTheme(cand)))
+            {
+                if (!string.Equals(Settings.Theme, cand, StringComparison.OrdinalIgnoreCase))
+                    SwitchThemeById(cand);
+                return;
+            }
+        }
+    }
+
     void SetPlaylist(bool? enabled, int? intervalMin)
     {
         if (enabled.HasValue) Settings.PlaylistEnabled = enabled.Value;
-        if (intervalMin.HasValue && intervalMin.Value >= 1)
+        if (intervalMin.HasValue && (intervalMin.Value == -1 || intervalMin.Value >= 1))
         {
             int iv = intervalMin.Value;
             if (iv > 1440) iv = 1440;
             Settings.PlaylistIntervalMin = iv;
         }
+        lastSmartSlot = -1;
         lastPlaylistSwitch = DateTime.UtcNow;
         SaveSoon();
         if (settingsWin != null)
             settingsWin.Post(Json.Stringify(Json.Obj("t", "playlistState", "enabled", Settings.PlaylistEnabled, "intervalMin", Settings.PlaylistIntervalMin)));
         SyncNativeSettingsGlobals();
+        if (Settings.PlaylistEnabled && Settings.PlaylistIntervalMin == -1)
+            ApplySmartDayRoutine(true);
     }
 
     void SyncMpvVideo()
@@ -1563,6 +1595,73 @@ class HostContext : ApplicationContext
         }
     }
 
+    public void ExportPresetFromNative(Form owner)
+    {
+        try
+        {
+            using (var dlg = new System.Windows.Forms.SaveFileDialog())
+            {
+                dlg.Title = I18n.Ui("exportPreset");
+                dlg.Filter = "DiyarDesk Preset (*.deskland-preset;*.json)|*.deskland-preset;*.json";
+                dlg.DefaultExt = "deskland-preset";
+                dlg.FileName = (Settings.Theme ?? "preset") + ".deskland-preset";
+                if (dlg.ShowDialog(owner) != DialogResult.OK) return;
+                var payload = Json.Obj(
+                    "format", "diyardesk-preset",
+                    "version", 1,
+                    "name", I18n.ThemeName(Settings.Theme, Settings.Theme),
+                    "theme", Settings.Theme,
+                    "params", Settings.For(Settings.Theme),
+                    "solarSync", Settings.SolarSync,
+                    "windowAware", Settings.WindowAware,
+                    "lowMode", Settings.LowMode);
+                File.WriteAllText(dlg.FileName, Json.Stringify(payload), Encoding.UTF8);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(owner, ex.Message, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    public void ImportPresetFromNative(Form owner)
+    {
+        try
+        {
+            using (var dlg = new System.Windows.Forms.OpenFileDialog())
+            {
+                dlg.Title = I18n.Ui("importPreset");
+                dlg.Filter = "DiyarDesk Preset (*.deskland-preset;*.json)|*.deskland-preset;*.json|All Files (*.*)|*.*";
+                if (dlg.ShowDialog(owner) != DialogResult.OK) return;
+                var root = Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>;
+                if (root == null || !root.ContainsKey("theme")) throw new Exception("Missing theme");
+                string tid = root["theme"] as string;
+                if (string.IsNullOrEmpty(tid) || !ThemeAllowed(tid)) throw new Exception("Unknown theme: " + (tid ?? ""));
+                object rawParams;
+                if (root.TryGetValue("params", out rawParams) && rawParams is Dictionary<string, object>)
+                {
+                    var pmap = Settings.For(tid);
+                    foreach (var kv in (Dictionary<string, object>)rawParams)
+                        pmap[kv.Key] = kv.Value;
+                }
+                object sv;
+                if (root.TryGetValue("solarSync", out sv) && sv is bool) SetSolarSync((bool)sv);
+                if (root.TryGetValue("windowAware", out sv) && sv is bool) SetWindowAware((bool)sv);
+                if (root.TryGetValue("lowMode", out sv) && sv is bool) SetLowMode((bool)sv);
+                SwitchThemeById(tid);
+                if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                {
+                    nativeSettingsWin.SyncGlobalControlsFromSettings();
+                    nativeSettingsWin.SelectThemeUi(tid);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(owner, I18n.Ui("presetImportError", "msg", ex.Message), "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
     string SettingsMessage()
     {
         return Json.Stringify(Json.Obj("t", "settings", "v", Settings.For(Settings.Theme)));
@@ -1750,6 +1849,27 @@ class HostContext : ApplicationContext
                 {
                     Log.Write("导出诊断日志失败：" + ex.Message);
                     if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "diagExported", "ok", false, "msg", ex.Message)));
+                }
+                break;
+            case "exportPreset":
+                try
+                {
+                    object pObj;
+                    if (!m.TryGetValue("payload", out pObj) || pObj == null) break;
+                    using (var dlg = new System.Windows.Forms.SaveFileDialog())
+                    {
+                        dlg.Title = I18n.Ui("exportPreset");
+                        dlg.Filter = "DiyarDesk Preset (*.deskland-preset;*.json)|*.deskland-preset;*.json";
+                        dlg.DefaultExt = "deskland-preset";
+                        dlg.FileName = (Settings.Theme ?? "preset") + ".deskland-preset";
+                        if (dlg.ShowDialog(settingsWin) != DialogResult.OK) break;
+                        File.WriteAllText(dlg.FileName, Json.Stringify(pObj), Encoding.UTF8);
+                        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "presetExported", "ok", true, "path", dlg.FileName)));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "presetExported", "ok", false, "msg", ex.Message)));
                 }
                 break;
             case "revealDiagnostics":
@@ -2302,17 +2422,24 @@ class HostContext : ApplicationContext
                 string statsJson = sysBridge.SampleJson();
                 ForEachWallpaper(delegate(WallpaperForm w) { w.Post(statsJson); });
             }
-            if (Settings.PlaylistEnabled && !manualPause && (DateTime.UtcNow - lastPlaylistSwitch).TotalMinutes >= Settings.PlaylistIntervalMin)
+            if (Settings.PlaylistEnabled && !manualPause)
             {
-                var ids = ReadyThemeIds();
-                if (ids.Count > 1)
+                if (Settings.PlaylistIntervalMin == -1)
                 {
-                    int idx = ids.IndexOf(Settings.Theme);
-                    SwitchThemeById(ids[(idx + 1) % ids.Count]);
+                    ApplySmartDayRoutine(false);
                 }
-                else
+                else if ((DateTime.UtcNow - lastPlaylistSwitch).TotalMinutes >= Settings.PlaylistIntervalMin)
                 {
-                    lastPlaylistSwitch = DateTime.UtcNow;
+                    var ids = ReadyThemeIds();
+                    if (ids.Count > 1)
+                    {
+                        int idx = ids.IndexOf(Settings.Theme);
+                        SwitchThemeById(ids[(idx + 1) % ids.Count]);
+                    }
+                    else
+                    {
+                        lastPlaylistSwitch = DateTime.UtcNow;
+                    }
                 }
             }
         }

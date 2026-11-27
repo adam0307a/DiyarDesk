@@ -1012,6 +1012,7 @@ impl AppState {
         if self.is_ai_mascots_theme() {
             self.ai_mascots.set_low_mode(self.low_mode);
             self.ai_mascots.resize(self.css_w(), self.css_h());
+            self.ai_mascots.set_windows(&self.windows);
             if !self.icons.is_empty() {
                 self.ai_mascots.set_icons(&self.icons, &self.icon_names, true);
             }
@@ -1615,6 +1616,7 @@ impl AppState {
                     }
                 }
                 self.quiet_snow.set_windows(&self.windows);
+                self.ai_mascots.set_windows(&self.windows);
             }
             "environment" => {
                 if let Some(hr) = v.get("hour").and_then(|x| x.as_f64()) {

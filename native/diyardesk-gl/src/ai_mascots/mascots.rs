@@ -1,4 +1,5 @@
 use super::field::{clamp, lerp, CampusEnvironment, IconInfluence, Mulberry32};
+use crate::quiet_snow::WindowInput;
 use std::f64::consts::TAU;
 
 // =========================================================================
@@ -111,6 +112,7 @@ pub struct Mascot {
     pub label_alpha: f64,   // smooth 0..1 fade for hover-only category pill
     pub cursor_focus: f64,  // 0..1 attention toward mouse cursor
     pub target_station_id: Option<u64>,
+    pub target_window_id: Option<i64>,
     pub speed: f64,
     pub is_floating: bool,
     pub scan_phase: f64,
@@ -189,6 +191,7 @@ impl MascotManager {
                 label_alpha: 0.0,
                 cursor_focus: 0.0,
                 target_station_id: None,
+                target_window_id: None,
                 speed: match kind {
                     MascotKind::Research => 46.0 * s,
                     MascotKind::Coding | MascotKind::Vision => 38.0 * s,
@@ -255,6 +258,7 @@ impl MascotManager {
         pointer_x: f64,
         pointer_y: f64,
         pointer_active: bool,
+        windows: &[WindowInput],
     ) {
         let act = clamp(activity, 0.2, 2.0);
         self.ai_tick_acc += dt;
@@ -267,6 +271,17 @@ impl MascotManager {
             0.0
         };
 
+        let usable_windows: Vec<&WindowInput> = windows
+            .iter()
+            .filter(|w| {
+                (w.w as f64) >= 140.0
+                    && (w.h as f64) >= 80.0
+                    && (w.y as f64) >= 44.0
+                    && (w.y as f64) <= env.h - 72.0
+                    && (w.w as f64) * (w.h as f64) <= env.w * env.h * 0.88
+            })
+            .collect();
+
         // Detect recently moved desktop icons -> 1-2 nearest mascots look toward the moved icon
         let mut moved_icon_pos: Option<(f64, f64)> = None;
         for st in &field.stations {
@@ -277,11 +292,16 @@ impl MascotManager {
         }
         let mut notified_count = 0usize;
 
-        // Count currently walking mascots so the campus stays calm (never everyone moving at once)
+        // Count currently walking mascots & window-ledge mascots so campus stays calm
         let mut walking_count = self
             .mascots
             .iter()
             .filter(|m| m.state == MascotBehavior::Walk)
+            .count();
+        let mut window_target_count = self
+            .mascots
+            .iter()
+            .filter(|m| m.target_window_id.is_some())
             .count();
 
         // Snapshot positions for gentle mascot-to-mascot separation & social interaction
@@ -291,6 +311,34 @@ impl MascotManager {
             let m = &mut self.mascots[i];
             m.anim_phase = (m.anim_phase + dt * (1.8 + 0.6 * act)) % (TAU * 100.0);
             m.scan_phase = (m.scan_phase + dt * 1.15) % (TAU * 100.0);
+
+            // Sync or clear active desktop window ledge target before steering
+            if let Some(wid) = m.target_window_id {
+                if let Some(win) = usable_windows.iter().copied().find(|w| w.id == wid) {
+                    let ledge_y = clamp(win.y as f64 - 12.0, 44.0, env.h - 48.0);
+                    let ledge_min_x = clamp(win.x as f64 + 28.0, 52.0, env.w - 52.0);
+                    let ledge_max_x = clamp((win.x + win.w) as f64 - 28.0, ledge_min_x, env.w - 52.0);
+                    m.target_x = clamp(m.target_x, ledge_min_x, ledge_max_x);
+                    m.target_y = ledge_y;
+                    if m.state != MascotBehavior::Walk
+                        && ((m.y - ledge_y).abs() > 14.0 || m.x < ledge_min_x - 8.0 || m.x > ledge_max_x + 8.0)
+                    {
+                        m.state = MascotBehavior::Walk;
+                        m.state_timer = 5.0;
+                        walking_count += 1;
+                    }
+                } else {
+                    m.target_window_id = None;
+                    window_target_count = window_target_count.saturating_sub(1);
+                    m.target_x = m.home_x;
+                    m.target_y = m.home_y;
+                    if m.state != MascotBehavior::Walk {
+                        walking_count += 1;
+                    }
+                    m.state = MascotBehavior::Walk;
+                    m.state_timer = 4.0;
+                }
+            }
 
             // Mouse interaction: notice cursor, wave gently, fade in minimal hover label
             let dist_cursor = if pointer_active {
@@ -346,9 +394,26 @@ impl MascotManager {
                     let can_walk = walking_count < 4 || was_walking;
 
                     if can_walk && roll < 0.36 {
-                        // Pick a calm destination: icon workstation rim (if icons exist), campus terminal, or home wing
+                        // Pick a calm destination: open window ledge (if visible), icon workstation rim, campus terminal, or home wing
                         let mut picked = false;
-                        if !field.stations.is_empty() && self.rng.next_f64() < 0.48 {
+                        if !usable_windows.is_empty() && window_target_count < 2 && self.rng.next_f64() < 0.42 {
+                            let wi = (self.rng.next_f64() * usable_windows.len() as f64).floor() as usize % usable_windows.len();
+                            let win = usable_windows[wi];
+                            let ledge_min_x = clamp(win.x as f64 + 28.0, 52.0, env.w - 52.0);
+                            let ledge_max_x = clamp((win.x + win.w) as f64 - 28.0, ledge_min_x, env.w - 52.0);
+                            let tx = lerp(ledge_min_x, ledge_max_x, self.rng.next_f64());
+                            let ty = clamp(win.y as f64 - 12.0, 44.0, env.h - 48.0);
+                            if m.target_window_id.is_none() {
+                                window_target_count += 1;
+                            }
+                            m.target_x = tx;
+                            m.target_y = ty;
+                            m.target_station_id = None;
+                            m.target_window_id = Some(win.id);
+                            m.carry_orb = self.rng.next_f64() < 0.30;
+                            picked = true;
+                        }
+                        if !picked && !field.stations.is_empty() && self.rng.next_f64() < 0.48 {
                             let active_sts: Vec<usize> = field
                                 .stations
                                 .iter()
@@ -363,6 +428,9 @@ impl MascotManager {
                                 let tx = clamp(st.cx + ang.cos() * safe_r, 52.0, env.w - 52.0);
                                 let ty = clamp(st.cy + ang.sin() * safe_r * 0.85, 130.0, env.h - 48.0);
                                 if !field.is_inside_safe_zone(tx, ty, 12.0) {
+                                    if m.target_window_id.take().is_some() {
+                                        window_target_count = window_target_count.saturating_sub(1);
+                                    }
                                     m.target_x = tx;
                                     m.target_y = ty;
                                     m.target_station_id = Some(st.id);
@@ -395,6 +463,9 @@ impl MascotManager {
                                 env.w,
                                 env.h,
                             );
+                            if m.target_window_id.take().is_some() {
+                                window_target_count = window_target_count.saturating_sub(1);
+                            }
                             m.target_x = safe.0;
                             m.target_y = safe.1;
                             m.target_station_id = None;
@@ -513,8 +584,9 @@ impl MascotManager {
             let vel_k = 1.0 - (-6.5 * dt).exp();
             m.vx = lerp(m.vx, desired_vx, vel_k);
             m.vy = lerp(m.vy, desired_vy, vel_k);
+            let min_y = if m.target_window_id.is_some() { 40.0 } else { env.h * 0.22 };
             m.x = clamp(m.x + m.vx * dt, env.w * 0.08, env.w * 0.92);
-            m.y = clamp(m.y + m.vy * dt, env.h * 0.22, env.h * 0.88);
+            m.y = clamp(m.y + m.vy * dt, min_y, env.h * 0.88);
 
             // Hard safety clamp: never end up directly on top of an icon center
             if field.is_inside_safe_zone(m.x, m.y, 4.0) {

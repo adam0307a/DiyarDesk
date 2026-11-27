@@ -114,6 +114,37 @@
     text-align: center; color: var(--muted); font-size: 13px;
   }
   .theme-search-empty[hidden] { display: none; }
+  .welcome-tip {
+    margin: 0 0 16px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line);
+    background: var(--panel); display: flex; flex-direction: column; gap: 10px;
+  }
+  .welcome-tip[hidden] { display: none; }
+  .welcome-tip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .welcome-tip-head strong { font-size: 13.5px; font-weight: 700; color: var(--text); }
+  .welcome-tip-head p { margin: 3px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+  .welcome-tip-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .welcome-chip {
+    padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
+    color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .welcome-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .category-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+  .cat-chip {
+    padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent;
+    color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .cat-chip:hover { color: var(--text); border-color: var(--muted); background: var(--accent-soft); }
+  .cat-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .preset-chip {
+    padding: 5px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel-2);
+    color: var(--text); font: inherit; font-size: 11.5px; font-weight: 500; cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  .preset-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .preset-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .import-btn { gap: 6px; padding: 8px 13px; border-radius: 12px; font-size: 12px; flex: none; }
   .import-btn svg { width: 14px; height: 14px; }
   .ghost-btn.import-help-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 14px; font-weight: 750; line-height: 1; color: var(--muted); flex: none; }
@@ -430,6 +461,7 @@
         <option value="30" data-i18n="playlist30">Playlist: 30 min</option>
         <option value="60" data-i18n="playlist60">Playlist: 1 hr</option>
         <option value="180" data-i18n="playlist180">Playlist: 3 hr</option>
+        <option value="-1" data-i18n="playlistSmart">Playlist: Smart Day Routine</option>
       </select>
     </label>
     <label class="lang-row">
@@ -484,6 +516,20 @@
         <button class="ghost-btn import-help-btn" id="importHelpOpen" data-i18n-title="importHelpBtnTitle" title="查看支持的导入格式与说明" aria-label="Import guide">?</button>
       </div>
     </div>
+    <div class="welcome-tip" id="welcomeTip" hidden>
+      <div class="welcome-tip-head">
+        <div>
+          <strong data-i18n="welcomeTipTitle">Make your desktop come alive in 30 seconds</strong>
+          <p data-i18n="welcomeTipBody">Drag any desktop icon and watch the scene reshape around it. Pick a starter mood below:</p>
+        </div>
+        <button type="button" class="ghost-btn" id="welcomeTipDismiss" style="padding:4px 10px;font-size:11.5px" data-i18n="welcomeTipDismiss">Dismiss</button>
+      </div>
+      <div class="welcome-tip-actions">
+        <button type="button" class="welcome-chip" data-starter="material-impulse-gl" data-i18n="welcomePickWidgets">Work &amp; Widgets</button>
+        <button type="button" class="welcome-chip" data-starter="papercut" data-i18n="welcomePickLight">Ultra-Light (Paper Garden)</button>
+        <button type="button" class="welcome-chip" data-starter="quietsnow" data-i18n="welcomePickPhysics">Window Physics (Quiet Snow)</button>
+      </div>
+    </div>
     <label class="rust-gl-card" id="rustOpenGlRow" data-i18n-title="rustOpenGlTitle" title="Fast &amp; lightweight: saves up to 900 MB RAM by switching wallpapers and settings to native Rust OpenGL 3.3 with zero WebView2 processes">
       <span class="rust-gl-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -509,6 +555,7 @@
     </div>
     <div class="warn" id="autostartWarn" hidden role="alert"><p><b data-i18n="autostartBlocked">开机自动启动可能被拦截了</b><br><span id="autostartWarnText"></span></p><button id="autostartWarnOk" data-i18n="gotIt">知道了</button></div>
     <div class="warn" id="importWarn" hidden role="alert"><p><b id="importWarnTitle">Theme import failed</b><br><span id="importWarnText"></span></p><button id="importWarnOk" data-i18n="gotIt">知道了</button></div>
+    <div class="category-bar" id="categoryBar"></div>
     <div class="theme-search-empty" id="themeSearchEmpty" hidden>
       <p id="themeSearchEmptyText"></p>
       <button type="button" class="ghost-btn" id="themeSearchClear" data-i18n="searchThemesClear">Clear search</button>
@@ -680,6 +727,9 @@
 <footer class="bottom">
   <span class="saved" id="saved" data-i18n="autosave">设置会自动保存，并立即应用到桌面</span>
   <div class="bottom-actions">
+    <input type="file" id="presetFileInput" accept=".deskland-preset,.json" hidden>
+    <button class="ghost-btn" id="exportPresetBtn" data-i18n="exportPreset" data-i18n-title="exportPresetTitle" title="Save active theme and settings as .deskland-preset">Export preset</button>
+    <button class="ghost-btn" id="importPresetBtn" data-i18n="importPreset" data-i18n-title="importPresetTitle" title="Load a .deskland-preset recipe file">Import preset</button>
     <button class="ghost-btn" id="syncLockscreen" hidden data-i18n="syncLockscreen" data-i18n-title="syncLockscreenTitle" title="Render blurred lock screen image from active wallpaper">Sync lock screen</button>
     <button class="ghost-btn" id="lanPairOpen" hidden data-i18n="lanPairBtn" data-i18n-title="lanPairTitle" title="Local Wi-Fi Pairing">LAN Sync</button>
     <button class="ghost-btn" id="exportDiag" hidden data-i18n="exportDiag" data-i18n-title="exportDiagTitle" title="Export a privacy-safe diagnostic log">Export diagnostics</button>
@@ -697,7 +747,7 @@ const send = m => { if (host) host.postMessage(JSON.stringify(m)); };
 
 const state = { registry0: null, registry: null, theme: 'papercut', params: {}, screen: null, icons: null,
   langSetting: 'auto', langSys: 'zh-CN', autostartWarn: false, autostartSw: '', canSaveSnapshot: false,
-  ramMb: null, ramGlMb: null, searchQuery: '',
+  ramMb: null, ramGlMb: null, searchQuery: '', category: 'all', activePresetId: '',
   updateVersion: '', updateStatus: '', updateProgress: -1, updateError: '' };
 const $ = id => document.getElementById(id);
 const frame = $('preview');
@@ -780,7 +830,7 @@ async function setLang(code) {
 // 换了语言：界面上的字都重新填一遍（预览不用重新加载）
 function rerenderTexts() {
   if (!state.screen) return;
-  renderHead(); renderThemes(); renderControls(); updateFoot(); updateLiveRamBadge(); shareBusy(shareState); showAutostartWarn(); showUpdate();
+  renderHead(); renderCategoryBar(); renderThemes(); renderControls(); updateFoot(); updateLiveRamBadge(); shareBusy(shareState); showAutostartWarn(); showUpdate();
 }
 $('lang').addEventListener('change', e => {
   state.langSetting = e.target.value;
@@ -854,19 +904,51 @@ function tierBadgeHtml(tier) {
   if (!lbl) return '';
   return `<span class="tier-badge tier-${tier}" title="${escHtml(t('ramTierTitle'))}">${escHtml(lbl)}</span>`;
 }
+function themeCategory(th) {
+  if (!th) return 'art';
+  if (th.imported) return 'custom';
+  return th.category || 'art';
+}
+function renderCategoryBar() {
+  const bar = $('categoryBar');
+  if (!bar || !state.registry) return;
+  const hasCustom = state.registry.themes.some(th => !!th.imported);
+  const cats = [
+    ['all', 'catAll'],
+    ['widgets', 'catWidgets'],
+    ['design3d', 'catDesign3d'],
+    ['nature', 'catNature'],
+    ['art', 'catArt'],
+  ];
+  if (hasCustom) cats.push(['custom', 'catCustom']);
+  bar.innerHTML = cats.map(([id, key]) =>
+    `<button type="button" class="cat-chip${state.category === id ? ' on' : ''}" data-cat="${id}">${escHtml(t(key))}</button>`
+  ).join('');
+}
+if ($('categoryBar')) {
+  $('categoryBar').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]');
+    if (!b) return;
+    state.category = b.dataset.cat || 'all';
+    renderCategoryBar();
+    renderThemes();
+  });
+}
 function renderThemes() {
   const q = (state.searchQuery || '').trim().toLowerCase();
-  const list = q
-    ? state.registry.themes.filter(th =>
-        (th.name || '').toLowerCase().includes(q)
-        || (th.desc || '').toLowerCase().includes(q)
-        || (th.id || '').toLowerCase().includes(q))
-    : state.registry.themes;
+  const cat = state.category || 'all';
+  const list = state.registry.themes.filter(th => {
+    if (cat !== 'all' && themeCategory(th) !== cat) return false;
+    if (!q) return true;
+    return (th.name || '').toLowerCase().includes(q)
+      || (th.desc || '').toLowerCase().includes(q)
+      || (th.id || '').toLowerCase().includes(q);
+  });
   const emptyEl = $('themeSearchEmpty');
   if (emptyEl) {
     emptyEl.hidden = list.length > 0;
     if (list.length === 0) {
-      $('themeSearchEmptyText').textContent = t('searchThemesEmpty', { q: state.searchQuery.trim() });
+      $('themeSearchEmptyText').textContent = t('searchThemesEmpty', { q: state.searchQuery.trim() || t('catAll') });
     }
   }
   $('themes').hidden = list.length === 0;
@@ -889,8 +971,38 @@ if ($('themeSearch')) {
 if ($('themeSearchClear')) {
   $('themeSearchClear').addEventListener('click', () => {
     state.searchQuery = '';
+    state.category = 'all';
     if ($('themeSearch')) { $('themeSearch').value = ''; $('themeSearch').focus(); }
+    renderCategoryBar();
     renderThemes();
+  });
+}
+function initWelcomeTip() {
+  const tip = $('welcomeTip');
+  if (!tip) return;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem('diyardesk.welcomeTipDismissed.v1') === '1'; } catch (_) {}
+  tip.hidden = dismissed;
+}
+function dismissWelcomeTip() {
+  const tip = $('welcomeTip');
+  if (tip) tip.hidden = true;
+  try { localStorage.setItem('diyardesk.welcomeTipDismissed.v1', '1'); } catch (_) {}
+}
+if ($('welcomeTipDismiss')) $('welcomeTipDismiss').addEventListener('click', dismissWelcomeTip);
+if ($('welcomeTip')) {
+  $('welcomeTip').addEventListener('click', e => {
+    const btn = e.target.closest('[data-starter]');
+    if (!btn) return;
+    const tid = btn.dataset.starter;
+    const th = themeById(tid);
+    if (th && th.status === 'ready') {
+      state.theme = tid;
+      send({ t: 'theme', id: tid });
+      if (seedOf(tid) === undefined) setSeed(newSeed(), false);
+      showTheme();
+    }
+    dismissWelcomeTip();
   });
 }
 $('themes').addEventListener('click', e => {
@@ -916,8 +1028,15 @@ $('reseed').addEventListener('click', () => setSeed(newSeed(), true));
 /* ---------- 参数控件（按清单自动生成） ---------- */
 function renderControls() {
   const theme = themeById(state.theme), vals = valuesOf(theme);
-  if (!theme.groups) { $('controls').innerHTML = '<div class="empty">' + t('noParams') + '</div>'; return; }
-  $('controls').innerHTML = theme.groups.map(g => `
+  const presets = Array.isArray(theme.presets) ? theme.presets : [];
+  const presetsHtml = presets.length ? `
+    <div class="group presets-group"><h3>${escHtml(t('quickPresets'))}</h3>
+      <div class="preset-chips">${presets.map(pr =>
+        `<button type="button" class="preset-chip${state.activePresetId === (theme.id + ':' + pr.id) ? ' on' : ''}" data-preset="${escHtml(pr.id)}">${escHtml(pr.name)}</button>`
+      ).join('')}</div>
+    </div>` : '';
+  if (!theme.groups) { $('controls').innerHTML = presetsHtml + '<div class="empty">' + t('noParams') + '</div>'; return; }
+  $('controls').innerHTML = presetsHtml + theme.groups.map(g => `
     <div class="group"><h3>${g.name}</h3>
       ${g.params.map(p => {
         if (p.type === 'audio') {
@@ -1066,6 +1185,18 @@ $('controls').addEventListener('click', e => {
     const key = o.closest('.opts').dataset.key;
     setParam(key, optValue(paramOf(key), +o.dataset.opt));
   }
+  const pr = e.target.closest('[data-preset]');
+  if (pr) {
+    const th = themeById(state.theme);
+    const found = th && Array.isArray(th.presets) ? th.presets.find(x => x.id === pr.dataset.preset) : null;
+    if (found && found.values) {
+      state.activePresetId = th.id + ':' + found.id;
+      for (const [k, v] of Object.entries(found.values)) {
+        if (k === 'adaptive' || paramOf(k)) setParam(k, v);
+      }
+      document.querySelectorAll('.preset-chip').forEach(btn => btn.classList.toggle('on', btn.dataset.preset === found.id));
+    }
+  }
 });
 $('audioFileInput').addEventListener('change', e => {
   const f = e.target.files && e.target.files[0];
@@ -1118,8 +1249,9 @@ $('windowAware').addEventListener('change', e => {
   send({ t: 'windowAware', v: !!e.target.checked });
 });
 $('playlistMode').addEventListener('change', e => {
-  const mins = +e.target.value || 0;
-  send({ t: 'playlist', enabled: mins > 0, intervalMin: mins > 0 ? mins : 30 });
+  const val = parseInt(e.target.value, 10);
+  const mins = Number.isFinite(val) ? val : 0;
+  send({ t: 'playlist', enabled: mins !== 0, intervalMin: mins === -1 ? -1 : (mins > 0 ? mins : 30) });
 });
 if ($('systemBridge')) {
   if (window.DiyarNative && $('systemBridge').parentElement) $('systemBridge').parentElement.hidden = true;
@@ -1380,6 +1512,7 @@ function unloadPreviewIframe() {
 }
 function showTheme() {
   renderHead();
+  renderCategoryBar();
   renderThemes();
   renderControls();
   updateFoot();
@@ -1574,6 +1707,105 @@ addEventListener('keydown', e => {
     }
   }
 });
+
+function buildPresetPayload() {
+  const th = themeById(state.theme);
+  if (!th) return null;
+  return {
+    format: 'diyardesk-preset',
+    version: 1,
+    name: th.name || th.id,
+    theme: th.id,
+    params: valuesOf(th),
+    solarSync: !!($('solarSync') && $('solarSync').checked),
+    windowAware: !!($('windowAware') && $('windowAware').checked),
+    lowMode: !!state.lowMode,
+  };
+}
+function applyPresetObject(obj) {
+  try {
+    if (!obj || typeof obj !== 'object' || typeof obj.theme !== 'string') {
+      throw new Error('Missing theme id');
+    }
+    const th = themeById(obj.theme);
+    if (!th || th.status !== 'ready') {
+      throw new Error('Unknown theme: ' + obj.theme);
+    }
+    state.theme = th.id;
+    state.activePresetId = '';
+    send({ t: 'theme', id: th.id });
+    const nextParams = Object.assign({}, defaultsOf(th), (obj.params && typeof obj.params === 'object') ? obj.params : {});
+    state.params[th.id] = nextParams;
+    for (const [k, v] of Object.entries(nextParams)) {
+      send({ t: 'set', theme: th.id, key: k, value: v });
+    }
+    if (typeof obj.solarSync === 'boolean' && $('solarSync')) {
+      $('solarSync').checked = obj.solarSync;
+      send({ t: 'solarSync', v: obj.solarSync });
+    }
+    if (typeof obj.windowAware === 'boolean' && $('windowAware')) {
+      $('windowAware').checked = obj.windowAware;
+      send({ t: 'windowAware', v: obj.windowAware });
+    }
+    if (typeof obj.lowMode === 'boolean' && $('lowMode')) {
+      state.lowMode = obj.lowMode;
+      $('lowMode').checked = obj.lowMode;
+      send({ t: 'lowMode', v: obj.lowMode });
+    }
+    showTheme();
+    $('saved').textContent = t('presetImported', { name: obj.name || th.name || th.id });
+    $('saved').classList.add('flash');
+    setTimeout(() => { $('saved').textContent = t('autosave'); $('saved').classList.remove('flash'); }, 2200);
+  } catch (err) {
+    showInlineWarn(t('importPreset'), t('presetImportError', { msg: err && err.message ? err.message : t('unknownReason') }));
+  }
+}
+if ($('exportPresetBtn')) {
+  $('exportPresetBtn').addEventListener('click', () => {
+    const payload = buildPresetPayload();
+    if (!payload) return;
+    if (host) {
+      send({ t: 'exportPreset', payload });
+      return;
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (state.theme || 'diyardesk') + '.deskland-preset';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    $('saved').textContent = t('presetExported');
+    $('saved').classList.add('flash');
+    setTimeout(() => { $('saved').textContent = t('autosave'); $('saved').classList.remove('flash'); }, 2200);
+  });
+}
+if ($('importPresetBtn') && $('presetFileInput')) {
+  $('importPresetBtn').addEventListener('click', () => {
+    $('presetFileInput').value = '';
+    $('presetFileInput').click();
+  });
+  $('presetFileInput').addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    file.text().then(txt => applyPresetObject(JSON.parse(txt))).catch(err => {
+      showInlineWarn(t('importPreset'), t('presetImportError', { msg: err && err.message ? err.message : t('unknownReason') }));
+    });
+  });
+}
+document.body.addEventListener('dragover', e => {
+  if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+});
+document.body.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f) return;
+  const n = (f.name || '').toLowerCase();
+  if (n.endsWith('.deskland-preset') || n.endsWith('.json')) {
+    e.preventDefault();
+    f.text().then(txt => applyPresetObject(JSON.parse(txt))).catch(err => {
+      showInlineWarn(t('importPreset'), t('presetImportError', { msg: err && err.message ? err.message : t('unknownReason') }));
+    });
+  }
+});
 $('shareOpen').addEventListener('click', () => send({ t: 'openShare' }));
 $('shareReveal').addEventListener('click', () => send({ t: 'revealShare' }));
 if ($('exportDiag')) {
@@ -1660,13 +1892,14 @@ function onHost(m) {
       updateRustGlHint(state.nativeActive, m.webview2MemMb);
       if ($('qualityProfile') && m.qualityProfile) $('qualityProfile').value = m.qualityProfile;
       if ($('playlistMode')) {
-        const iv = m.playlistEnabled ? String(m.playlistIntervalMin || 30) : '0';
+        const iv = m.playlistEnabled ? (m.playlistIntervalMin === -1 ? '-1' : String(m.playlistIntervalMin || 30)) : '0';
         const pm = $('playlistMode');
         pm.value = Array.from(pm.options).some(o => o.value === iv) ? iv : (m.playlistEnabled ? '30' : '0');
       }
       state.autostartWarn = !!m.autostartWarn;
       state.autostartSw = m.autostartSw || '';
       state.canSaveSnapshot = !!m.canSaveSnapshot;
+      initWelcomeTip();
       showAutostartWarn();
       showUpdate();
       showTheme();
@@ -1709,7 +1942,7 @@ function onHost(m) {
     if ($('windowAware')) $('windowAware').checked = !!m.v;
   } else if (m.t === 'playlistState') {
     if ($('playlistMode')) {
-      const iv = m.enabled ? String(m.intervalMin || 30) : '0';
+      const iv = m.enabled ? (m.intervalMin === -1 ? '-1' : String(m.intervalMin || 30)) : '0';
       const pm = $('playlistMode');
       pm.value = Array.from(pm.options).some(o => o.value === iv) ? iv : (m.enabled ? '30' : '0');
     }
@@ -1798,6 +2031,16 @@ function onHost(m) {
       syncAudioUi();
       flashSaved();
     }
+  } else if (m.t === 'presetExported') {
+    if (m.ok) {
+      $('saved').textContent = t('presetExported');
+      $('saved').classList.add('flash');
+      setTimeout(() => { $('saved').textContent = t('autosave'); $('saved').classList.remove('flash'); }, 2200);
+    } else if (m.msg) {
+      showInlineWarn(t('exportPreset'), m.msg);
+    }
+  } else if (m.t === 'presetImportPayload') {
+    if (m.data) applyPresetObject(m.data);
   } else if (m.t === 'audioPlay') {
     const thId = m.theme || state.theme;
     const cur = (state.params[thId] = state.params[thId] || {});

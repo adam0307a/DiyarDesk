@@ -3,6 +3,7 @@ pub mod mascots;
 pub mod shaders;
 
 use crate::gl::*;
+use crate::quiet_snow::WindowInput;
 use crate::state::{AppState, Rect};
 use crate::text::TextRenderer;
 use field::{clamp, lerp, BuildingKind, CampusBuilding, CampusEnvironment, IconInfluence, Mulberry32};
@@ -258,6 +259,7 @@ pub struct AiMascotsState {
     pulses: Vec<ConduitPulse>,
     cached_icons: Vec<Rect>,
     cached_names: Vec<String>,
+    cached_windows: Vec<WindowInput>,
     pointer_x: f64,
     pointer_y: f64,
     pointer_active: bool,
@@ -283,6 +285,7 @@ impl Default for AiMascotsState {
             pulses: Vec::new(),
             cached_icons: Vec::new(),
             cached_names: Vec::new(),
+            cached_windows: Vec::new(),
             pointer_x: 960.0,
             pointer_y: 540.0,
             pointer_active: false,
@@ -297,6 +300,14 @@ impl Default for AiMascotsState {
 }
 
 impl AiMascotsState {
+    pub fn set_windows(&mut self, windows: &[WindowInput]) {
+        self.cached_windows.clear();
+        for w in windows.iter().take(12) {
+            self.cached_windows.push(*w);
+        }
+        self.dirty = true;
+    }
+
     pub fn set_low_mode(&mut self, low: bool) {
         if self.low_mode != low {
             self.low_mode = low;
@@ -486,6 +497,7 @@ impl AiMascotsState {
             self.pointer_x - self.parallax_x,
             self.pointer_y - self.parallax_y,
             self.pointer_active,
+            &self.cached_windows,
         );
 
         // 4. Step pooled floating data motes (gently deflected around icons & cursor)
@@ -1982,5 +1994,38 @@ mod tests {
             assert_eq!(px[(y * 128 + 0) * 4 + 3], 0);
             assert_eq!(px[(y * 128 + 127) * 4 + 3], 0);
         }
+    }
+
+    #[test]
+    fn ai_mascots_window_aware_targets_and_closes_cleanly() {
+        let mut st = AiMascotsState::default();
+        let win = WindowInput {
+            id: 4242,
+            x: 320.0,
+            y: 160.0,
+            w: 640.0,
+            h: 420.0,
+        };
+        st.set_windows(&[win]);
+        for _ in 0..320 {
+            st.step(0.05);
+        }
+        let targeting = st
+            .manager
+            .mascots
+            .iter()
+            .filter(|m| m.target_window_id == Some(4242))
+            .count();
+        assert!(targeting >= 1);
+
+        st.set_windows(&[]);
+        for _ in 0..30 {
+            st.step(0.05);
+        }
+        assert!(st
+            .manager
+            .mascots
+            .iter()
+            .all(|m| m.target_window_id.is_none() && m.x.is_finite() && m.y.is_finite()));
     }
 }

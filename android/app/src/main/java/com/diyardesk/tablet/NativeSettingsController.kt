@@ -579,8 +579,9 @@ class NativeSettingsController(
         }
 
         val savedParams = store.getParamsCopy(themeId)
+        val presets = themeObj.optJSONArray("presets")
         val groups = themeObj.optJSONArray("groups")
-        if (groups == null || groups.length() == 0) {
+        if ((groups == null || groups.length() == 0) && (presets == null || presets.length() == 0)) {
             val emptyTv = TextView(context).apply {
                 text = ui("noParams", "This theme has no settings yet")
                 setTextColor(Color.parseColor("#9BB9AF"))
@@ -591,6 +592,61 @@ class NativeSettingsController(
         }
 
         var addedCount = 0
+        if (presets != null && presets.length() > 0) {
+            val prTitle = TextView(context).apply {
+                text = ui("quickPresets", "Quick styles")
+                setTextColor(Color.parseColor("#7FE0C2"))
+                textSize = 13.5f
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(0, 0, 0, dp(8))
+            }
+            card.addView(prTitle)
+
+            val prScroll = HorizontalScrollView(context).apply {
+                isHorizontalScrollBarEnabled = false
+            }
+            val prRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+            }
+            val lang = if (store.getLang() == "auto") Locale.getDefault().language else store.getLang()
+            for (pi in 0 until presets.length()) {
+                val pr = presets.optJSONObject(pi) ?: continue
+                val values = pr.optJSONObject("values") ?: continue
+                val label = if (lang == "tr" && pr.has("nameTr")) {
+                    pr.optString("nameTr", pr.optString("name", ""))
+                } else {
+                    pr.optString("name", "")
+                }
+                if (label.isBlank()) continue
+                val chipBtn = styledButton(label, accent = false).apply {
+                    setPadding(dp(12), dp(6), dp(12), dp(6))
+                    setOnClickListener {
+                        val keys = values.keys()
+                        while (keys.hasNext()) {
+                            val k = keys.next()
+                            store.setParam(themeId, k, values.opt(k))
+                        }
+                        refresh()
+                    }
+                }
+                prRow.addView(chipBtn, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginEnd = dp(8)
+                })
+            }
+            prScroll.addView(prRow)
+            card.addView(prScroll)
+            if (groups != null && groups.length() > 0) {
+                card.addView(divider())
+            }
+            addedCount++
+        }
+
+        if (groups == null) {
+            return card
+        }
         for (gi in 0 until groups.length()) {
             val g = groups.optJSONObject(gi) ?: continue
             val params = g.optJSONArray("params") ?: continue

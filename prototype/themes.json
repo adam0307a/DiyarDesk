@@ -227,6 +227,67 @@
             }
           ]
         }
+      ],
+      "category": "widgets",
+      "presets": [
+        {
+          "id": "focus-desk",
+          "name": "Focus Desk",
+          "values": {
+            "palette": 0,
+            "colorMode": 1,
+            "layout": 0,
+            "showClock": 1,
+            "showMedia": 1,
+            "showCalendar": 1,
+            "showTasks": 1,
+            "showTools": 1,
+            "cardOpacity": 0.82
+          }
+        },
+        {
+          "id": "music-studio",
+          "name": "Music Studio",
+          "values": {
+            "palette": 2,
+            "colorMode": 1,
+            "backdrop": 0,
+            "layout": 2,
+            "showClock": 1,
+            "showMedia": 1,
+            "showCalendar": 0,
+            "showTasks": 0,
+            "showTools": 0,
+            "glassBlur": 24
+          }
+        },
+        {
+          "id": "minimal-clock",
+          "name": "Minimal Clock",
+          "values": {
+            "palette": 4,
+            "colorMode": 1,
+            "backdrop": 2,
+            "layout": 3,
+            "showClock": 1,
+            "clockStyle": 0,
+            "showMedia": 0,
+            "showCalendar": 0,
+            "showTasks": 0,
+            "showTools": 0
+          }
+        },
+        {
+          "id": "sage-daylight",
+          "name": "Sage Daylight",
+          "values": {
+            "palette": 1,
+            "colorMode": 2,
+            "backdrop": 1,
+            "layout": 0,
+            "cardOpacity": 0.84
+          }
+        }
       ]
     },
     {
@@ -455,6 +516,67 @@
             }
           ]
         }
+      ],
+      "category": "widgets",
+      "presets": [
+        {
+          "id": "focus-desk",
+          "name": "Focus Desk",
+          "values": {
+            "palette": 0,
+            "colorMode": 1,
+            "layout": 0,
+            "showClock": 1,
+            "showMedia": 1,
+            "showCalendar": 1,
+            "showTasks": 1,
+            "showTools": 1,
+            "cardOpacity": 0.82
+          }
+        },
+        {
+          "id": "music-studio",
+          "name": "Music Studio",
+          "values": {
+            "palette": 2,
+            "colorMode": 1,
+            "backdrop": 0,
+            "layout": 2,
+            "showClock": 1,
+            "showMedia": 1,
+            "showCalendar": 0,
+            "showTasks": 0,
+            "showTools": 0,
+            "glassBlur": 24
+          }
+        },
+        {
+          "id": "minimal-clock",
+          "name": "Minimal Clock",
+          "values": {
+            "palette": 4,
+            "colorMode": 1,
+            "backdrop": 2,
+            "layout": 3,
+            "showClock": 1,
+            "clockStyle": 0,
+            "showMedia": 0,
+            "showCalendar": 0,
+            "showTasks": 0,
+            "showTools": 0
+          }
+        },
+        {
+          "id": "sage-daylight",
+          "name": "Sage Daylight",
+          "values": {
+            "palette": 1,
+            "colorMode": 2,
+            "backdrop": 1,
+            "layout": 0,
+            "cardOpacity": 0.84
+          }
+        }
       ]
     },
     {
@@ -618,6 +740,49 @@
               "default": 1
             }
           ]
+        }
+      ],
+      "category": "widgets",
+      "presets": [
+        {
+          "id": "morning-studio",
+          "name": "Morning Coffee",
+          "values": {
+            "preset": 1,
+            "blinds": 0.78,
+            "shafts": 0.9,
+            "deskLamp": 0.25
+          }
+        },
+        {
+          "id": "rainy-storm",
+          "name": "Rainy Storm",
+          "values": {
+            "preset": 2,
+            "blinds": 0.45,
+            "weather": 0.95,
+            "deskLamp": 0.85
+          }
+        },
+        {
+          "id": "sunset-glow",
+          "name": "Sunset Glow",
+          "values": {
+            "preset": 4,
+            "blinds": 0.85,
+            "shafts": 0.95,
+            "deskLamp": 0.65
+          }
+        },
+        {
+          "id": "night-lamp",
+          "name": "Night Desk",
+          "values": {
+            "preset": 5,
+            "blinds": 0.25,
+            "deskLamp": 1.0,
+            "refraction": 1.0
+          }
         }
       ]
     },
@@ -793,6 +958,57 @@
               "default": 1
             }
           ]
+        }
+      ],
+      "category": "nature",
+      "presets": [
+        {
+          "id": "quiet-winter",
+          "name": "Quiet Winter",
+          "values": {
+            "mode": 0,
+            "intensity": 0.85,
+            "wind": 0.2,
+            "atmosphere": 0,
+            "accumulate": 2,
+            "windows": 1
+          }
+        },
+        {
+          "id": "window-rain",
+          "name": "Window Rain",
+          "values": {
+            "mode": 1,
+            "intensity": 1.0,
+            "wind": 0.15,
+            "atmosphere": 1,
+            "accumulate": 2,
+            "windows": 1
+          }
+        },
+        {
+          "id": "autumn-drift",
+          "name": "Autumn Leaves",
+          "values": {
+            "mode": 2,
+            "intensity": 0.75,
+            "wind": 0.55,
+            "atmosphere": 3,
+            "accumulate": 2,
+            "windows": 1
+          }
+        },
+        {
+          "id": "sakura-breeze",
+          "name": "Sakura Breeze",
+          "values": {
+            "mode": 3,
+            "intensity": 0.8,
+            "wind": 0.35,
+            "atmosphere": 2,
+            "accumulate": 2,
+            "windows": 1
+          }
         }
       ]
     },
@@ -994,6 +1210,42 @@
             }
           ]
         }
+      ],
+      "category": "nature",
+      "presets": [
+        {
+          "id": "bosphorus-dawn",
+          "name": "Bosphorus Dawn",
+          "values": {
+            "time": 1,
+            "palette": 1,
+            "skyline": 1,
+            "flowers": 0.7,
+            "trees": 1
+          }
+        },
+        {
+          "id": "indigo-night",
+          "name": "Indigo Gold",
+          "values": {
+            "time": 4,
+            "palette": 2,
+            "shadow": 1.2,
+            "skyline": 1,
+            "frame": 1
+          }
+        },
+        {
+          "id": "pastel-garden",
+          "name": "Pastel Garden",
+          "values": {
+            "time": 2,
+            "palette": 3,
+            "flowers": 0.9,
+            "critters": 2,
+            "skyline": 0
+          }
+        }
       ]
     },
     {
@@ -1094,7 +1346,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "meadow",
@@ -1173,7 +1426,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "beach",
@@ -1269,7 +1523,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "aurora",
@@ -1376,7 +1631,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "glade",
@@ -1453,7 +1709,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "rift",
@@ -1560,7 +1817,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "strike",
@@ -1667,7 +1925,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "pocket",
@@ -1773,7 +2032,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "roach",
@@ -1874,7 +2134,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "rosebrook",
@@ -1966,7 +2227,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "polarnight",
@@ -2076,7 +2338,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "desert",
@@ -2184,7 +2447,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "zen-archipelago",
@@ -2292,7 +2556,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "istanbul",
@@ -2419,6 +2684,43 @@
               "default": 1
             }
           ]
+        }
+      ],
+      "category": "nature",
+      "presets": [
+        {
+          "id": "bosphorus-sunset",
+          "name": "Bosphorus Sunset",
+          "values": {
+            "time": 3,
+            "glow": 1.2,
+            "ferries": 4,
+            "gulls": 2,
+            "tulips": 1,
+            "cats": 1
+          }
+        },
+        {
+          "id": "morning-ferry",
+          "name": "Morning Ferry",
+          "values": {
+            "time": 1,
+            "glow": 0.9,
+            "ferries": 5,
+            "flow": 1.4,
+            "gulls": 1
+          }
+        },
+        {
+          "id": "night-lights",
+          "name": "Night Lights",
+          "values": {
+            "time": 4,
+            "glow": 1.4,
+            "ferries": 2,
+            "cats": 1,
+            "landmarks": 1
+          }
         }
       ]
     },
@@ -2622,6 +2924,39 @@
             }
           ]
         }
+      ],
+      "category": "design3d",
+      "presets": [
+        {
+          "id": "black-hole",
+          "name": "Black Hole",
+          "values": {
+            "centerBodyType": "BlackHole",
+            "accretionIntensity": 1.25,
+            "iconOrbitMode": "Orbit",
+            "shootingStars": true
+          }
+        },
+        {
+          "id": "golden-star",
+          "name": "Golden Star",
+          "values": {
+            "centerBodyType": "Star",
+            "planetCount": 5,
+            "nebulaIntensity": 0.85,
+            "iconOrbitMode": "Orbit"
+          }
+        },
+        {
+          "id": "deep-calm",
+          "name": "Deep Space",
+          "values": {
+            "centerBodyType": "DeepSpace",
+            "starDensity": 1.3,
+            "iconOrbitMode": "Fixed",
+            "globalOrbitSpeed": 0.35
+          }
+        }
       ]
     },
     {
@@ -2746,7 +3081,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "neumorph",
@@ -2888,7 +3224,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "claymorph",
@@ -3009,7 +3346,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "neobrutalism",
@@ -3141,7 +3479,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "voxelcraft",
@@ -3288,7 +3627,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "liquidglass",
@@ -3439,7 +3779,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "thinking-orbs",
@@ -3619,7 +3960,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "design3d"
     },
     {
       "id": "ai-mascots",
@@ -3731,6 +4073,39 @@
             }
           ]
         }
+      ],
+      "category": "widgets",
+      "presets": [
+        {
+          "id": "night-lab",
+          "name": "Night Lab",
+          "values": {
+            "timeMode": "night",
+            "lightingGlow": 1.15,
+            "mascotActivity": 1.0,
+            "particleDensity": 0.9
+          }
+        },
+        {
+          "id": "twilight-campus",
+          "name": "Twilight Campus",
+          "values": {
+            "timeMode": "evening",
+            "lightingGlow": 1.05,
+            "mascotActivity": 1.2,
+            "iconHalo": 1.15
+          }
+        },
+        {
+          "id": "active-daylight",
+          "name": "Active Day",
+          "values": {
+            "timeMode": "day",
+            "lightingGlow": 0.8,
+            "mascotActivity": 1.4,
+            "particleDensity": 0.6
+          }
+        }
       ]
     },
     {
@@ -3818,7 +4193,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "nature"
     },
     {
       "id": "persephone",
@@ -3936,7 +4312,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "eye-within-words",
@@ -4032,7 +4409,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     },
     {
       "id": "cosmic-eye",
@@ -4118,7 +4496,8 @@
             }
           ]
         }
-      ]
+      ],
+      "category": "art"
     }
   ]
 }
