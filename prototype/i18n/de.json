@@ -245,7 +245,15 @@
     "iconSnapRestored": "{n} Desktop-Symbole wiederhergestellt ({res})",
     "iconSnapNone": "Noch kein Desktop-Symbol-Layout gespeichert",
     "iconSnapAutoArrange": "Windows Auto-Anordnung ist aktiv. Rechtsklick Desktop -> Ansicht -> Symbole automatisch anordnen deaktivieren.",
-    "iconSnapUnavailable": "Desktop-Symbole sind derzeit nicht erreichbar"
+    "iconSnapUnavailable": "Desktop-Symbole sind derzeit nicht erreichbar",
+    "focusRules": "Meeting / Spiel Auto-Pause",
+    "focusRulesTitle": "Hintergrundbild pausieren, wenn Kamera/Mikrofon aktiv ist oder eine gelistete App läuft",
+    "focusRulesApps": "Regel-Apps (.exe, kommagetrennt)",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "Erweitert",
+    "advSettingsTitle": "Erweiterte Verhaltens- und Automatisierungseinstellungen",
+    "rustGlFallbackNotice": "Das eigene HTML-Thema \"{from}\" benötigt WebView2. Für Rust OpenGL wurde auf \"{to}\" gewechselt — beim Zurückwechseln wird es wiederhergestellt.",
+    "rustGlRestoredNotice": "Vorheriges WebView-Thema \"{name}\" wiederhergestellt."
   },
   "host": {
     "traySettings": "Einstellungen…",

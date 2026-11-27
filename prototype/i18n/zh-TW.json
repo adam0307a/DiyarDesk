@@ -245,7 +245,15 @@
     "iconSnapRestored": "已還原 {n} 個桌面圖示位置（{res}）",
     "iconSnapNone": "尚未備份桌面圖示版面",
     "iconSnapAutoArrange": "Windows 已啟用「自動排列圖示」。請在桌面按右鍵 -> 檢視 -> 取消勾選「自動排列圖示」後重試。",
-    "iconSnapUnavailable": "暫時無法存取桌面圖示"
+    "iconSnapUnavailable": "暫時無法存取桌面圖示",
+    "focusRules": "會議 / 遊戲自動暫停",
+    "focusRulesTitle": "當攝影機/麥克風使用中或清單中的應用程式執行時自動暫停桌布",
+    "focusRulesApps": "規則應用程式（.exe，逗號分隔）",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "進階",
+    "advSettingsTitle": "進階行為與自動化設定",
+    "rustGlFallbackNotice": "自訂 HTML 主題「{from}」需要 WebView2。已切換至「{to}」以使用 Rust OpenGL — 切回 WebView2 時將自動還原。",
+    "rustGlRestoredNotice": "已還原先前的 WebView 主題「{name}」。"
   },
   "host": {
     "traySettings": "設定…",

@@ -245,7 +245,15 @@
     "iconSnapRestored": "{n} 個のデスクトップアイコンを復元しました（{res}）",
     "iconSnapNone": "保存されたアイコン配置はまだありません",
     "iconSnapAutoArrange": "Windows の「アイコンの自動整列」が有効です。デスクトップを右クリック -> 表示 ->「アイコンの自動整列」のチェックを外して再試行してください。",
-    "iconSnapUnavailable": "現在デスクトップアイコンにアクセスできません"
+    "iconSnapUnavailable": "現在デスクトップアイコンにアクセスできません",
+    "focusRules": "会議 / ゲーム自動一時停止",
+    "focusRulesTitle": "カメラ/マイク使用中または指定アプリ実行時に壁紙を自動で一時停止します",
+    "focusRulesApps": "対象アプリ (.exe、カンマ区切り)",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "詳細",
+    "advSettingsTitle": "詳細な動作と自動化の設定",
+    "rustGlFallbackNotice": "カスタムHTMLテーマ「{from}」には WebView2 が必要です。Rust OpenGL 用に「{to}」へ切り替えました（戻すと復元されます）。",
+    "rustGlRestoredNotice": "以前の WebView テーマ「{name}」を復元しました。"
   },
   "host": {
     "traySettings": "設定…",

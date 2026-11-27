@@ -245,7 +245,15 @@
     "iconSnapRestored": "已恢复 {n} 个桌面图标位置（{res}）",
     "iconSnapNone": "尚未备份桌面图标布局",
     "iconSnapAutoArrange": "Windows 已启用“自动排列图标”。请在桌面右键 -> 查看 -> 取消勾选“自动排列图标”后重试。",
-    "iconSnapUnavailable": "暂时无法读取桌面图标"
+    "iconSnapUnavailable": "暂时无法读取桌面图标",
+    "focusRules": "会议 / 游戏自动暂停",
+    "focusRulesTitle": "当摄像头/麦克风使用中（如腾讯会议/Zoom/Teams）或列表中的应用运行时自动暂停壁纸",
+    "focusRulesApps": "规则应用列表（.exe，逗号分隔）",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "高级",
+    "advSettingsTitle": "高级行为与自动化设置",
+    "rustGlFallbackNotice": "自定义 HTML 主题「{from}」需要 WebView2。已切换至「{to}」以使用 Rust OpenGL — 切回 WebView2 时将自动恢复。",
+    "rustGlRestoredNotice": "已恢复之前的 WebView 主题「{name}」。"
   },
   "host": {
     "traySettings": "设置…",

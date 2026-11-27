@@ -245,7 +245,15 @@
     "iconSnapRestored": "{n} masaüstü simgesi geri yüklendi ({res})",
     "iconSnapNone": "Henüz kayıtlı masaüstü simge düzeni yok",
     "iconSnapAutoArrange": "Windows Otomatik Düzenleme açık. Masaüstüne sağ tıklayıp Görünüm -> Simgeleri otomatik düzenle seçeneğini kapatıp tekrar deneyin.",
-    "iconSnapUnavailable": "Masaüstü simgelerine şu an erişilemedi"
+    "iconSnapUnavailable": "Masaüstü simgelerine şu an erişilemedi",
+    "focusRules": "Toplantı / Oyun oto-duraklatma",
+    "focusRulesTitle": "Kamera/mikrofon aktifken (Zoom/Teams/Meet) veya listedeki oyun/uygulamalar çalışırken duvar kağıdını otomatik duraklat",
+    "focusRulesApps": "Kural uygulamaları (.exe, virgülle)",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "Gelişmiş",
+    "advSettingsTitle": "Gelişmiş davranış ve otomasyon ayarları",
+    "rustGlFallbackNotice": "Özel HTML teması \"{from}\" WebView2 gerektirir. Rust OpenGL için \"{to}\" temasına geçildi — WebView2'ye döndüğünüzde geri yüklenir.",
+    "rustGlRestoredNotice": "Önceki WebView temanız \"{name}\" geri yüklendi."
   },
   "host": {
     "traySettings": "Ayarlar…",

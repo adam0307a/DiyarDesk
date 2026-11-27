@@ -245,7 +245,15 @@
     "iconSnapRestored": "{n} icônes du bureau restaurées ({res})",
     "iconSnapNone": "Aucune disposition d’icônes enregistrée",
     "iconSnapAutoArrange": "La réorganisation automatique de Windows est activée. Clic droit Bureau -> Affichage -> décocher Réorganiser automatiquement les icônes.",
-    "iconSnapUnavailable": "Impossible d’accéder aux icônes du bureau pour le moment"
+    "iconSnapUnavailable": "Impossible d’accéder aux icônes du bureau pour le moment",
+    "focusRules": "Pause auto Réunion / Jeu",
+    "focusRulesTitle": "Mettre en pause automatiquement lorsque la caméra/micro est actif ou qu’une app listée tourne",
+    "focusRulesApps": "Applications (.exe, séparées par virgule)",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "Avancé",
+    "advSettingsTitle": "Paramètres avancés de comportement et d’automatisation",
+    "rustGlFallbackNotice": "Le thème HTML \"{from}\" nécessite WebView2. Basculé vers \"{to}\" pour Rust OpenGL — il sera restauré au retour sur WebView2.",
+    "rustGlRestoredNotice": "Votre précédent thème WebView \"{name}\" a été restauré."
   },
   "host": {
     "traySettings": "Paramètres…",

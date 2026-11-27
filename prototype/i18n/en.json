@@ -245,7 +245,15 @@
     "iconSnapRestored": "Restored {n} desktop icons ({res})",
     "iconSnapNone": "No saved desktop icon layout yet",
     "iconSnapAutoArrange": "Windows Auto-Arrange is enabled. Right-click Desktop -> View -> uncheck Auto arrange icons, then try again.",
-    "iconSnapUnavailable": "Desktop icons could not be accessed right now"
+    "iconSnapUnavailable": "Desktop icons could not be accessed right now",
+    "focusRules": "Meeting / Game auto-pause",
+    "focusRulesTitle": "Automatically pause wallpaper when camera/mic is active (Zoom/Teams/Meet) or a listed app is running",
+    "focusRulesApps": "Rule apps (.exe, comma-separated)",
+    "focusRulesAppsPlaceholder": "obs64.exe, blender.exe, valorant.exe",
+    "advSettingsBtn": "Advanced",
+    "advSettingsTitle": "Advanced behavior and automation settings",
+    "rustGlFallbackNotice": "Custom HTML theme \"{from}\" requires WebView2. Switched to \"{to}\" for Rust OpenGL — switching back to WebView2 will restore it.",
+    "rustGlRestoredNotice": "Restored your previous WebView theme \"{name}\"."
   },
   "host": {
     "traySettings": "Settings…",

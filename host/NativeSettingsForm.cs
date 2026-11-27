@@ -38,7 +38,7 @@ class NativeSettingsForm : Form
     Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
     Label welcomeTitleLbl, welcomeBodyLbl, welcomeIconStatusLbl, welcomeRecLabel;
     TextBox searchBox;
-    CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
+    CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkFocusRules, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
     Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss, btnSaveIcons, btnRestoreIcons;
     string activeCategory = "all", wizStyle = "icons", wizPrio = "light", baselineIconsSig = "";
@@ -355,6 +355,13 @@ class NativeSettingsForm : Form
             host.SetDisableAutoPauseFromUi(chkDisableAutoPause.Checked);
         };
 
+        chkFocusRules = MakeCheckBox("Meeting / Game auto-pause");
+        chkFocusRules.CheckedChanged += delegate
+        {
+            if (suppressEvents) return;
+            host.SetFocusRulesFromUi(chkFocusRules.Checked);
+        };
+
         chkAutostart = MakeCheckBox("Autostart");
         chkAutostart.CheckedChanged += delegate
         {
@@ -370,6 +377,7 @@ class NativeSettingsForm : Form
         topControlsFlow.Controls.Add(chkWindowAware);
         topControlsFlow.Controls.Add(chkLowMode);
         topControlsFlow.Controls.Add(chkDisableAutoPause);
+        topControlsFlow.Controls.Add(chkFocusRules);
         topControlsFlow.Controls.Add(chkAutostart);
 
         var topBorder = new Panel();
@@ -990,6 +998,11 @@ class NativeSettingsForm : Form
             tip.SetToolTip(chkLowMode, I18n.Ui("lowModeTitle"));
             chkDisableAutoPause.Text = I18n.Ui("disableAutoPause");
             tip.SetToolTip(chkDisableAutoPause, I18n.Ui("disableAutoPauseTitle"));
+            if (chkFocusRules != null)
+            {
+                chkFocusRules.Text = I18n.Ui("focusRules");
+                tip.SetToolTip(chkFocusRules, I18n.Ui("focusRulesTitle"));
+            }
             chkAutostart.Text = I18n.Ui("autostart");
             tip.SetToolTip(chkAutostart, I18n.Ui("autostartTitle"));
             chkAdaptive.Text = I18n.Ui("adaptive");
@@ -1198,6 +1211,7 @@ class NativeSettingsForm : Form
             chkRustGl.Checked = Settings.RustOpenGl;
             chkLowMode.Checked = Settings.LowMode;
             chkDisableAutoPause.Checked = Settings.DisableAutoPause;
+            if (chkFocusRules != null) chkFocusRules.Checked = Settings.FocusRulesEnabled;
             chkSolarSync.Checked = Settings.SolarSync;
             chkWindowAware.Checked = Settings.WindowAware;
             chkAutostart.Checked = host.IsAutoStartEnabled();
@@ -1873,6 +1887,8 @@ class NativeSettingsForm : Form
                     var tb = new ModernSliderControl();
                     tb.Minimum = 0;
                     tb.Maximum = steps;
+                    tb.AccessibleName = label;
+                    tb.AccessibleRole = AccessibleRole.Slider;
                     tb.Bounds = new Rectangle(0, S(20), fullW - S(34), S(24));
                     tb.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
                     tb.SetPalette(colSurface, colBorder, colAccent, colText);
@@ -2169,6 +2185,9 @@ class NativeSettingsForm : Form
             this.titleFont = titleFont;
             this.badgeFont = badgeFont;
             DoubleBuffered = true;
+            TabStop = true;
+            AccessibleName = title;
+            AccessibleRole = AccessibleRole.ListItem;
             Cursor = Cursors.Hand;
         }
 
@@ -2187,6 +2206,25 @@ class NativeSettingsForm : Form
 
         protected override void OnMouseEnter(EventArgs e) { hovered = true; Invalidate(); base.OnMouseEnter(e); }
         protected override void OnMouseLeave(EventArgs e) { hovered = false; Invalidate(); base.OnMouseLeave(e); }
+        protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+        protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+
+        protected override bool IsInputKey(Keys keyData)
+        {
+            if (keyData == Keys.Enter || keyData == Keys.Space) return true;
+            return base.IsInputKey(keyData);
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space)
+            {
+                OnClick(EventArgs.Empty);
+                e.Handled = true;
+                return;
+            }
+            base.OnKeyDown(e);
+        }
 
         static GraphicsPath RoundedRect(Rectangle r, int radius)
         {
@@ -2280,6 +2318,16 @@ class NativeSettingsForm : Form
                 using (var pen = new Pen(selected ? cAccent : cBorder, selected ? 2f : 1f))
                     g.DrawPath(pen, path);
 
+                if (Focused)
+                {
+                    using (var focusPath = RoundedRect(new Rectangle(3, 3, Width - 7, Height - 7), 8))
+                    using (var focusPen = new Pen(cAccent, 1.8f))
+                    {
+                        focusPen.DashStyle = DashStyle.Dot;
+                        g.DrawPath(focusPen, focusPath);
+                    }
+                }
+
                 // Badge text
                 string badge = selected ? activeBadge : readyBadge;
                 var badgeRect = new Rectangle(rect.X + 10, stripH + 6, rect.Width - 20, 16);
@@ -2364,6 +2412,8 @@ class NativeSettingsForm : Form
 
         protected override void OnMouseEnter(EventArgs e) { hovered = true; Invalidate(); base.OnMouseEnter(e); }
         protected override void OnMouseLeave(EventArgs e) { hovered = false; Invalidate(); base.OnMouseLeave(e); }
+        protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+        protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
@@ -2473,6 +2523,15 @@ class NativeSettingsForm : Form
                 g.FillEllipse(thumbBr, thumbX - r, cy - r, r * 2f, r * 2f);
             using (var ringPen = new Pen(cAccent, 2f))
                 g.DrawEllipse(ringPen, thumbX - r, cy - r, r * 2f, r * 2f);
+
+            if (Focused)
+            {
+                using (var fPen = new Pen(cAccent, 1.5f))
+                {
+                    fPen.DashStyle = DashStyle.Dot;
+                    g.DrawRectangle(fPen, 1, 1, Math.Max(2, Width - 3), Math.Max(2, Height - 3));
+                }
+            }
         }
     }
 }

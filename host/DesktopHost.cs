@@ -459,6 +459,9 @@ static class Settings
     public static bool PreferMpv = false;
     public static bool RustOpenGl = false;
     public static bool WelcomeDismissed = false;
+    public static bool FocusRulesEnabled = false;
+    public static string FocusRuleApps = "obs64.exe, blender.exe, valorant.exe, cs2.exe";
+    public static string LastWebViewTheme = "";
 
     public static List<Dictionary<string, object>> SanitizeVirtualIcons(object raw)
     {
@@ -538,6 +541,9 @@ static class Settings
             if (root.TryGetValue("preferMpv", out v) && v is bool) PreferMpv = (bool)v;
             if (root.TryGetValue("rustOpenGl", out v) && v is bool) RustOpenGl = (bool)v;
             if (root.TryGetValue("welcomeDismissed", out v) && v is bool) WelcomeDismissed = (bool)v;
+            if (root.TryGetValue("focusRulesEnabled", out v) && v is bool) FocusRulesEnabled = (bool)v;
+            if (root.TryGetValue("focusRuleApps", out v) && v is string) FocusRuleApps = (string)v;
+            if (root.TryGetValue("lastWebViewTheme", out v) && v is string) LastWebViewTheme = (string)v;
             Log.Write("已读取设置：主题 " + Theme);
         }
         catch (Exception ex) { Log.Write("读取设置失败（将使用默认值）：" + ex.Message); }
@@ -566,7 +572,10 @@ static class Settings
                 "systemBridge", SystemBridge,
                 "preferMpv", PreferMpv,
                 "rustOpenGl", RustOpenGl,
-                "welcomeDismissed", WelcomeDismissed)), new UTF8Encoding(false));
+                "welcomeDismissed", WelcomeDismissed,
+                "focusRulesEnabled", FocusRulesEnabled,
+                "focusRuleApps", FocusRuleApps,
+                "lastWebViewTheme", LastWebViewTheme)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -576,6 +585,102 @@ static class Settings
         Dictionary<string, object> d;
         if (!Params.TryGetValue(theme, out d)) Params[theme] = d = new Dictionary<string, object>();
         return d;
+    }
+}
+
+static class FocusRuleDetector
+{
+    static bool IsSubkeyInUse(RegistryKey sub)
+    {
+        if (sub == null) return false;
+        try
+        {
+            object startObj = sub.GetValue("LastUsedTimeStart");
+            object stopObj = sub.GetValue("LastUsedTimeStop");
+            if (startObj == null || stopObj == null) return false;
+            long start = Convert.ToInt64(startObj);
+            long stop = Convert.ToInt64(stopObj);
+            return start > 0L && stop == 0L;
+        }
+        catch { return false; }
+    }
+
+    static bool IsCapabilityActive(string cap)
+    {
+        try
+        {
+            using (var root = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\" + cap, false))
+            {
+                if (root == null) return false;
+                string[] names = root.GetSubKeyNames();
+                for (int i = 0; i < names.Length; i++)
+                {
+                    if (string.Equals(names[i], "NonPackaged", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (var np = root.OpenSubKey("NonPackaged", false))
+                        {
+                            if (np == null) continue;
+                            string[] npNames = np.GetSubKeyNames();
+                            for (int j = 0; j < npNames.Length; j++)
+                            {
+                                using (var appKey = np.OpenSubKey(npNames[j], false))
+                                {
+                                    if (IsSubkeyInUse(appKey)) return true;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        using (var sub = root.OpenSubKey(names[i], false))
+                        {
+                            if (IsSubkeyInUse(sub)) return true;
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    public static string CheckActiveRule(string appsCsv)
+    {
+        if (IsCapabilityActive("microphone") || IsCapabilityActive("webcam"))
+            return "Meeting/MicCam";
+
+        if (string.IsNullOrWhiteSpace(appsCsv)) return null;
+        string[] rawList = appsCsv.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < rawList.Length; i++)
+        {
+            string s = rawList[i].Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(s)) continue;
+            if (!s.EndsWith(".exe")) s = s + ".exe";
+            targets.Add(s);
+        }
+        if (targets.Count == 0) return null;
+
+        IntPtr snap = Native.CreateToolhelp32Snapshot(Native.TH32CS_SNAPPROCESS, 0);
+        if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return null;
+        try
+        {
+            var pe = new Native.PROCESSENTRY32W();
+            pe.dwSize = (uint)Marshal.SizeOf(typeof(Native.PROCESSENTRY32W));
+            if (Native.Process32FirstW(snap, ref pe))
+            {
+                do
+                {
+                    string exe = (pe.szExeFile ?? "").Trim().ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(exe) && targets.Contains(exe))
+                        return "App:" + exe;
+                }
+                while (Native.Process32NextW(snap, ref pe));
+            }
+        }
+        catch { }
+        finally { Native.CloseHandle(snap); }
+        return null;
     }
 }
 
@@ -794,7 +899,7 @@ class HostContext : ApplicationContext
     SettingsForm settingsWin;
     NativeSettingsForm nativeSettingsWin;
     DateTime nextStart = DateTime.MaxValue, saveDue = DateTime.MaxValue;
-    DateTime lastPlaylistSwitch = DateTime.UtcNow, lastEnvPush = DateTime.MinValue;
+    DateTime lastPlaylistSwitch = DateTime.UtcNow, lastEnvPush = DateTime.MinValue, lastRulePoll = DateTime.MinValue;
     readonly DateTime startupUtc = DateTime.UtcNow;
     bool startupMarkedStable;
     string lastEnvJson = "";
@@ -1235,10 +1340,26 @@ class HostContext : ApplicationContext
 
         if (enabled && !WallpaperForm.IsNativeGlTheme(Settings.Theme) && !WallpaperForm.IsNativeVideoTheme(Settings.Theme))
         {
+            string prev = Settings.Theme;
             string fallback = Themes.FirstReadyBuiltIn(pageDir);
             if (!WallpaperForm.IsNativeGlTheme(fallback)) fallback = "papercut";
-            Log.Write("Rust OpenGL aktif: özel WebView temasından yerleşik OpenGL temasına geçildi (" + Settings.Theme + " -> " + fallback + ")");
+            Settings.LastWebViewTheme = prev;
+            Log.Write("Rust OpenGL aktif: özel WebView temasından yerleşik OpenGL temasına geçildi (" + prev + " -> " + fallback + ")");
             Settings.Theme = fallback;
+            if (tray != null && tray.Visible)
+            {
+                string msg = I18n.Ui("rustGlFallbackNotice", "from", I18n.ThemeName(prev, prev)).Replace("{to}", I18n.ThemeName(fallback, fallback));
+                tray.ShowBalloonTip(4500, "DiyarDesk", msg, ToolTipIcon.Info);
+            }
+        }
+        else if (!enabled && !string.IsNullOrEmpty(Settings.LastWebViewTheme) && ThemeAllowed(Settings.LastWebViewTheme))
+        {
+            string prev = Settings.LastWebViewTheme;
+            Settings.LastWebViewTheme = "";
+            Settings.Theme = prev;
+            Log.Write("WebView2 moduna dönüşte önceki özel tema geri yüklendi: " + prev);
+            if (tray != null && tray.Visible)
+                tray.ShowBalloonTip(3500, "DiyarDesk", I18n.Ui("rustGlRestoredNotice", "name", I18n.ThemeName(prev, prev)), ToolTipIcon.Info);
         }
         SaveSoon();
 
@@ -1533,6 +1654,17 @@ class HostContext : ApplicationContext
             SetRustOpenGl(target);
             return Json.Obj("ok", true, "rustOpenGl", Settings.RustOpenGl, "message", "rustOpenGl=" + Settings.RustOpenGl);
         }
+        if (cmd == "focus-rules")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            if (st != "status")
+            {
+                bool target = st == "toggle" ? !Settings.FocusRulesEnabled : st == "on";
+                SetFocusRules(target, null);
+            }
+            return Json.Obj("ok", true, "focusRulesEnabled", Settings.FocusRulesEnabled, "focusRuleApps", Settings.FocusRuleApps,
+                "message", "focusRules=" + Settings.FocusRulesEnabled);
+        }
         if (cmd == "lockscreen-sync")
         {
             SyncLockscreen();
@@ -1658,6 +1790,20 @@ class HostContext : ApplicationContext
     public bool IsAutoStartEnabled() { return IsAutoStart(); }
     public string GetLastIconsJson() { return form != null ? (form.LastIcons ?? "") : ""; }
     public void DismissWelcomeFromUi() { Settings.WelcomeDismissed = true; SaveSoon(); }
+    public void SetFocusRulesFromUi(bool enabled) { SetFocusRules(enabled, null); }
+
+    void SetFocusRules(bool? enabled, string appsCsv)
+    {
+        if (enabled.HasValue) Settings.FocusRulesEnabled = enabled.Value;
+        if (appsCsv != null) Settings.FocusRuleApps = appsCsv.Trim();
+        lastRulePoll = DateTime.MinValue;
+        if (!Settings.FocusRulesEnabled)
+            ForEachWallpaper(delegate(WallpaperForm w) { w.SetRulePause(false, ""); });
+        SaveSoon();
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "focusRules", "enabled", Settings.FocusRulesEnabled, "apps", Settings.FocusRuleApps)));
+        SyncNativeSettingsGlobals();
+    }
 
     public void SetLangFromUi(string lang)
     {
@@ -1922,7 +2068,8 @@ class HostContext : ApplicationContext
                     "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv,
                     "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable(),
                     "nativeActive", nativeActive, "webview2MemMb", wvMemMb, "ramMb", TotalHostRamMb(),
-                    "canIconSnapshot", true, "iconSnapshot", DesktopIconSnapshotStore.GetStatus())));
+                    "canIconSnapshot", true, "iconSnapshot", DesktopIconSnapshotStore.GetStatus(),
+                    "focusRulesEnabled", Settings.FocusRulesEnabled, "focusRuleApps", Settings.FocusRuleApps)));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -2116,6 +2263,13 @@ class HostContext : ApplicationContext
             case "disableAutoPause":
                 SetDisableAutoPause(m.ContainsKey("v") && m["v"] is bool && (bool)m["v"]);
                 break;
+            case "focusRules":
+            {
+                bool? en = (m.ContainsKey("enabled") && m["enabled"] is bool) ? (bool?)((bool)m["enabled"]) : null;
+                string apps = m.ContainsKey("apps") ? (m["apps"] as string) : null;
+                SetFocusRules(en, apps);
+                break;
+            }
             case "displayMode":
                 SetDisplayMode(m.ContainsKey("v") ? m["v"] as string : null);
                 break;
@@ -2648,6 +2802,14 @@ class HostContext : ApplicationContext
                 lastSysBridgePush = DateTime.UtcNow;
                 string statsJson = sysBridge.SampleJson();
                 ForEachWallpaper(delegate(WallpaperForm w) { w.Post(statsJson); });
+            }
+            if ((DateTime.UtcNow - lastRulePoll).TotalSeconds >= 3.0)
+            {
+                lastRulePoll = DateTime.UtcNow;
+                string hit = (Settings.FocusRulesEnabled && !Settings.DisableAutoPause)
+                    ? FocusRuleDetector.CheckActiveRule(Settings.FocusRuleApps)
+                    : null;
+                ForEachWallpaper(delegate(WallpaperForm w) { w.SetRulePause(hit != null, hit ?? ""); });
             }
             if (Settings.PlaylistEnabled && !manualPause)
             {
@@ -3499,6 +3661,16 @@ class WallpaperForm : Form
         }
     }
 
+    bool rulePause;
+    string rulePauseReason = "";
+    public void SetRulePause(bool v, string reason)
+    {
+        if (rulePause == v && rulePauseReason == (reason ?? "")) return;
+        rulePause = v;
+        rulePauseReason = reason ?? "";
+        lastPause = -1;
+        PollForeground();
+    }
     public void SetManualPause(bool v) { manualPause = v; PollForeground(); }
     public void SetDisableAutoPause(bool v) { disableAutoPause = v; lastPause = -1; PollForeground(); }
 
@@ -5381,6 +5553,7 @@ class WallpaperForm : Form
         bool pause = manualPause;
         string pauseBy = "";
         if (!pause && sessionLocked) { pause = true; pauseBy = "SessionLock"; }
+        if (!pause && !disableAutoPause && rulePause) { pause = true; pauseBy = "FocusRule:" + rulePauseReason; }
         if (!pause && !disableAutoPause && PowerHelper.IsRemoteSession()) { pause = true; pauseBy = "RemoteSession"; }
         if (!pause && !disableAutoPause)
         {
