@@ -565,14 +565,13 @@ class NativeSettingsController(
         if (hasCustom) catDefs.add("custom" to ui("catCustom", "Custom"))
         for ((catId, catLabel) in catDefs) {
             val isOn = activeCategory == catId
-            val chip = styledButton(catLabel, if (isOn) "#1F6F5B" else "#10221D").apply {
-                setPadding(dp(12), dp(5), dp(12), dp(5))
-                setOnClickListener {
-                    if (activeCategory != catId) {
-                        activeCategory = catId
-                        refresh()
-                    }
+            val chip = styledButton(catLabel, if (isOn) "#1F6F5B" else "#10221D") {
+                if (activeCategory != catId) {
+                    activeCategory = catId
+                    refresh()
                 }
+            }.apply {
+                setPadding(dp(12), dp(5), dp(12), dp(5))
             }
             catRow.addView(chip, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -760,7 +759,7 @@ class NativeSettingsController(
             val prRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
             }
-            val lang = if (store.getLang() == "auto") Locale.getDefault().language else store.getLang()
+            val lang = if (store.lang == "auto") Locale.getDefault().language else store.lang
             for (pi in 0 until presets.length()) {
                 val pr = presets.optJSONObject(pi) ?: continue
                 val values = pr.optJSONObject("values") ?: continue
@@ -770,16 +769,15 @@ class NativeSettingsController(
                     pr.optString("name", "")
                 }
                 if (label.isBlank()) continue
-                val chipBtn = styledButton(label, accent = false).apply {
-                    setPadding(dp(12), dp(6), dp(12), dp(6))
-                    setOnClickListener {
-                        val keys = values.keys()
-                        while (keys.hasNext()) {
-                            val k = keys.next()
-                            store.setParam(themeId, k, values.opt(k))
-                        }
-                        refresh()
+                val chipBtn = styledButton(label, "#18362F") {
+                    val keys = values.keys()
+                    while (keys.hasNext()) {
+                        val k = keys.next()
+                        store.setParam(themeId, k, values.opt(k))
                     }
+                    refresh()
+                }.apply {
+                    setPadding(dp(12), dp(6), dp(12), dp(6))
                 }
                 prRow.addView(chipBtn, LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
