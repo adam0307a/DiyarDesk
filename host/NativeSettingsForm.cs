@@ -38,7 +38,7 @@ class NativeSettingsForm : Form
     Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
     Label welcomeTitleLbl, welcomeBodyLbl, welcomeIconStatusLbl, welcomeRecLabel;
     TextBox searchBox;
-    CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkFocusRules, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
+    CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkFocusRules, chkIconIslands, chkSystemBridge, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
     Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss, btnSaveIcons, btnRestoreIcons;
     string activeCategory = "all", wizStyle = "icons", wizPrio = "light", baselineIconsSig = "";
@@ -362,6 +362,22 @@ class NativeSettingsForm : Form
             host.SetFocusRulesFromUi(chkFocusRules.Checked);
         };
 
+        chkIconIslands = MakeCheckBox("Smart Icon Islands");
+        chkIconIslands.CheckedChanged += delegate
+        {
+            if (suppressEvents) return;
+            host.SetIconIslandsFromUi(chkIconIslands.Checked);
+            if (previewGl != null && previewGl.IsRunning)
+                previewGl.PostJson(Json.Stringify(Json.Obj("t", "iconIslands", "v", chkIconIslands.Checked)));
+        };
+
+        chkSystemBridge = MakeCheckBox("Audio/Sys bridge");
+        chkSystemBridge.CheckedChanged += delegate
+        {
+            if (suppressEvents) return;
+            host.SetSystemBridgeFromUi(chkSystemBridge.Checked);
+        };
+
         chkAutostart = MakeCheckBox("Autostart");
         chkAutostart.CheckedChanged += delegate
         {
@@ -378,6 +394,8 @@ class NativeSettingsForm : Form
         topControlsFlow.Controls.Add(chkLowMode);
         topControlsFlow.Controls.Add(chkDisableAutoPause);
         topControlsFlow.Controls.Add(chkFocusRules);
+        topControlsFlow.Controls.Add(chkIconIslands);
+        topControlsFlow.Controls.Add(chkSystemBridge);
         topControlsFlow.Controls.Add(chkAutostart);
 
         var topBorder = new Panel();
@@ -1003,6 +1021,16 @@ class NativeSettingsForm : Form
                 chkFocusRules.Text = I18n.Ui("focusRules");
                 tip.SetToolTip(chkFocusRules, I18n.Ui("focusRulesTitle"));
             }
+            if (chkIconIslands != null)
+            {
+                chkIconIslands.Text = I18n.Ui("iconIslands");
+                tip.SetToolTip(chkIconIslands, I18n.Ui("iconIslandsTitle"));
+            }
+            if (chkSystemBridge != null)
+            {
+                chkSystemBridge.Text = I18n.Ui("systemBridge");
+                tip.SetToolTip(chkSystemBridge, I18n.Ui("systemBridgeTitle"));
+            }
             chkAutostart.Text = I18n.Ui("autostart");
             tip.SetToolTip(chkAutostart, I18n.Ui("autostartTitle"));
             chkAdaptive.Text = I18n.Ui("adaptive");
@@ -1212,6 +1240,8 @@ class NativeSettingsForm : Form
             chkLowMode.Checked = Settings.LowMode;
             chkDisableAutoPause.Checked = Settings.DisableAutoPause;
             if (chkFocusRules != null) chkFocusRules.Checked = Settings.FocusRulesEnabled;
+            if (chkIconIslands != null) chkIconIslands.Checked = Settings.IconIslands;
+            if (chkSystemBridge != null) chkSystemBridge.Checked = Settings.SystemBridge;
             chkSolarSync.Checked = Settings.SolarSync;
             chkWindowAware.Checked = Settings.WindowAware;
             chkAutostart.Checked = host.IsAutoStartEnabled();

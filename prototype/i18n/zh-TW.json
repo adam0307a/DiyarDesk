@@ -253,7 +253,9 @@
     "advSettingsBtn": "進階",
     "advSettingsTitle": "進階行為與自動化設定",
     "rustGlFallbackNotice": "自訂 HTML 主題「{from}」需要 WebView2。已切換至「{to}」以使用 Rust OpenGL — 切回 WebView2 時將自動還原。",
-    "rustGlRestoredNotice": "已還原先前的 WebView 主題「{name}」。"
+    "rustGlRestoredNotice": "已還原先前的 WebView 主題「{name}」。",
+    "iconIslands": "智慧圖示島",
+    "iconIslandsTitle": "將相鄰的桌面圖示聚合成整體島嶼區域，用於 Rust OpenGL 自適應地形互動"
   },
   "host": {
     "traySettings": "設定…",

@@ -253,7 +253,9 @@
     "advSettingsBtn": "고급",
     "advSettingsTitle": "고급 동작 및 자동화 설정",
     "rustGlFallbackNotice": "사용자 지정 HTML 테마 \"{from}\"은 WebView2가 필요합니다. Rust OpenGL용 \"{to}\"(으)로 전환되었으며 복귀 시 복원됩니다.",
-    "rustGlRestoredNotice": "이전 WebView 테마 \"{name}\"을(를) 복원했습니다."
+    "rustGlRestoredNotice": "이전 WebView 테마 \"{name}\"을(를) 복원했습니다.",
+    "iconIslands": "스마트 아이콘 섬",
+    "iconIslandsTitle": "인접한 바탕화면 아이콘을 하나로 묶어 Rust OpenGL 적응형 지형 섬으로 표현합니다"
   },
   "host": {
     "traySettings": "설정…",

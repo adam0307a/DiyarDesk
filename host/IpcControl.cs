@@ -169,7 +169,7 @@ static class IpcControlClient
         // args starts at "--ctl"
         if (args.Length < 2)
         {
-            Console.Error.WriteLine("Usage: Deskland.exe --ctl <status|setwp|setprop|apply-preset|icon-snapshot|focus-rules|pause|play|toggle|random|lowmode|solar|window-aware|playlist|reload|exit> [args...]");
+            Console.Error.WriteLine("Usage: Deskland.exe --ctl <status|setwp|setprop|apply-preset|icon-snapshot|focus-rules|icon-islands|pause|play|toggle|random|lowmode|solar|window-aware|system-bridge|playlist|reload|exit> [args...]");
             return 2;
         }
         bool asJson = false;
@@ -202,7 +202,7 @@ static class IpcControlClient
         {
             req["action"] = positional.Count >= 2 ? positional[1].ToLowerInvariant() : "status";
         }
-        else if ((cmd == "lowmode" || cmd == "solar" || cmd == "window-aware" || cmd == "system-bridge" || cmd == "mpv" || cmd == "rust-gl" || cmd == "focus-rules"))
+        else if ((cmd == "lowmode" || cmd == "solar" || cmd == "window-aware" || cmd == "system-bridge" || cmd == "mpv" || cmd == "rust-gl" || cmd == "focus-rules" || cmd == "icon-islands"))
         {
             req["state"] = positional.Count >= 2 ? positional[1].ToLowerInvariant() : "toggle";
         }

@@ -1,6 +1,7 @@
 mod ai_mascots;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 mod android_jni;
+mod audio_reactive;
 mod aurora;
 mod beach;
 mod cat_shore;
@@ -12,6 +13,7 @@ mod desert;
 mod eye_within_words;
 mod gl;
 mod glade;
+mod icon_islands;
 mod istanbul;
 mod liquidglass;
 mod meadow;

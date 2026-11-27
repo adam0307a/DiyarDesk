@@ -90,6 +90,7 @@ pub struct Renderer {
     prog_blur: GLuint,
     prog_blit: GLuint,
     prog_ui: GLuint,
+    prog_audio_pulse: GLuint,
     scene_fbo: FboTex,
     blur_a: FboTex,
     blur_b: FboTex,
@@ -142,6 +143,7 @@ impl Renderer {
         let prog_blur = gl.compile_program(FULLSCREEN_VERT, BLUR_FRAG)?;
         let prog_blit = gl.compile_program(FULLSCREEN_VERT, BLIT_FRAG)?;
         let prog_ui = gl.compile_program(SDF_UI_VERT, SDF_UI_FRAG)?;
+        let prog_audio_pulse = gl.compile_program(FULLSCREEN_VERT, AUDIO_PULSE_FRAG)?;
         let text = TextRenderer::new(gl)?;
 
         let mut art_tex = 0;
@@ -163,6 +165,7 @@ impl Renderer {
             prog_blur,
             prog_blit,
             prog_ui,
+            prog_audio_pulse,
             scene_fbo: FboTex::empty(),
             blur_a: FboTex::empty(),
             blur_b: FboTex::empty(),
@@ -317,6 +320,7 @@ impl Renderer {
         if self.prog_blur != 0 { (gl.DeleteProgram)(self.prog_blur); self.prog_blur = 0; }
         if self.prog_blit != 0 { (gl.DeleteProgram)(self.prog_blit); self.prog_blit = 0; }
         if self.prog_ui != 0 { (gl.DeleteProgram)(self.prog_ui); self.prog_ui = 0; }
+        if self.prog_audio_pulse != 0 { (gl.DeleteProgram)(self.prog_audio_pulse); self.prog_audio_pulse = 0; }
     }
 
     unsafe fn upload_pending_art(&mut self, gl: &GlFns, st: &mut AppState) {
@@ -498,11 +502,11 @@ impl Renderer {
         (gl.Uniform4f)(gl.uniform_loc(prog, "u_p2"), packed.p2[0], packed.p2[1], packed.p2[2], packed.p2[3]);
         (gl.Uniform4f)(gl.uniform_loc(prog, "u_p3"), packed.p3[0], packed.p3[1], packed.p3[2], packed.p3[3]);
 
-        let ic_cnt = st.icons.len().min(48);
+        let ic_cnt = st.effective_icons.len().min(48);
         (gl.Uniform1i)(gl.uniform_loc(prog, "u_icon_count"), ic_cnt as i32);
         if ic_cnt > 0 {
             let mut flat = [0.0f32; 48 * 4];
-            for (i, ic) in st.icons.iter().take(48).enumerate() {
+            for (i, ic) in st.effective_icons.iter().take(48).enumerate() {
                 flat[i * 4] = ic.x;
                 flat[i * 4 + 1] = ic.y;
                 flat[i * 4 + 2] = ic.w;
@@ -626,6 +630,40 @@ impl Renderer {
     }
 
     pub unsafe fn render(&mut self, gl: &GlFns, st: &mut AppState) {
+        self.render_active_theme(gl, st);
+        self.draw_audio_pulse_overlay(gl, st);
+    }
+
+    unsafe fn draw_audio_pulse_overlay(&self, gl: &GlFns, st: &AppState) {
+        if !st.audio.is_active() || self.prog_audio_pulse == 0 {
+            return;
+        }
+        let pw = st.width_px.max(64);
+        let ph = st.height_px.max(64);
+        let pal = st.palette_colors();
+        let accent = pal.primary;
+
+        (gl.BindFramebuffer)(GL_FRAMEBUFFER, 0);
+        (gl.Viewport)(0, 0, pw, ph);
+        (gl.Enable)(GL_BLEND);
+        (gl.BlendFuncSeparate)(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+        (gl.UseProgram)(self.prog_audio_pulse);
+        (gl.Uniform2f)(gl.uniform_loc(self.prog_audio_pulse, "u_res"), st.css_w(), st.css_h());
+        (gl.Uniform1f)(gl.uniform_loc(self.prog_audio_pulse, "u_time"), st.sim_time);
+        (gl.Uniform1f)(gl.uniform_loc(self.prog_audio_pulse, "u_level"), st.audio.level());
+        (gl.Uniform1f)(gl.uniform_loc(self.prog_audio_pulse, "u_beat"), st.audio.beat());
+        (gl.Uniform3f)(
+            gl.uniform_loc(self.prog_audio_pulse, "u_accent"),
+            accent[0],
+            accent[1],
+            accent[2],
+        );
+        (gl.BindVertexArray)(self.dummy_vao);
+        (gl.DrawArrays)(GL_TRIANGLES, 0, 3);
+        (gl.Disable)(GL_BLEND);
+    }
+
+    unsafe fn render_active_theme(&mut self, gl: &GlFns, st: &mut AppState) {
         self.evict_inactive_renderers(gl, st);
         if st.is_custom_plugin_theme() {
             if self.custom_plugin_renderer.is_none() {
@@ -1045,11 +1083,11 @@ impl Renderer {
         let ic_style = if st.params.adaptive { st.params.icon_style as i32 } else { 3 };
         (gl.Uniform1i)(gl.uniform_loc(self.prog_bg, "u_icon_style"), ic_style);
         (gl.Uniform1f)(gl.uniform_loc(self.prog_bg, "u_corner_r"), st.params.corner_radius);
-        let ic_cnt = st.icons.len().min(48);
+        let ic_cnt = st.effective_icons.len().min(48);
         (gl.Uniform1i)(gl.uniform_loc(self.prog_bg, "u_icon_count"), ic_cnt as i32);
         if ic_cnt > 0 {
             let mut flat = [0.0f32; 48 * 4];
-            for (i, ic) in st.icons.iter().take(48).enumerate() {
+            for (i, ic) in st.effective_icons.iter().take(48).enumerate() {
                 flat[i * 4] = ic.x;
                 flat[i * 4 + 1] = ic.y;
                 flat[i * 4 + 2] = ic.w;
@@ -2128,6 +2166,14 @@ mod tests {
             assert_eq!(renderer.scene_fbo.fbo, 0);
             assert_eq!(renderer.blur_a.fbo, 0);
             assert_eq!(renderer.blur_b.fbo, 0);
+
+            // 5. Audio pulse shader compiled & renders cleanly when audio is active
+            assert_ne!(renderer.prog_audio_pulse, 0);
+            st.audio.push_peak(0.9);
+            st.audio.step(0.033);
+            assert!(st.audio.is_active());
+            renderer.render(&gl, &mut st);
+            assert_eq!((gl.GetError)(), 0);
 
             renderer.destroy(&gl);
             drop(ctx);

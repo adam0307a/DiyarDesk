@@ -253,7 +253,9 @@
     "advSettingsBtn": "高级",
     "advSettingsTitle": "高级行为与自动化设置",
     "rustGlFallbackNotice": "自定义 HTML 主题「{from}」需要 WebView2。已切换至「{to}」以使用 Rust OpenGL — 切回 WebView2 时将自动恢复。",
-    "rustGlRestoredNotice": "已恢复之前的 WebView 主题「{name}」。"
+    "rustGlRestoredNotice": "已恢复之前的 WebView 主题「{name}」。",
+    "iconIslands": "智能图标岛",
+    "iconIslandsTitle": "将相邻的桌面图标聚合成整体岛屿区域，用于 Rust OpenGL 自适应地形交互"
   },
   "host": {
     "traySettings": "设置…",

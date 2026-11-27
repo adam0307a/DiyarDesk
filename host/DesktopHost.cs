@@ -462,6 +462,7 @@ static class Settings
     public static bool FocusRulesEnabled = false;
     public static string FocusRuleApps = "obs64.exe, blender.exe, valorant.exe, cs2.exe";
     public static string LastWebViewTheme = "";
+    public static bool IconIslands = false;
 
     public static List<Dictionary<string, object>> SanitizeVirtualIcons(object raw)
     {
@@ -544,6 +545,7 @@ static class Settings
             if (root.TryGetValue("focusRulesEnabled", out v) && v is bool) FocusRulesEnabled = (bool)v;
             if (root.TryGetValue("focusRuleApps", out v) && v is string) FocusRuleApps = (string)v;
             if (root.TryGetValue("lastWebViewTheme", out v) && v is string) LastWebViewTheme = (string)v;
+            if (root.TryGetValue("iconIslands", out v) && v is bool) IconIslands = (bool)v;
             Log.Write("已读取设置：主题 " + Theme);
         }
         catch (Exception ex) { Log.Write("读取设置失败（将使用默认值）：" + ex.Message); }
@@ -575,7 +577,8 @@ static class Settings
                 "welcomeDismissed", WelcomeDismissed,
                 "focusRulesEnabled", FocusRulesEnabled,
                 "focusRuleApps", FocusRuleApps,
-                "lastWebViewTheme", LastWebViewTheme)), new UTF8Encoding(false));
+                "lastWebViewTheme", LastWebViewTheme,
+                "iconIslands", IconIslands)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -892,6 +895,8 @@ class HostContext : ApplicationContext
     readonly WinResourceWatchdog resourceWatchdog = new WinResourceWatchdog(1536, 3);
     readonly WinMpvBackend mpvBackend = new WinMpvBackend();
     readonly WinSystemBridge sysBridge = new WinSystemBridge();
+    readonly System.Windows.Forms.Timer audioTimer = new System.Windows.Forms.Timer();
+    bool lastAudioNonZero;
     DateTime lastSysBridgePush = DateTime.MinValue;
     int lastSmartSlot = -1;
     readonly Control uiInvoker = new Control();
@@ -995,6 +1000,9 @@ class HostContext : ApplicationContext
         watch.Interval = 500;
         watch.Tick += delegate { Watch(); };
         watch.Start();
+        audioTimer.Interval = 50;
+        audioTimer.Tick += delegate { PollAudioLevel(); };
+        if (Settings.SystemBridge) audioTimer.Start();
         IntPtr _invHandle = uiInvoker.Handle;
         ipcServer = new IpcControlServer(DispatchIpc);
         ipcServer.Start();
@@ -1311,11 +1319,32 @@ class HostContext : ApplicationContext
         mpvBackend.Start(vpath, form.Handle, spd, bright);
     }
 
+    void PollAudioLevel()
+    {
+        if (exiting || form == null || manualPause || wallpaperPaused || !Settings.SystemBridge) return;
+        float peak = sysBridge.SampleAudioPeak();
+        bool nonZero = peak > 0.004f;
+        if (nonZero || lastAudioNonZero)
+        {
+            lastAudioNonZero = nonZero;
+            string msg = Json.Stringify(Json.Obj("t", "audioLevel", "peak", Math.Round((double)peak, 3)));
+            ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+        }
+    }
+
     void SetSystemBridge(bool enabled)
     {
         Settings.SystemBridge = enabled;
+        audioTimer.Enabled = enabled;
+        if (!enabled && lastAudioNonZero)
+        {
+            lastAudioNonZero = false;
+            ForEachWallpaper(delegate(WallpaperForm w) { w.Post("{\"t\":\"audioLevel\",\"peak\":0}"); });
+        }
         SaveSoon();
-        if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "systemBridge", "v", enabled)));
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "systemBridge", "v", enabled)));
+        SyncNativeSettingsGlobals();
         Log.Write(enabled ? "已开启本地系统/音频桥接" : "已关闭本地系统/音频桥接");
     }
 
@@ -1665,6 +1694,17 @@ class HostContext : ApplicationContext
             return Json.Obj("ok", true, "focusRulesEnabled", Settings.FocusRulesEnabled, "focusRuleApps", Settings.FocusRuleApps,
                 "message", "focusRules=" + Settings.FocusRulesEnabled);
         }
+        if (cmd == "icon-islands")
+        {
+            object stObj; string st = req.TryGetValue("state", out stObj) ? (stObj as string ?? "toggle") : "toggle";
+            if (st != "status")
+            {
+                bool target = st == "toggle" ? !Settings.IconIslands : st == "on";
+                SetIconIslands(target);
+            }
+            return Json.Obj("ok", true, "iconIslands", Settings.IconIslands,
+                "message", "iconIslands=" + Settings.IconIslands);
+        }
         if (cmd == "lockscreen-sync")
         {
             SyncLockscreen();
@@ -1791,6 +1831,20 @@ class HostContext : ApplicationContext
     public string GetLastIconsJson() { return form != null ? (form.LastIcons ?? "") : ""; }
     public void DismissWelcomeFromUi() { Settings.WelcomeDismissed = true; SaveSoon(); }
     public void SetFocusRulesFromUi(bool enabled) { SetFocusRules(enabled, null); }
+    public void SetIconIslandsFromUi(bool enabled) { SetIconIslands(enabled); }
+    public void SetSystemBridgeFromUi(bool enabled) { SetSystemBridge(enabled); }
+
+    void SetIconIslands(bool enabled)
+    {
+        Settings.IconIslands = enabled;
+        SaveSoon();
+        string msg = Json.Stringify(Json.Obj("t", "iconIslands", "v", enabled));
+        ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(msg);
+        SyncNativeSettingsGlobals();
+        Log.Write(enabled ? "Akıllı İkon Adaları etkinleştirildi" : "Akıllı İkon Adaları devre dışı bırakıldı");
+    }
 
     void SetFocusRules(bool? enabled, string appsCsv)
     {
@@ -2000,7 +2054,9 @@ class HostContext : ApplicationContext
 
     string SettingsMessage()
     {
-        return Json.Stringify(Json.Obj("t", "settings", "v", Settings.For(Settings.Theme)));
+        var p = new Dictionary<string, object>(Settings.For(Settings.Theme));
+        p["iconIslands"] = Settings.IconIslands ? 1 : 0;
+        return Json.Stringify(Json.Obj("t", "settings", "v", p));
     }
 
     string VirtualStateMessage()
@@ -2069,7 +2125,8 @@ class HostContext : ApplicationContext
                     "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable(),
                     "nativeActive", nativeActive, "webview2MemMb", wvMemMb, "ramMb", TotalHostRamMb(),
                     "canIconSnapshot", true, "iconSnapshot", DesktopIconSnapshotStore.GetStatus(),
-                    "focusRulesEnabled", Settings.FocusRulesEnabled, "focusRuleApps", Settings.FocusRuleApps)));
+                    "focusRulesEnabled", Settings.FocusRulesEnabled, "focusRuleApps", Settings.FocusRuleApps,
+                    "iconIslands", Settings.IconIslands)));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -2316,6 +2373,12 @@ class HostContext : ApplicationContext
             {
                 object sbv;
                 if (m.TryGetValue("v", out sbv) && sbv is bool) SetSystemBridge((bool)sbv);
+                break;
+            }
+            case "iconIslands":
+            {
+                object iv;
+                if (m.TryGetValue("v", out iv) && iv is bool) SetIconIslands((bool)iv);
                 break;
             }
             case "preferMpv":
@@ -2840,6 +2903,8 @@ class HostContext : ApplicationContext
         exiting = true;
         StartupCrashSentinel.MarkStable();
         watch.Stop();
+        try { audioTimer.Stop(); audioTimer.Dispose(); } catch { }
+        try { sysBridge.Dispose(); } catch { }
         if (saveDue != DateTime.MaxValue) Settings.Save();
         if (nativeSettingsWin != null) { try { nativeSettingsWin.Close(); } catch { } }
         if (settingsWin != null) { try { settingsWin.DisposeWebViewTree(); settingsWin.Close(); } catch { } }

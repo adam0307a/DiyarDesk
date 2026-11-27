@@ -1,4 +1,5 @@
 use crate::ai_mascots::{AiMascotsParams, AiMascotsState};
+use crate::audio_reactive::AudioReactiveState;
 use crate::aurora::{AuroraParams, AuroraState};
 use crate::beach::{BeachParams, BeachState};
 use crate::cat_shore::{CatShoreParams, CatShoreState};
@@ -387,6 +388,12 @@ pub struct AppState {
     pub params: ThemeParams,
     pub icons: Vec<Rect>,
     pub icon_names: Vec<String>,
+    pub icon_islands: bool,
+    pub icon_islands_gap: f32,
+    pub icons_vis: bool,
+    pub effective_icons: Vec<Rect>,
+    pub effective_icon_names: Vec<String>,
+    pub audio: AudioReactiveState,
     pub pointer_x: f32,
     pub pointer_y: f32,
     pub pointer_active: bool,
@@ -552,6 +559,12 @@ impl AppState {
             params: ThemeParams::default(),
             icons: Vec::new(),
             icon_names: Vec::new(),
+            icon_islands: false,
+            icon_islands_gap: 36.0,
+            icons_vis: false,
+            effective_icons: Vec::new(),
+            effective_icon_names: Vec::new(),
+            audio: AudioReactiveState::default(),
             pointer_x: -999.0,
             pointer_y: -999.0,
             pointer_active: false,
@@ -885,143 +898,143 @@ impl AppState {
             self.claymorph.resize(self.css_w(), self.css_h());
             self.claymorph.cache_ok = false;
             self.claymorph.dirty = true;
-            if !self.icons.is_empty() {
-                self.claymorph.sync_incoming_icons(&self.icons);
+            if !self.effective_icons.is_empty() {
+                self.claymorph.sync_incoming_icons(&self.effective_icons);
             }
         }
         if self.is_neobrutalism_theme() {
             self.neobrutalism.resize(self.css_w(), self.css_h());
             self.neobrutalism.cache_ok = false;
             self.neobrutalism.dirty = true;
-            if !self.icons.is_empty() {
-                self.neobrutalism.sync_incoming_icons(&self.icons);
+            if !self.effective_icons.is_empty() {
+                self.neobrutalism.sync_incoming_icons(&self.effective_icons);
             }
         }
         if self.is_liquidglass_theme() {
             self.liquidglass.resize(self.css_w(), self.css_h());
             self.liquidglass.cache_ok = false;
             self.liquidglass.dirty = true;
-            if !self.icons.is_empty() {
-                self.liquidglass.sync_incoming_icons(&self.icons);
+            if !self.effective_icons.is_empty() {
+                self.liquidglass.sync_incoming_icons(&self.effective_icons);
             }
         }
         if self.is_zen_archipelago_theme() {
             self.zen_archipelago.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.zen_archipelago.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.zen_archipelago.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_software_world_theme() {
             self.software_world.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.software_world.update_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.software_world.update_icons(&self.effective_icons, true);
             }
         }
         if self.is_meadow_theme() {
             self.meadow.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.meadow.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.meadow.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_beach_theme() {
             self.beach.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.beach.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.beach.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_aurora_theme() {
             self.aurora.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.aurora.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.aurora.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_glade_theme() {
             self.glade.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.glade.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.glade.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_rift_theme() {
             self.rift.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.rift.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.rift.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_strike_theme() {
             self.strike.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.strike.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.strike.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_pocket_theme() {
             self.pocket.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.pocket.set_icons(&self.icons, &self.icon_names, true);
+            if !self.effective_icons.is_empty() {
+                self.pocket.set_icons(&self.effective_icons, &self.effective_icon_names, true);
             }
         }
         if self.is_roach_theme() {
             self.roach.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.roach.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.roach.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_rosebrook_theme() {
             self.rosebrook.resize(self.css_w() as f64, self.css_h() as f64);
-            if !self.icons.is_empty() {
-                self.rosebrook.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.rosebrook.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_polarnight_theme() {
             self.polarnight.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.polarnight.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.polarnight.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_winter_theme() {
             self.winter.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.winter.set_icons(&self.icons, &self.icon_names, true);
+            if !self.effective_icons.is_empty() {
+                self.winter.set_icons(&self.effective_icons, &self.effective_icon_names, true);
             }
         }
         if self.is_neumorph_theme() {
             self.neumorph
                 .resize(self.css_w(), self.css_h(), self.dpi_scale);
-            if !self.icons.is_empty() {
-                self.neumorph.sync_incoming_icons(&self.icons);
+            if !self.effective_icons.is_empty() {
+                self.neumorph.sync_incoming_icons(&self.effective_icons);
             }
         }
         if self.is_istanbul_theme() {
             self.istanbul.set_env_hour(self.env_hour);
             self.istanbul.resize(self.css_w(), self.css_h());
-            self.istanbul.set_icons(&self.icons, !self.icons.is_empty());
+            self.istanbul.set_icons(&self.effective_icons, !self.effective_icons.is_empty());
         }
         if self.is_solar_system_theme() {
             self.solar_system.set_low_mode(self.low_mode);
             self.solar_system.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.solar_system.set_icons(&self.icons, &self.icon_names, true);
+            if !self.effective_icons.is_empty() {
+                self.solar_system.set_icons(&self.effective_icons, &self.effective_icon_names, true);
             }
         }
         if self.is_thinking_orbs_theme() {
             self.thinking_orbs.set_low_mode(self.low_mode);
             self.thinking_orbs.resize(self.css_w(), self.css_h());
-            if !self.icons.is_empty() {
-                self.thinking_orbs.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.thinking_orbs.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_ai_mascots_theme() {
             self.ai_mascots.set_low_mode(self.low_mode);
             self.ai_mascots.resize(self.css_w(), self.css_h());
             self.ai_mascots.set_windows(&self.windows);
-            if !self.icons.is_empty() {
-                self.ai_mascots.set_icons(&self.icons, &self.icon_names, true);
+            if !self.effective_icons.is_empty() {
+                self.ai_mascots.set_icons(&self.effective_icons, &self.effective_icon_names, true);
             }
         }
         if self.is_cat_shore_theme() {
             self.cat_shore.set_low_mode(self.low_mode);
             self.cat_shore.resize(self.css_w(), self.css_h(), self.dpi_scale);
-            if !self.icons.is_empty() {
-                self.cat_shore.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.cat_shore.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_persephone_theme() {
@@ -1030,22 +1043,22 @@ impl AppState {
             if changed {
                 self.persephone.restart_animation();
             }
-            if !self.icons.is_empty() {
-                self.persephone.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.persephone.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_eye_within_words_theme() {
             self.eye_within_words.set_low_mode(self.low_mode);
             self.eye_within_words.resize(self.css_w(), self.css_h(), self.dpi_scale);
-            if !self.icons.is_empty() {
-                self.eye_within_words.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.eye_within_words.set_icons(&self.effective_icons, true);
             }
         }
         if self.is_cosmic_eye_theme() {
             self.cosmic_eye.set_low_mode(self.low_mode);
             self.cosmic_eye.resize(self.css_w(), self.css_h(), self.dpi_scale);
-            if !self.icons.is_empty() {
-                self.cosmic_eye.set_icons(&self.icons, true);
+            if !self.effective_icons.is_empty() {
+                self.cosmic_eye.set_icons(&self.effective_icons, true);
             }
         }
         self.set_active_field(TextField::None);
@@ -1123,7 +1136,7 @@ impl AppState {
         let mut left_icons = 0usize;
         let mut right_icons = 0usize;
         if self.params.adaptive {
-            for ic in &self.icons {
+            for ic in &self.effective_icons {
                 let cx = ic.x + ic.w * 0.5;
                 if cx < w * 0.45 { left_icons += 1; }
                 if cx > w * 0.55 { right_icons += 1; }
@@ -1412,6 +1425,9 @@ impl AppState {
             "pause" => {
                 if let Some(b) = v.get("v").and_then(|x| x.as_bool()) {
                     self.paused = b;
+                    if b {
+                        self.audio.reset();
+                    }
                 }
             }
             "lowMode" => {
@@ -1532,6 +1548,7 @@ impl AppState {
             }
             "icons" => {
                 let vis = v.get("vis").and_then(|x| x.as_bool()).unwrap_or(false);
+                self.icons_vis = vis;
                 self.icons.clear();
                 self.icon_names.clear();
                 if vis {
@@ -1556,41 +1573,27 @@ impl AppState {
                         }
                     }
                 }
-                self.quiet_snow.set_icons(&self.icons);
-                self.desert.set_icons(&self.icons, vis);
-                self.software_world.update_icons(&self.icons, vis);
-                self.meadow.set_icons(&self.icons, vis);
-                self.beach.set_icons(&self.icons, vis);
-                self.aurora.set_icons(&self.icons, vis);
-                self.glade.set_icons(&self.icons, vis);
-                self.rift.set_icons(&self.icons, vis);
-                self.strike.set_icons(&self.icons, vis);
-                self.pocket.set_icons(&self.icons, &self.icon_names, vis);
-                self.roach.set_icons(&self.icons, vis);
-                self.rosebrook.set_icons(&self.icons, vis);
-                self.polarnight.set_icons(&self.icons, vis);
-                self.winter.set_icons(&self.icons, &self.icon_names, vis);
-                if self.is_neumorph_theme() {
-                    let rects: Vec<Rect> = if vis {
-                        self.icons.clone()
-                    } else {
-                        Vec::new()
-                    };
-                    self.neumorph.sync_incoming_icons(&rects);
-                }
-                self.claymorph.sync_incoming_icons(&self.icons);
-                self.neobrutalism.sync_incoming_icons(&self.icons);
-                self.liquidglass.sync_incoming_icons(&self.icons);
-                self.zen_archipelago.set_icons(&self.icons, vis);
-                self.istanbul.set_icons(&self.icons, vis);
-                self.solar_system.set_icons(&self.icons, &self.icon_names, vis);
-                self.thinking_orbs.set_icons(&self.icons, vis);
-                self.ai_mascots.set_icons(&self.icons, &self.icon_names, vis);
-                self.cat_shore.set_icons(&self.icons, vis);
-                self.persephone.set_icons(&self.icons, vis);
-                self.eye_within_words.set_icons(&self.icons, vis);
-                self.cosmic_eye.set_icons(&self.icons, vis);
+                self.push_icons_to_all_themes(vis);
                 self.recompute_layout();
+            }
+            "iconIslands" => {
+                let enabled = v.get("v").and_then(|x| x.as_bool())
+                    .or_else(|| v.get("v").and_then(|x| x.as_f64()).map(|n| n != 0.0));
+                if let Some(b) = enabled {
+                    self.icon_islands = b;
+                }
+                if let Some(g) = v.get("gap").and_then(|x| x.as_f64()) {
+                    if g.is_finite() {
+                        self.icon_islands_gap = (g as f32).clamp(8.0, 120.0);
+                    }
+                }
+                self.push_icons_to_all_themes(self.icons_vis);
+                self.recompute_layout();
+            }
+            "audioLevel" => {
+                if let Some(pk) = v.get("peak").and_then(|x| x.as_f64()) {
+                    self.audio.push_peak(pk as f32);
+                }
             }
             "windows" => {
                 self.windows.clear();
@@ -1631,6 +1634,7 @@ impl AppState {
                 if let Some(c) = v.get("cpu").and_then(|x| x.as_f64()) { self.cpu = c as f32; }
                 if let Some(m) = v.get("mem").and_then(|x| x.as_f64()) { self.mem = m as f32; }
                 if let Some(b) = v.get("battery").and_then(|x| x.as_f64()) { self.battery = b as f32; }
+                if let Some(pk) = v.get("audioPeak").and_then(|x| x.as_f64()) { self.audio.push_peak(pk as f32); }
             }
             "mediaState" => {
                 self.media.active = v.get("active").and_then(|x| x.as_bool()).unwrap_or(false);
@@ -1699,6 +1703,15 @@ impl AppState {
         if let Some(v) = num("motion") { self.params.motion = (v as f32).clamp(0.0, 2.0); }
         if let Some(v) = num("quality") { self.params.quality = (v as usize).min(2); }
         if let Some(v) = num("seed") { self.params.seed = v as u32; }
+        let islands_opt = obj
+            .get("iconIslands")
+            .and_then(|x| x.as_bool().or_else(|| x.as_f64().map(|n| n != 0.0)));
+        if let Some(b) = islands_opt {
+            if self.icon_islands != b {
+                self.icon_islands = b;
+                self.push_icons_to_all_themes(self.icons_vis);
+            }
+        }
 
         if self.is_studio_glass_theme() {
             let st_preset = self.param_f32("preset", 1.0).round() as i32;
@@ -2183,6 +2196,59 @@ impl AppState {
         self.recompute_layout();
     }
 
+    fn rebuild_effective_icons(&mut self) {
+        if self.icon_islands {
+            let (rects, names) = crate::icon_islands::cluster_icons_with_names(
+                &self.icons,
+                &self.icon_names,
+                self.icon_islands_gap,
+            );
+            self.effective_icons = rects;
+            self.effective_icon_names = names;
+        } else {
+            self.effective_icons = self.icons.clone();
+            self.effective_icon_names = self.icon_names.clone();
+        }
+    }
+
+    fn push_icons_to_all_themes(&mut self, vis: bool) {
+        self.rebuild_effective_icons();
+        self.quiet_snow.set_icons(&self.effective_icons);
+        self.desert.set_icons(&self.effective_icons, vis);
+        self.software_world.update_icons(&self.effective_icons, vis);
+        self.meadow.set_icons(&self.effective_icons, vis);
+        self.beach.set_icons(&self.effective_icons, vis);
+        self.aurora.set_icons(&self.effective_icons, vis);
+        self.glade.set_icons(&self.effective_icons, vis);
+        self.rift.set_icons(&self.effective_icons, vis);
+        self.strike.set_icons(&self.effective_icons, vis);
+        self.pocket.set_icons(&self.effective_icons, &self.effective_icon_names, vis);
+        self.roach.set_icons(&self.effective_icons, vis);
+        self.rosebrook.set_icons(&self.effective_icons, vis);
+        self.polarnight.set_icons(&self.effective_icons, vis);
+        self.winter.set_icons(&self.effective_icons, &self.effective_icon_names, vis);
+        if self.is_neumorph_theme() {
+            let rects: Vec<Rect> = if vis {
+                self.effective_icons.clone()
+            } else {
+                Vec::new()
+            };
+            self.neumorph.sync_incoming_icons(&rects);
+        }
+        self.claymorph.sync_incoming_icons(&self.effective_icons);
+        self.neobrutalism.sync_incoming_icons(&self.effective_icons);
+        self.liquidglass.sync_incoming_icons(&self.effective_icons);
+        self.zen_archipelago.set_icons(&self.effective_icons, vis);
+        self.istanbul.set_icons(&self.effective_icons, vis);
+        self.solar_system.set_icons(&self.effective_icons, &self.effective_icon_names, vis);
+        self.thinking_orbs.set_icons(&self.effective_icons, vis);
+        self.ai_mascots.set_icons(&self.effective_icons, &self.effective_icon_names, vis);
+        self.cat_shore.set_icons(&self.effective_icons, vis);
+        self.persephone.set_icons(&self.effective_icons, vis);
+        self.eye_within_words.set_icons(&self.effective_icons, vis);
+        self.cosmic_eye.set_icons(&self.effective_icons, vis);
+    }
+
     pub fn step(&mut self, dt: f32) {
         self.sim_time += dt * self.params.motion;
         self.caret_blink = (self.caret_blink + dt) % 1.06;
@@ -2190,14 +2256,20 @@ impl AppState {
             let inst_fps = (1.0 / dt).clamp(1.0, 240.0);
             self.fps_smooth = self.fps_smooth * 0.9 + inst_fps * 0.1;
         }
+        self.audio.step(dt);
         let playing = self.media.active && self.media.playing;
-        let target_amp = if playing { 3.2 } else { 0.0 };
+        let audio_boost = if self.audio.is_active() {
+            self.audio.level() * 3.8 + self.audio.beat() * 2.2
+        } else {
+            0.0
+        };
+        let target_amp = (if playing { 3.2 } else { 0.0 }) + audio_boost;
         self.media.wave_amp += (target_amp - self.media.wave_amp) * (dt * 8.0).min(1.0);
         let target_morph = if playing { 1.0 } else { 0.0 };
         self.media.play_morph += (target_morph - self.media.play_morph) * (dt * 11.0).min(1.0);
-        if playing {
-            self.media.wave_phase += dt * 4.2;
-            if !self.media.has_art_tex {
+        if playing || self.audio.is_active() {
+            self.media.wave_phase += dt * (4.2 + self.audio.beat() * 2.5);
+            if playing && !self.media.has_art_tex {
                 self.media.art_angle += dt * 0.35;
             }
         }
@@ -2227,13 +2299,13 @@ impl AppState {
             self.quiet_snow.step(dt);
         }
         if self.is_papercut_theme() {
-            self.papercut.step(dt, &self.icons);
+            self.papercut.step(dt, &self.effective_icons);
         }
         if self.is_voxelcraft_theme() {
             let px = self.pointer_x;
             let py = self.pointer_y;
             let pa = self.pointer_active;
-            let icons = &self.icons;
+            let icons = &self.effective_icons;
             self.voxelcraft.set_icons(icons, true);
             self.voxelcraft.step(dt, (px, py, pa));
         }
@@ -2245,17 +2317,17 @@ impl AppState {
             let py = self.pointer_y;
             let pa = self.pointer_active;
             let pd = self.claymorph.pointer_down;
-            self.claymorph.step(dt, &self.icons, (px, py, pa, pd));
+            self.claymorph.step(dt, &self.effective_icons, (px, py, pa, pd));
         }
         if self.is_neobrutalism_theme() {
             let px = self.pointer_x;
             let py = self.pointer_y;
             let pa = self.pointer_active;
             let pd = self.neobrutalism.pointer_down;
-            self.neobrutalism.step(dt, &self.icons, (px, py, pa, pd));
+            self.neobrutalism.step(dt, &self.effective_icons, (px, py, pa, pd));
         }
         if self.is_liquidglass_theme() {
-            self.liquidglass.step(dt, &self.icons);
+            self.liquidglass.step(dt, &self.effective_icons);
         }
         if self.is_zen_archipelago_theme() {
             self.zen_archipelago.step(dt);

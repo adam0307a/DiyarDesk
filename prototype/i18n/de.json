@@ -253,7 +253,9 @@
     "advSettingsBtn": "Erweitert",
     "advSettingsTitle": "Erweiterte Verhaltens- und Automatisierungseinstellungen",
     "rustGlFallbackNotice": "Das eigene HTML-Thema \"{from}\" benötigt WebView2. Für Rust OpenGL wurde auf \"{to}\" gewechselt — beim Zurückwechseln wird es wiederhergestellt.",
-    "rustGlRestoredNotice": "Vorheriges WebView-Thema \"{name}\" wiederhergestellt."
+    "rustGlRestoredNotice": "Vorheriges WebView-Thema \"{name}\" wiederhergestellt.",
+    "iconIslands": "Smarte Symbol-Inseln",
+    "iconIslandsTitle": "Benachbarte Desktop-Symbole für adaptives Rust-OpenGL-Gelände zu kompakten Inseln gruppieren"
   },
   "host": {
     "traySettings": "Einstellungen…",

@@ -253,7 +253,9 @@
     "advSettingsBtn": "Gelişmiş",
     "advSettingsTitle": "Gelişmiş davranış ve otomasyon ayarları",
     "rustGlFallbackNotice": "Özel HTML teması \"{from}\" WebView2 gerektirir. Rust OpenGL için \"{to}\" temasına geçildi — WebView2'ye döndüğünüzde geri yüklenir.",
-    "rustGlRestoredNotice": "Önceki WebView temanız \"{name}\" geri yüklendi."
+    "rustGlRestoredNotice": "Önceki WebView temanız \"{name}\" geri yüklendi.",
+    "iconIslands": "Akıllı İkon Adaları",
+    "iconIslandsTitle": "Rust OpenGL uyumlu arazilerde yakın masaüstü simgelerini tek bir ada çerçevesinde kümeler"
   },
   "host": {
     "traySettings": "Ayarlar…",

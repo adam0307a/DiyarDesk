@@ -161,8 +161,107 @@ sealed class WinMpvBackend
     }
 }
 
-sealed class WinSystemBridge
+sealed class WinAudioPeakMeter : IDisposable
 {
+    static readonly Guid CLSID_MMDeviceEnumerator = new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E");
+    static readonly Guid IID_IAudioMeterInformation = new Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064");
+
+    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IMMDeviceEnumerator
+    {
+        [PreserveSig]
+        int EnumAudioEndpoints(int dataFlow, uint dwStateMask, [MarshalAs(UnmanagedType.IUnknown)] out object ppDevices);
+        [PreserveSig]
+        int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+    }
+
+    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IMMDevice
+    {
+        [PreserveSig]
+        int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    }
+
+    [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IAudioMeterInformation
+    {
+        [PreserveSig]
+        int GetPeakValue(out float pfPeak);
+    }
+
+    IMMDeviceEnumerator enumerator;
+    IMMDevice device;
+    IAudioMeterInformation meter;
+    DateTime nextRetryUtc = DateTime.MinValue;
+
+    bool EnsureMeter()
+    {
+        if (meter != null) return true;
+        DateTime now = DateTime.UtcNow;
+        if (now < nextRetryUtc) return false;
+        nextRetryUtc = now.AddSeconds(2.0);
+        try
+        {
+            Type t = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator, false);
+            if (t == null) return false;
+            enumerator = Activator.CreateInstance(t) as IMMDeviceEnumerator;
+            if (enumerator == null) return false;
+            IMMDevice dev;
+            if (enumerator.GetDefaultAudioEndpoint(0 /* eRender */, 1 /* eMultimedia */, out dev) != 0 || dev == null)
+                return false;
+            device = dev;
+            Guid iid = IID_IAudioMeterInformation;
+            object iface;
+            if (device.Activate(ref iid, 0x17 /* CLSCTX_ALL */, IntPtr.Zero, out iface) != 0 || iface == null)
+                return false;
+            meter = iface as IAudioMeterInformation;
+            return meter != null;
+        }
+        catch
+        {
+            ReleaseCom();
+            return false;
+        }
+    }
+
+    void ReleaseCom()
+    {
+        if (meter != null) { try { Marshal.ReleaseComObject(meter); } catch { } meter = null; }
+        if (device != null) { try { Marshal.ReleaseComObject(device); } catch { } device = null; }
+        if (enumerator != null) { try { Marshal.ReleaseComObject(enumerator); } catch { } enumerator = null; }
+    }
+
+    public float SamplePeak()
+    {
+        if (!EnsureMeter()) return 0.0f;
+        try
+        {
+            float peak;
+            if (meter.GetPeakValue(out peak) == 0)
+            {
+                if (float.IsNaN(peak) || float.IsInfinity(peak)) return 0.0f;
+                return Math.Max(0.0f, Math.Min(1.0f, peak));
+            }
+            ReleaseCom();
+            nextRetryUtc = DateTime.UtcNow.AddSeconds(2.0);
+        }
+        catch
+        {
+            ReleaseCom();
+            nextRetryUtc = DateTime.UtcNow.AddSeconds(2.0);
+        }
+        return 0.0f;
+    }
+
+    public void Dispose()
+    {
+        ReleaseCom();
+    }
+}
+
+sealed class WinSystemBridge : IDisposable
+{
+    readonly WinAudioPeakMeter audioMeter = new WinAudioPeakMeter();
     [StructLayout(LayoutKind.Sequential)]
     struct FILETIME { public uint Low; public uint High; }
 
@@ -205,6 +304,16 @@ sealed class WinSystemBridge
 
     static ulong ToUInt64(FILETIME ft) { return ((ulong)ft.High << 32) | ft.Low; }
 
+    public float SampleAudioPeak()
+    {
+        return audioMeter.SamplePeak();
+    }
+
+    public void Dispose()
+    {
+        audioMeter.Dispose();
+    }
+
     public string SampleJson()
     {
         double cpuPct = 0.0;
@@ -245,12 +354,14 @@ sealed class WinSystemBridge
         }
         catch { }
 
+        float audioPeak = audioMeter.SamplePeak();
         return Json.Stringify(Json.Obj(
             "t", "systemStats",
             "cpu", Math.Round(cpuPct, 1),
             "mem", Math.Round(memPct, 1),
             "battery", battery,
-            "charging", charging));
+            "charging", charging,
+            "audioPeak", Math.Round(audioPeak, 3)));
     }
 }
 

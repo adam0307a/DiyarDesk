@@ -681,3 +681,35 @@ void main() {
     fragColor = vec4(v_col.rgb, a);
 }
 "#;
+
+pub const AUDIO_PULSE_FRAG: &str = r#"#version 330 core
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform vec2 u_res;
+uniform float u_time;
+uniform float u_level;
+uniform float u_beat;
+uniform vec3 u_accent;
+
+void main() {
+    float energy = clamp(u_level * 0.72 + u_beat * 0.85, 0.0, 1.0);
+    if (energy < 0.002) discard;
+
+    vec2 uv = v_uv;
+    vec2 center = abs(uv - vec2(0.5)) * 2.0;
+    float edge = smoothstep(0.62, 1.0, max(center.x, center.y));
+    float vigA = edge * edge * (0.045 + u_beat * 0.085) * energy;
+
+    // Gentle bottom harmonic wave ribbon
+    float waveH = 0.032 + 0.038 * u_level + 0.045 * u_beat;
+    float waveY = waveH
+        + 0.012 * sin(uv.x * 11.0 + u_time * 3.2) * energy
+        + 0.007 * cos(uv.x * 23.0 - u_time * 4.7) * u_beat;
+    float bandA = (1.0 - smoothstep(0.0, max(0.018, waveY), uv.y)) * (0.065 + u_beat * 0.095) * energy;
+
+    float alpha = clamp(vigA + bandA, 0.0, 0.24);
+    if (alpha < 0.002) discard;
+    fragColor = vec4(u_accent, alpha);
+}
+"#;

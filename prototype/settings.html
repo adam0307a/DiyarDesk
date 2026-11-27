@@ -541,6 +541,9 @@
         <label class="switch-row" data-i18n-title="focusRulesTitle" title="Automatically pause wallpaper when camera/mic is active (Zoom/Teams/Meet) or a listed app is running">
           <span data-i18n="focusRules">Meeting / Game auto-pause</span><input type="checkbox" id="focusRules"><i class="switch"></i>
         </label>
+        <label class="switch-row" data-i18n-title="iconIslandsTitle" title="Group nearby desktop icons into cohesive bounding-box islands for Rust OpenGL adaptive terrain">
+          <span data-i18n="iconIslands">Smart Icon Islands</span><input type="checkbox" id="iconIslands"><i class="switch"></i>
+        </label>
         <div class="adv-field">
           <label for="focusRuleApps" data-i18n="focusRulesApps">Rule apps (.exe, comma-separated)</label>
           <input type="text" class="adv-text-input" id="focusRuleApps" data-i18n-placeholder="focusRulesAppsPlaceholder" placeholder="obs64.exe, blender.exe, valorant.exe">
@@ -1873,6 +1876,11 @@ if ($('focusRules')) {
     send({ t: 'focusRules', enabled: !!e.target.checked, apps: $('focusRuleApps') ? $('focusRuleApps').value : undefined });
   });
 }
+if ($('iconIslands')) {
+  $('iconIslands').addEventListener('change', e => {
+    send({ t: 'iconIslands', v: !!e.target.checked });
+  });
+}
 if ($('focusRuleApps')) {
   let focusAppsTimer = 0;
   $('focusRuleApps').addEventListener('input', e => {
@@ -2110,6 +2118,7 @@ function onHost(m) {
       state.canSaveSnapshot = !!m.canSaveSnapshot;
       state.canIconSnapshot = !!m.canIconSnapshot;
       if ($('focusRules')) $('focusRules').checked = !!m.focusRulesEnabled;
+      if ($('iconIslands')) $('iconIslands').checked = !!m.iconIslands;
       if ($('focusRuleApps') && typeof m.focusRuleApps === 'string') $('focusRuleApps').value = m.focusRuleApps;
       syncIconSnapshotUi(m.iconSnapshot);
       initWelcomeTip();
@@ -2275,6 +2284,8 @@ function onHost(m) {
   } else if (m.t === 'focusRules') {
     if ($('focusRules') && typeof m.enabled === 'boolean') $('focusRules').checked = m.enabled;
     if ($('focusRuleApps') && typeof m.apps === 'string') $('focusRuleApps').value = m.apps;
+  } else if (m.t === 'iconIslands') {
+    if ($('iconIslands') && typeof m.v === 'boolean') $('iconIslands').checked = m.v;
   } else if (m.t === 'presetImportPayload') {
     if (m.data) applyPresetObject(m.data);
   } else if (m.t === 'audioPlay') {

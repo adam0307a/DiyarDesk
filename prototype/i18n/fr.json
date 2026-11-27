@@ -253,7 +253,9 @@
     "advSettingsBtn": "Avancé",
     "advSettingsTitle": "Paramètres avancés de comportement et d’automatisation",
     "rustGlFallbackNotice": "Le thème HTML \"{from}\" nécessite WebView2. Basculé vers \"{to}\" pour Rust OpenGL — il sera restauré au retour sur WebView2.",
-    "rustGlRestoredNotice": "Votre précédent thème WebView \"{name}\" a été restauré."
+    "rustGlRestoredNotice": "Votre précédent thème WebView \"{name}\" a été restauré.",
+    "iconIslands": "Îlots d’icônes intelligents",
+    "iconIslandsTitle": "Regrouper les icônes de bureau proches en îlots cohérents pour le relief adaptatif Rust OpenGL"
   },
   "host": {
     "traySettings": "Paramètres…",
