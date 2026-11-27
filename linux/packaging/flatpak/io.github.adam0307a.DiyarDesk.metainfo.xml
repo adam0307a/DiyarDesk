@@ -60,6 +60,18 @@
   </screenshots>
 
   <releases>
+    <release version="0.5.6" date="2026-11-27">
+      <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.6</url>
+      <description>
+        <ul>
+          <li>Added Smart Icon Islands clustering and Universal Audio Beat reactivity (Windows Core Audio loopback peak + Rust OpenGL pulse shader)</li>
+          <li>Added Meeting / Game automatic pause rules (camera/mic &amp; custom process detection) and Windows Desktop Icon Layout snapshot save &amp; restore</li>
+          <li>Added .deskland-preset v2 sharing, 9:16 vertical showcase export with live RAM badges, offline drag-and-drop import, and live RAM comparison cards</li>
+          <li>Added interactive 2-question first-run onboarding wizard, theme category filters, curated style presets, Seasonal Atmosphere mode, and Window-Aware v2 for AI Mascots &amp; Cat Shore</li>
+          <li>Added bidirectional Android Tablet &lt;-&gt; Desktop LAN Handoff with Impulse widget state sync and WCAG AA accessibility polish</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.5" date="2026-11-27">
       <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.5</url>
       <description>

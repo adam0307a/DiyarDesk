@@ -6,7 +6,7 @@ DiyarDesk turns the space around your desktop icons into a living interactive la
 
 > **Upstream attribution:** DiyarDesk is an independent community fork based on [Deskland](https://deskland.app) (`GPL-3.0`), using its own product name (**DiyarDesk**) and original icon, with no official affiliation or endorsement from upstream Deskland. See [NOTICE](NOTICE) and [TRADEMARKS.md](TRADEMARKS.md).
 
-**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.5)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [32 Themes](#included-themes-32-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
+**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.6)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [32 Themes](#included-themes-32-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
 
 <a href="https://www.buymeacoffee.com/adam0307a" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -203,7 +203,7 @@ If you enjoy DiyarDesk, you can support its development:
 
 ## Türkçe
 
-[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.5)](https://github.com/adam0307a/DiyarDesk/releases/latest)
+[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.6)](https://github.com/adam0307a/DiyarDesk/releases/latest)
 
 **Masaüstü simgelerinizi manzaranın bir parçasına dönüştüren uyarlanabilir duvar kağıdı — artık WebView2'siz yerel Rust + OpenGL 3.3 Core motoruyla.**
 
