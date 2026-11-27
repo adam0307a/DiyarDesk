@@ -299,6 +299,49 @@ class ThemeStore(private val storageDir: File) {
         listeners.forEach { it.onSettingsChanged(this) }
     }
 
+    fun exportPresetJson(themeName: String? = null): JSONObject = synchronized(lock) {
+        val tid = activeTheme
+        JSONObject().apply {
+            put("format", "diyardesk-preset")
+            put("version", 1)
+            put("name", themeName?.takeIf { it.isNotBlank() } ?: tid)
+            put("theme", tid)
+            put("params", getParamsCopy(tid))
+            put("lowMode", lowMode)
+        }
+    }
+
+    fun applyPresetJson(
+        raw: String,
+        isThemeAllowed: (String) -> Boolean = { it.isNotBlank() }
+    ): String {
+        if (raw.length > 262_144) throw IllegalArgumentException("Preset file too large")
+        val root = JSONObject(raw)
+        val tid = root.optString("theme", "").trim()
+        if (tid.isBlank() || !isThemeAllowed(tid)) {
+            throw IllegalArgumentException("Unknown theme: $tid")
+        }
+        synchronized(lock) {
+            val rawParams = root.optJSONObject("params")
+            if (rawParams != null) {
+                val map = paramsByTheme.getOrPut(tid) { JSONObject() }
+                val keys = rawParams.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    val v = rawParams.opt(k)
+                    if (v != null && v !== JSONObject.NULL) map.put(k, v)
+                }
+            }
+            if (root.has("lowMode")) {
+                lowMode = root.optBoolean("lowMode", lowMode)
+            }
+            activeTheme = tid
+            saveLocked()
+        }
+        listeners.forEach { it.onSettingsChanged(this) }
+        return tid
+    }
+
     fun setLanguage(newLang: String) {
         synchronized(lock) {
             lang = newLang.ifBlank { "auto" }

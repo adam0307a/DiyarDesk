@@ -74,6 +74,8 @@ def build_command_payload(argv: list[str]) -> tuple[dict[str, Any], bool, Path |
         help="Count for 'add', mode (auto|always|off) for 'mode', or '<index> <new name>' for 'rename'",
     )
     sub.add_parser("lockscreen-sync", help="Render blurred static lockscreen image from active wallpaper")
+    p_preset = sub.add_parser("apply-preset", help="Apply a .deskland-preset configuration file")
+    p_preset.add_argument("path", help="Path to .deskland-preset or .json preset file")
     sub.add_parser("reload", help="Reload wallpaper renderer")
     sub.add_parser("exit", help="Quit DiyarDesk cleanly")
 
@@ -106,6 +108,8 @@ def build_command_payload(argv: list[str]) -> tuple[dict[str, Any], bool, Path |
             except ValueError:
                 parser.error(f"invalid icon index: {extra[0]}")
             payload["name"] = " ".join(extra[1:]).strip()
+    elif args.cmd == "apply-preset":
+        payload["path"] = str(Path(args.path).expanduser().resolve())
     elif args.cmd == "playlist":
         payload["action"] = args.action
         if args.interval > 0:

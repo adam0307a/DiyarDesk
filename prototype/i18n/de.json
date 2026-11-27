@@ -218,7 +218,11 @@
     "presetExported": "Preset gespeichert — bereit zum Teilen!",
     "presetImported": "Preset „{name}“ angewendet",
     "presetImportError": "Ungültige Preset-Datei: {msg}",
-    "playlistSmart": "Playlist: Smarte Tagesroutine"
+    "playlistSmart": "Playlist: Smarte Tagesroutine",
+    "shareFormat16x9": "16:9 Querformat",
+    "shareFormat9x16": "9:16 Hochformat (Reels/Shorts)",
+    "shareShowBadge": "Showcase-Badge",
+    "shareShowBadgeTitle": "Dezentes DiyarDesk- und RAM-Badge auf geteilten Bildern und Clips anzeigen"
   },
   "host": {
     "traySettings": "Einstellungen…",

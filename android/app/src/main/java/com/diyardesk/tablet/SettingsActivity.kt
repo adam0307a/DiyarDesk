@@ -57,6 +57,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
     private var webView: WebView? = null
     private var nativeSettings: NativeSettingsController? = null
     private var lastSavedShareUri: Uri? = null
+    private var pendingExportPresetJson: String? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val memExecutor = Executors.newSingleThreadExecutor()
     private var webMemPolling = false
@@ -71,6 +72,48 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
     private val importPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@registerForActivityResult
         handlePickedThemeUri(uri)
+    }
+
+    private val exportPresetLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        val json = pendingExportPresetJson
+        pendingExportPresetJson = null
+        if (uri == null || json == null) return@registerForActivityResult
+        try {
+            contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+            Toast.makeText(this, "Preset exported", Toast.LENGTH_SHORT).show()
+            dispatchToWebView(JSONObject().apply {
+                put("t", "presetExported")
+                put("ok", true)
+            })
+        } catch (t: Throwable) {
+            val msg = t.message ?: "Export failed"
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+            dispatchToWebView(JSONObject().apply {
+                put("t", "presetExported")
+                put("ok", false)
+                put("msg", msg)
+            })
+        }
+    }
+
+    private val importPresetLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            val text = contentResolver.openInputStream(uri)?.use {
+                it.bufferedReader(Charsets.UTF_8).readText()
+            } ?: throw IllegalStateException("Cannot open preset file")
+            val appliedId = store.applyPresetJson(text)
+            nativeSettings?.refresh()
+            dispatchToWebView(JSONObject().apply {
+                put("t", "presetImportPayload")
+                put("data", JSONObject(text))
+            })
+            Toast.makeText(this, "Preset applied: $appliedId", Toast.LENGTH_SHORT).show()
+        } catch (t: Throwable) {
+            Toast.makeText(this, t.message ?: "Preset import failed", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -304,7 +347,9 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                         contentHost.post { syncSettingsEngine() }
                     },
                     onImportTheme = { importPicker.launch(arrayOf("*/*")) },
-                    onRemoveTheme = { id -> removeCustomTheme(id) }
+                    onRemoveTheme = { id -> removeCustomTheme(id) },
+                    onExportPreset = { launchExportPreset() },
+                    onImportPreset = { launchImportPreset() }
                 )
                 nativeSettings = controller
                 contentHost.addView(
@@ -501,6 +546,9 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
             "importTheme" -> {
                 importPicker.launch(arrayOf("*/*"))
             }
+            "exportPreset" -> {
+                launchExportPreset(msg.optJSONObject("payload"))
+            }
             "removeTheme" -> {
                 removeCustomTheme(msg.optString("id"))
             }
@@ -588,6 +636,17 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 }
             }
         }.start()
+    }
+
+    private fun launchExportPreset(customPayload: JSONObject? = null) {
+        val payload = customPayload ?: store.exportPresetJson()
+        pendingExportPresetJson = payload.toString(2)
+        val tid = payload.optString("theme", store.activeTheme).ifBlank { "diyardesk" }
+        exportPresetLauncher.launch("$tid.deskland-preset")
+    }
+
+    private fun launchImportPreset() {
+        importPresetLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
     }
 
     private fun handlePickedThemeUri(uri: Uri) {

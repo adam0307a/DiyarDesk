@@ -176,6 +176,12 @@ Section "$(AppFiles)" SecApp
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "NoRepair" 1
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "EstimatedSize" $0
+  WriteRegStr HKCU "Software\Classes\.deskland-preset" "" "DiyarDesk.Preset"
+  WriteRegStr HKCU "Software\Classes\.deskland-preset" "Content Type" "application/json"
+  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset" "" "DiyarDesk Preset"
+  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\DefaultIcon" "" "$INSTDIR\host\bin\Deskland.exe,0"
+  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\shell\open\command" "" '$\"$INSTDIR\host\bin\Deskland.exe$\" $\"%1$\"'
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 SectionEnd
 
 Function un.onInit
@@ -205,4 +211,7 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\DiyarDesk"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview"
   DeleteRegKey HKCU "Software\DesklandPreview\Installer"
+  DeleteRegKey HKCU "Software\Classes\.deskland-preset"
+  DeleteRegKey HKCU "Software\Classes\DiyarDesk.Preset"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 SectionEnd

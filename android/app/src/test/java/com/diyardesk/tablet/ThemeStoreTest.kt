@@ -24,7 +24,7 @@ class ThemeStoreTest {
         val s2 = ThemeStore(dir)
         assertEquals("istanbul", s2.activeTheme)
         assertEquals("en", s2.lang)
-        assertEquals("on", s2.virtualBarMode)
+        assertEquals("always", s2.virtualBarMode)
         assertEquals(0.85, s2.getParamsCopy("istanbul").getDouble("lanternWarmth"), 0.001)
 
         s2.resetThemeParams("istanbul")
@@ -112,5 +112,34 @@ class ThemeStoreTest {
         assertEquals("de", ThemeStore.resolveEffectiveLang("auto", "de-DE"))
         assertEquals("ja", ThemeStore.resolveEffectiveLang("auto", "ja-JP"))
         assertEquals("zh-TW", ThemeStore.resolveEffectiveLang("auto", "zh-TW"))
+    }
+
+    @Test
+    fun exportsAndImportsDesklandPresetRoundTrip() {
+        val s1 = ThemeStore(tmp.newFolder("preset1"))
+        s1.setActiveTheme("istanbul")
+        s1.setParam("istanbul", "lanternWarmth", 0.92)
+        s1.setLowModeEnabled(true)
+
+        val exported = s1.exportPresetJson("Evening Bosphorus")
+        assertEquals("diyardesk-preset", exported.getString("format"))
+        assertEquals("istanbul", exported.getString("theme"))
+        assertEquals("Evening Bosphorus", exported.getString("name"))
+        assertTrue(exported.getBoolean("lowMode"))
+
+        val s2 = ThemeStore(tmp.newFolder("preset2"))
+        val appliedTheme = s2.applyPresetJson(exported.toString()) { it in setOf("papercut", "istanbul") }
+        assertEquals("istanbul", appliedTheme)
+        assertEquals("istanbul", s2.activeTheme)
+        assertTrue(s2.lowMode)
+        assertEquals(0.92, s2.getParamsCopy("istanbul").getDouble("lanternWarmth"), 0.001)
+
+        var rejected = false
+        try {
+            s2.applyPresetJson("""{"theme":"blocked"}""") { it == "papercut" }
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
     }
 }

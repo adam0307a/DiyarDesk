@@ -366,9 +366,11 @@ class Wallpaper:
         self._snapshot_done: Callable[[str | None, str | None, str | None], None] | None = None
         self._snapshot_timeout = 0
         self._pending_snapshot = False
+        self._pending_snapshot_opts: dict[str, Any] | None = None
         self._record_done: Callable[[str | None, str | None, str | None, str | None], None] | None = None
         self._record_timeout = 0
         self._pending_record = False
+        self._pending_record_opts: dict[str, Any] | None = None
         self._static_timeout = 0
         self._static_file: Path | None = None
         self._static_snapshot_pending = False
@@ -1534,12 +1536,20 @@ class Wallpaper:
         if self.backend == "plasma-plugin":
             if self._pending_snapshot and self.bridge is not None:
                 self._pending_snapshot = False
+                snap_msg: dict[str, Any] = {"t": "snapshot"}
+                if self._pending_snapshot_opts is not None:
+                    snap_msg["opts"] = self._pending_snapshot_opts
+                self._pending_snapshot_opts = None
                 self.bridge.post({"t": "pause", "v": False})
-                self.bridge.post({"t": "snapshot"})
+                self.bridge.post(snap_msg)
             if self._pending_record and self.bridge is not None:
                 self._pending_record = False
+                rec_msg: dict[str, Any] = {"t": "record"}
+                if self._pending_record_opts is not None:
+                    rec_msg["opts"] = self._pending_record_opts
+                self._pending_record_opts = None
                 self.bridge.post({"t": "pause", "v": False})
-                self.bridge.post({"t": "record"})
+                self.bridge.post(rec_msg)
             return
         self._last_icons = None
         self._last_pause = -1
@@ -2058,7 +2068,9 @@ class Wallpaper:
 
     # ---------------------------------------------------------------- share
     def request_snapshot(
-        self, done: Callable[[str | None, str | None, str | None], None]
+        self,
+        done: Callable[[str | None, str | None, str | None], None],
+        opts: dict[str, Any] | None = None,
     ) -> None:
         if self._snapshot_done is not None:
             done(None, None, self.host.i18n.t("errBusyImage"))
@@ -2100,12 +2112,14 @@ class Wallpaper:
             )
             if self.bridge is None:
                 self._pending_snapshot = True
+                self._pending_snapshot_opts = opts
                 self._ensure_share_renderer()
             elif not self._ready:
                 self._pending_snapshot = True
+                self._pending_snapshot_opts = opts
             else:
                 self.bridge.post({"t": "pause", "v": False})
-                self.bridge.post({"t": "snapshot"})
+                self.bridge.post({"t": "snapshot", "opts": opts} if opts is not None else {"t": "snapshot"})
             return
         if not self._ready or self.bridge is None:
             done(None, None, self.host.i18n.t("errNotReady"))
@@ -2114,7 +2128,7 @@ class Wallpaper:
         self._snapshot_timeout = GLib.timeout_add_seconds(
             20, self._snapshot_timed_out
         )
-        self.bridge.post({"t": "snapshot"})
+        self.bridge.post({"t": "snapshot", "opts": opts} if opts is not None else {"t": "snapshot"})
 
     def _snapshot_timed_out(self) -> bool:
         self._finish_snapshot(None, None, self.host.i18n.t("errImageTimeout"))
@@ -2146,6 +2160,7 @@ class Wallpaper:
     def request_record(
         self,
         done: Callable[[str | None, str | None, str | None, str | None], None],
+        opts: dict[str, Any] | None = None,
     ) -> None:
         if self._record_done is not None:
             done(None, None, None, self.host.i18n.t("errBusyVideo"))
@@ -2155,19 +2170,21 @@ class Wallpaper:
             self._record_timeout = GLib.timeout_add_seconds(45, self._record_timed_out)
             if self.bridge is None:
                 self._pending_record = True
+                self._pending_record_opts = opts
                 self._ensure_share_renderer()
             elif not self._ready:
                 self._pending_record = True
+                self._pending_record_opts = opts
             else:
                 self.bridge.post({"t": "pause", "v": False})
-                self.bridge.post({"t": "record"})
+                self.bridge.post({"t": "record", "opts": opts} if opts is not None else {"t": "record"})
             return
         if not self._ready or self.bridge is None:
             done(None, None, None, self.host.i18n.t("errNotReady"))
             return
         self._record_done = done
         self._record_timeout = GLib.timeout_add_seconds(45, self._record_timed_out)
-        self.bridge.post({"t": "record"})
+        self.bridge.post({"t": "record", "opts": opts} if opts is not None else {"t": "record"})
 
     def _record_timed_out(self) -> bool:
         self._finish_record(None, None, None, self.host.i18n.t("errVideoTimeout"))

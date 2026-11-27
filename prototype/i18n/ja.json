@@ -218,7 +218,11 @@
     "presetExported": "プリセットを保存しました — 友達と共有できます！",
     "presetImported": "プリセット「{name}」を適用しました",
     "presetImportError": "無効なプリセットファイル：{msg}",
-    "playlistSmart": "切替：スマートデイリー"
+    "playlistSmart": "切替：スマートデイリー",
+    "shareFormat16x9": "16:9 横向き",
+    "shareFormat9x16": "9:16 縦向き (Reels/Shorts)",
+    "shareShowBadge": "ショーケースバッジ",
+    "shareShowBadgeTitle": "共有画像やクリップに控えめな DiyarDesk + RAM バッジを表示"
   },
   "host": {
     "traySettings": "設定…",

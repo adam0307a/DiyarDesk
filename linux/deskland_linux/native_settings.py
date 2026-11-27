@@ -305,10 +305,18 @@ class NativeSettingsWindow:
         self._update_ram_subtitle()
         self._start_mem_timer()
 
-        # Left: Import theme button
+        # Left: Import theme + portable preset buttons
         self._import_btn = Gtk.Button(label="+ " + self._i18n.ui("importTheme", "Import theme"))
         self._import_btn.connect("clicked", lambda *_: self.host.on_settings_message(json.dumps({"t": "importTheme"})))
         hb.pack_start(self._import_btn)
+
+        self._export_preset_btn = Gtk.Button(label=self._i18n.ui("exportPreset", "Export preset"))
+        self._export_preset_btn.connect("clicked", lambda *_: self.host.export_preset_dialog())
+        hb.pack_start(self._export_preset_btn)
+
+        self._import_preset_btn = Gtk.Button(label=self._i18n.ui("importPreset", "Import preset"))
+        self._import_preset_btn.connect("clicked", lambda *_: self.host.import_preset_dialog())
+        hb.pack_start(self._import_preset_btn)
 
         # Right: Language selector
         self._lang_combo = Gtk.ComboBoxText()
@@ -1202,9 +1210,17 @@ class NativeSettingsWindow:
         finally:
             self._syncing = prev_sync
 
+    def reload_from_host(self) -> None:
+        self._sync_system_controls()
+        self._select_theme_row(self.host.settings.theme)
+        self._rebuild_theme_controls()
+        self._sync_preview()
+
     def _retranslate(self) -> None:
         self._i18n.set_code(self.host.i18n.code)
         self._import_btn.set_label("+ " + self._i18n.ui("importTheme", "Import theme"))
+        self._export_preset_btn.set_label(self._i18n.ui("exportPreset", "Export preset"))
+        self._import_preset_btn.set_label(self._i18n.ui("importPreset", "Import preset"))
         self._hdr_gl_lbl.set_text(self._i18n.ui("rustOpenGl", "Rust OpenGL"))
         self._search_entry.set_placeholder_text(self._i18n.ui("themes", "Themes") + "…")
         self._remove_theme_btn.set_label(self._i18n.ui("removeTheme", "Remove theme"))

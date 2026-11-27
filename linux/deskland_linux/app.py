@@ -53,6 +53,13 @@ from .lockscreen import apply_linux_lockscreen, make_blurred_lockscreen
 from .mpv_player import find_theme_video_file
 from .native_gl import NativeGlLibrary, is_custom_gl_theme, is_native_gl_theme
 from .native_settings import NativeSettingsWindow
+from .presets import (
+    apply_preset_to_settings,
+    build_preset_payload,
+    load_preset_file,
+    save_preset_file,
+    validate_preset_payload,
+)
 from .scheduler import PlaylistController
 from .server import LocalServer
 from .share import copy_files, copy_image, open_path, reveal_path, save_share
@@ -64,6 +71,18 @@ from .virtual_icons import (
     shuffle_virtual_icons,
 )
 from .wallpaper import Wallpaper
+
+
+def _current_process_ram_mb() -> int:
+    try:
+        for line in Path("/proc/self/status").read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.startswith("VmRSS:"):
+                parts = line.split()
+                if len(parts) >= 2:
+                    return max(1, int(round(int(parts[1]) / 1024.0)))
+    except Exception:
+        pass
+    return 0
 
 
 def _icon_path() -> Path | None:
@@ -809,6 +828,14 @@ class DesklandHost:
         if cmd == "lockscreen-sync":
             self.sync_lockscreen()
             return {"ok": True, "message": "lockscreen sync requested"}
+        if cmd == "apply-preset":
+            raw_path = str(req.get("path") or "").strip()
+            if not raw_path:
+                return {"ok": False, "error": "missing preset path"}
+            ok, msg = self.apply_preset_file(Path(raw_path))
+            if not ok:
+                return {"ok": False, "error": msg}
+            return {"ok": True, "theme": self.settings.theme, "message": msg}
         if cmd == "exit":
             GLib.idle_add(self.quit)
             return {"ok": True, "message": "exiting"}
@@ -936,8 +963,12 @@ class DesklandHost:
         elif kind == "autostart":
             self.set_autostart(bool(message.get("v")))
             self._post_settings({"t": "autostart", "v": self.autostart_enabled()})
+        elif kind == "exportPreset":
+            payload = message.get("payload")
+            self.export_preset_dialog(payload if isinstance(payload, dict) else None)
         elif kind == "share":
-            self._share_image()
+            opts = message.get("opts")
+            self._share_image(opts if isinstance(opts, dict) else None)
         elif kind == "saveSnapshot":
             self._finish_share_image(
                 message.get("thumb"),
@@ -945,7 +976,8 @@ class DesklandHost:
                 message.get("error"),
             )
         elif kind == "shareVideo":
-            self._share_video()
+            opts = message.get("opts")
+            self._share_video(opts if isinstance(opts, dict) else None)
         elif kind == "saveRecord":
             self._finish_share_video(
                 message.get("mime"),
@@ -1025,6 +1057,7 @@ class DesklandHost:
                     and getattr(self.settings_window, "is_native_gtk", False)
                 ),
                 "canSaveSnapshot": True,
+                "ramMb": _current_process_ram_mb(),
             }
         )
         if self.last_icons is not None:
@@ -1399,6 +1432,95 @@ class DesklandHost:
         except OSError:
             pass
 
+    # ---------------------------------------------------------------- presets
+    def apply_preset_file(self, path: Path) -> tuple[bool, str]:
+        try:
+            preset = load_preset_file(Path(path), self.themes.allowed)
+        except Exception as exc:
+            msg = str(exc)
+            self.log.write(f"Reçete uygulanamadı ({path}): {msg}")
+            return False, msg
+
+        prev_theme = self.settings.theme
+        summary = apply_preset_to_settings(self.settings, preset)
+        tid = summary["theme"]
+        self.set_solar_sync(self.settings.solar_sync)
+        self.set_window_aware(self.settings.window_aware)
+        self.set_low_mode(self.settings.low_mode)
+
+        page = self.themes.page_for(tid) or "flat.html"
+        if tid != prev_theme:
+            for wp in self._all_wallpapers():
+                wp.load_page(page, theme_id=tid)
+        else:
+            for wp in self._all_wallpapers():
+                wp.set_settings(dict(self.settings.for_theme(tid)))
+        self.settings.save()
+        if self.settings_window is not None:
+            if getattr(self.settings_window, "is_native_gtk", False) and hasattr(self.settings_window, "reload_from_host"):
+                self.settings_window.reload_from_host()
+            else:
+                self._post_settings({"t": "presetImportPayload", "data": preset})
+        self.log.write(f"Reçete uygulandı: {tid} ({summary['name']})")
+        return True, f"preset={summary['name']}"
+
+    def export_preset_dialog(self, payload: dict[str, Any] | None = None) -> None:
+        parent = self.settings_window.window if self.settings_window is not None else None
+        dialog = Gtk.FileChooserDialog(
+            title=self.i18n.t("exportPreset") or "Export preset",
+            transient_for=parent,
+            action=Gtk.FileChooserAction.SAVE,
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_SAVE, Gtk.ResponseType.OK,
+        )
+        dialog.set_do_overwrite_confirmation(True)
+        dialog.set_current_name(f"{self.settings.theme or 'diyardesk'}.deskland-preset")
+        flt = Gtk.FileFilter()
+        flt.set_name("DiyarDesk Preset (*.deskland-preset, *.json)")
+        flt.add_pattern("*.deskland-preset")
+        flt.add_pattern("*.json")
+        dialog.add_filter(flt)
+        resp = dialog.run()
+        chosen = dialog.get_filename()
+        dialog.destroy()
+        if resp != Gtk.ResponseType.OK or not chosen:
+            return
+        try:
+            data = validate_preset_payload(payload, self.themes.allowed) if isinstance(payload, dict) else build_preset_payload(self.settings)
+            out = save_preset_file(Path(chosen), data)
+            self._post_settings({"t": "presetExported", "ok": True, "path": str(out)})
+            self.log.write(f"Reçete dışa aktarıldı: {out}")
+        except Exception as exc:
+            self.log.exception("Reçete dışa aktarılamadı", exc)
+            self._post_settings({"t": "presetExported", "ok": False, "msg": str(exc)})
+
+    def import_preset_dialog(self) -> None:
+        parent = self.settings_window.window if self.settings_window is not None else None
+        dialog = Gtk.FileChooserDialog(
+            title=self.i18n.t("importPreset") or "Import preset",
+            transient_for=parent,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OPEN, Gtk.ResponseType.OK,
+        )
+        flt = Gtk.FileFilter()
+        flt.set_name("DiyarDesk Preset (*.deskland-preset, *.json)")
+        flt.add_pattern("*.deskland-preset")
+        flt.add_pattern("*.json")
+        dialog.add_filter(flt)
+        resp = dialog.run()
+        chosen = dialog.get_filename()
+        dialog.destroy()
+        if resp != Gtk.ResponseType.OK or not chosen:
+            return
+        ok, msg = self.apply_preset_file(Path(chosen))
+        if not ok:
+            self._show_error(msg)
+
     # ---------------------------------------------------------------- share
     def _finish_share_image(
         self, thumb: str | None, png: str | None, error: str | None
@@ -1431,13 +1553,13 @@ class DesklandHost:
                 {"t": "shareResult", "ok": False, "msg": str(exc)}
             )
 
-    def _share_image(self) -> None:
+    def _share_image(self, opts: dict[str, Any] | None = None) -> None:
         if self.wallpaper is None:
             self._post_settings(
                 {"t": "shareResult", "ok": False, "msg": self.i18n.t("errNotReady")}
             )
             return
-        self.wallpaper.request_snapshot(self._finish_share_image)
+        self.wallpaper.request_snapshot(self._finish_share_image, opts=opts)
 
     def _finish_share_video(
         self,
@@ -1481,13 +1603,13 @@ class DesklandHost:
                 {"t": "shareResult", "ok": False, "msg": str(exc)}
             )
 
-    def _share_video(self) -> None:
+    def _share_video(self, opts: dict[str, Any] | None = None) -> None:
         if self.wallpaper is None:
             self._post_settings(
                 {"t": "shareResult", "ok": False, "msg": self.i18n.t("errNotReady")}
             )
             return
-        self.wallpaper.request_record(self._finish_share_video)
+        self.wallpaper.request_record(self._finish_share_video, opts=opts)
 
     # ---------------------------------------------------------------- quit
     def quit(self) -> None:
@@ -1552,6 +1674,12 @@ class DesklandApplication(Gtk.Application):
             else:
                 host.open_settings()
             return 0
+        preset_arg = _extract_preset_arg(args)
+        if preset_arg is not None:
+            if not host.started:
+                host.start(show_settings="--settings" in args, **_backend_args(args))
+            host.apply_preset_file(Path(preset_arg))
+            return 0
         host.start(
             show_settings="--autostart" not in args,
             **_backend_args(args),
@@ -1561,6 +1689,15 @@ class DesklandApplication(Gtk.Application):
     def do_activate(self) -> None:
         if self.host is not None and not self.host.started:
             self.host.start(show_settings=True)
+
+
+def _extract_preset_arg(args: list[str]) -> str | None:
+    for idx, arg in enumerate(args):
+        if arg == "--apply-preset" and idx + 1 < len(args) and args[idx + 1]:
+            return args[idx + 1]
+        if not arg.startswith("-") and arg.lower().endswith(".deskland-preset") and Path(arg).is_file():
+            return arg
+    return None
 
 
 def _backend_args(args: list[str]) -> dict[str, str | None]:

@@ -86,30 +86,53 @@
     return typeof renderLabels === 'function' && ((typeof city !== 'undefined' && city) || (typeof world !== 'undefined' && world));
   }
   function drawSampleIcons(ctx, s) { for (const ic of icons) drawIcon(ctx, ic, s, ic.x, ic.y, 0); }
-  function drawShowcaseBadge(ctx, w, h) {
-    if (window.__hideShowcaseBadge) return;
+  function drawShowcaseBadge(ctx, w, h, opts) {
+    if (window.__hideShowcaseBadge || (opts && opts.badge === false)) return;
     const sc = Math.max(0.75, Math.min(2.2, Math.min(w, h) / 1080));
-    const padX = Math.round(11 * sc), padY = Math.round(6 * sc), margin = Math.round(18 * sc);
-    const label = 'DiyarDesk';
+    const padX = Math.round(12 * sc), margin = Math.round(18 * sc);
+    const bottomMargin = (opts && opts.aspect === '9:16') ? Math.round(32 * sc) : margin;
+    const dotR = Math.max(2.5, Math.round(3.5 * sc)), dotGap = Math.round(7 * sc);
+    const label = (opts && typeof opts.badgeText === 'string' && opts.badgeText.trim()) ? opts.badgeText.trim() : 'DiyarDesk';
     ctx.save();
     ctx.font = '600 ' + Math.round(13 * sc) + 'px "Segoe UI", system-ui, sans-serif';
     const tw = ctx.measureText(label).width;
-    const bw = Math.round(tw + padX * 2), bh = Math.round(24 * sc);
-    const bx = w - bw - margin, by = h - bh - margin;
+    const bw = Math.round(tw + padX * 2 + dotR * 2 + dotGap), bh = Math.round(25 * sc);
+    const bx = w - bw - margin, by = h - bh - bottomMargin;
     roundRect(ctx, bx, by, bw, bh, bh / 2);
-    ctx.fillStyle = 'rgba(12, 18, 24, 0.58)';
+    ctx.fillStyle = 'rgba(12, 18, 24, 0.64)';
     ctx.fill();
     ctx.lineWidth = Math.max(1, sc);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
     ctx.stroke();
-    ctx.fillStyle = 'rgba(245, 248, 252, 0.92)';
+    ctx.fillStyle = '#34d399';
+    ctx.beginPath();
+    ctx.arc(bx + padX + dotR, by + bh * 0.5, dotR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(245, 248, 252, 0.94)';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, bx + padX, by + bh * 0.52);
+    ctx.fillText(label, bx + padX + dotR * 2 + dotGap, by + bh * 0.52);
     ctx.restore();
   }
+  function drawVertical9x16(dstCtx, targetW, targetH, srcCanvas) {
+    const sw0 = srcCanvas.width || 1, sh0 = srcCanvas.height || 1;
+    const srcRatio = sw0 / sh0, dstRatio = targetW / targetH;
+    let sx = 0, sy = 0, sw = sw0, sh = sh0;
+    if (srcRatio > dstRatio) {
+      sw = sh0 * dstRatio;
+      sx = (sw0 - sw) * 0.5;
+    } else {
+      sh = sw0 / dstRatio;
+      sy = (sh0 - sh) * 0.5;
+    }
+    dstCtx.clearRect(0, 0, targetW, targetH);
+    dstCtx.imageSmoothingQuality = 'high';
+    dstCtx.drawImage(srcCanvas, sx, sy, sw, sh, 0, 0, targetW, targetH);
+  }
   // 按 scale（默认是屏幕的实际像素）画一张，画上示例图标，返回一张 2D 画布
-  function snapshot(scale) {
-    scale = scale || window.devicePixelRatio || 1;
+  function snapshot(optsOrScale) {
+    const rawOpts = (optsOrScale && typeof optsOrScale === 'object') ? optsOrScale : { scale: optsOrScale };
+    const opts = Object.assign({}, window.__showcaseOpts || {}, rawOpts);
+    const scale = opts.scale || window.devicePixelRatio || 1;
     const old = { w: cv.width, h: cv.height, s: cv._scale };
     const hasLabels = labelsReady();
     const hasCache = typeof cacheOK !== 'undefined';
@@ -127,18 +150,34 @@
     if (hasCache) cacheOK = false;
     draw(performance.now());
     drawSampleIcons(ctx, scale);
-    drawShowcaseBadge(ctx, out.width, out.height);
+    if (opts.aspect === '9:16') {
+      const vh = (out.width >= 1920 || out.height >= 1920) ? 1920 : 1280;
+      const vw = Math.round((vh * 9 / 16) / 2) * 2;
+      const vout = document.createElement('canvas');
+      vout.width = vw; vout.height = vh;
+      const vctx = vout.getContext('2d');
+      drawVertical9x16(vctx, vw, vh, out);
+      drawShowcaseBadge(vctx, vw, vh, opts);
+      return vout;
+    }
+    drawShowcaseBadge(ctx, out.width, out.height, opts);
     return out;
   }
   function thumbOf(canvas, maxW) {
     const t = document.createElement('canvas');
-    t.width = maxW; t.height = Math.round(canvas.height * maxW / canvas.width);
+    if (canvas.height > canvas.width) {
+      t.height = maxW;
+      t.width = Math.max(2, Math.round(canvas.width * maxW / canvas.height));
+    } else {
+      t.width = maxW;
+      t.height = Math.max(2, Math.round(canvas.height * maxW / canvas.width));
+    }
     const c = t.getContext('2d'); c.imageSmoothingQuality = 'high';
     c.drawImage(canvas, 0, 0, t.width, t.height);
     return t.toDataURL('image/jpeg', 0.86);
   }
-  window.desklandSnapshot = function (scale) { const c = snapshot(scale); return { canvas: c, thumb: thumbOf(c, 520) }; };
-  window.desklandSnapshot.parts = { snapshot, drawSampleIcons, sampleGlyph, sampleLabel, thumbOf };   // 调试、测时间用
+  window.desklandSnapshot = function (optsOrScale) { const c = snapshot(optsOrScale); return { canvas: c, thumb: thumbOf(c, 520) }; };
+  window.desklandSnapshot.parts = { snapshot, drawSampleIcons, drawShowcaseBadge, drawVertical9x16, sampleGlyph, sampleLabel, thumbOf };   // 调试、测时间用
 
   /* ---- 分享动画：按当前桌面布局录制12秒主题动画，图标与文件名仍用示例图形保护隐私 ----
      不模拟拖动、不添加临时图标、不重算图标场。暂停着就先放开，录完恢复暂停状态。
@@ -273,11 +312,12 @@
   }
   // 录一段：返回 Promise<{ blob, mime, poster }>；onProgress(0..1)
   // 先等画面稳定：壁纸暂停着（比如设置窗口最大化了）就先放开跑一会儿，开场的树、房子没长好就等它长好（最多 6 秒）
-  function record(onProgress) {
+  function record(onProgress, rawOpts) {
     const mime = pickMime();
     if (!mime) return Promise.reject(new Error('这台电脑不支持录视频'));
     if (busy) return Promise.reject(new Error('上一段还在录'));
     busy = true;
+    const opts = Object.assign({}, window.__showcaseOpts || {}, rawOpts || {});
     const wasPaused = typeof paused !== 'undefined' && paused;
     if (wasPaused) paused = false;
     return new Promise(ok => {
@@ -287,9 +327,11 @@
         if ((ran >= 10 && settled()) || dt > 6000 || (dt > 1000 && ran < 2)) ok(); else setTimeout(tick, 100);
       };
       if (!wasPaused && settled()) ok(); else tick();
-    }).then(() => recordNow(onProgress, mime, wasPaused));
+    }).then(() => recordNow(onProgress, mime, wasPaused, opts));
   }
-  function recordNow(onProgress, mime, wasPaused) {
+  function recordNow(onProgress, mime, wasPaused, opts) {
+    opts = opts || {};
+    const is916 = opts.aspect === '9:16';
     // 画面大小：按屏幕比例，大约 200 万像素（宽高取偶数，H.264 要求）；网页视频可以用 window.__recMaxPixels 放宽
     const rs = Math.min(window.devicePixelRatio || 1, Math.sqrt((window.__recMaxPixels || 2.0e6) / (W * H)));
     const outW = Math.round(W * rs / 2) * 2, outH = Math.round(H * rs / 2) * 2;
@@ -333,8 +375,12 @@
     const comp = document.createElement('canvas');             // 先在这上面拼好一帧（画面 + 图标 + 指针）
     comp.width = outW; comp.height = outH;
     const ctx = comp.getContext('2d');
+    const recW = is916 ? 720 : outW, recH = is916 ? 1280 : outH;
+    const vcomp = is916 ? document.createElement('canvas') : null;
+    if (vcomp) { vcomp.width = recW; vcomp.height = recH; }
+    const vctx = vcomp ? vcomp.getContext('2d') : null;
     const rec = document.createElement('canvas');               // 再把颜色压进 16~235 画到这上面，录的是这张
-    rec.width = outW; rec.height = outH;
+    rec.width = recW; rec.height = recH;
     const rctx = rec.getContext('2d');
     const mp4 = mime.indexOf('mp4') >= 0 && !window.__recFullRange;
     if (mp4) rctx.filter = limitedRangeFilter();
@@ -431,12 +477,18 @@
           ctx.strokeRect(Math.min(ax, bx) + 0.5, Math.min(ay, by) + 0.5, Math.abs(bx - ax), Math.abs(by - ay));
         }
         if (cursor) drawCursor(ctx, cursor[0], cursor[1], rs, cursor[2]);
-        drawShowcaseBadge(ctx, outW, outH);
-        rctx.drawImage(comp, 0, 0);
+        if (is916 && vctx) {
+          drawVertical9x16(vctx, recW, recH, comp);
+          drawShowcaseBadge(vctx, recW, recH, opts);
+          rctx.drawImage(vcomp, 0, 0);
+        } else {
+          drawShowcaseBadge(ctx, outW, outH, opts);
+          rctx.drawImage(comp, 0, 0);
+        }
         track.requestFrame();
         const prog = Math.min(1, t / total);
         if (onProgress && prog - lastProg >= 0.05) { lastProg = prog; onProgress(prog); }
-        if (t >= total) { poster = thumbOf(comp, 520); finish(null); }
+        if (t >= total) { poster = thumbOf(is916 && vcomp ? vcomp : comp, 520); finish(null); }
       };
       setTimeout(() => finish(new Error('画面没有动起来（壁纸可能被完全挡住了）')), (total + 8) * 1000);
     });
@@ -453,9 +505,9 @@
   function settled() {
     return typeof trees === 'undefined' || !trees.length || trees.every(t => t.grow === t.want);
   }
-  function send() {
+  function send(opts) {
     try {
-      const r = window.desklandSnapshot();
+      const r = window.desklandSnapshot(opts);
       host.postMessage('snapshot|' + r.thumb + '|' + r.canvas.toDataURL('image/png'));
     } catch (e) { host.postMessage('snapshot|error|' + (e && e.message || e)); }
   }
@@ -463,8 +515,9 @@
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m) return;
     if (m.t === 'pause') { hostPause = !!m.v; return; }
+    const opts = (m.opts && typeof m.opts === 'object') ? m.opts : null;
     if (m.t === 'record') {
-      record(p => host.postMessage('recprogress|' + p.toFixed(2))).then(r => {
+      record(p => host.postMessage('recprogress|' + p.toFixed(2)), opts).then(r => {
         const fr = new FileReader();
         fr.onload = () => host.postMessage('record|' + r.mime + '|' + r.poster + '|' + fr.result);
         fr.onerror = () => host.postMessage('record|error|读不出录好的视频');
@@ -474,14 +527,14 @@
     }
     if (m.t !== 'snapshot') return;
     if (busy) { host.postMessage('snapshot|error|正在录动画，等录完再试'); return; }
-    if (typeof paused === 'undefined' || !paused) { send(); return; }
+    if (typeof paused === 'undefined' || !paused) { send(opts); return; }
     paused = false;
     const t0 = performance.now(), f0 = frameN;
     const wait = () => {
       const dt = performance.now() - t0, ran = frameN - f0;
       // 至少跑 10 帧；树、房子都长好了就画；最多等 6 秒；动画根本没在跑（窗口被挡得太死）就别等了
       if ((ran >= 10 && settled()) || dt > 6000 || (dt > 1000 && ran < 2)) {
-        send();
+        send(opts);
         paused = hostPause === null ? true : hostPause;
       } else setTimeout(wait, 100);
     };

@@ -218,7 +218,11 @@
     "presetExported": "프리셋이 저장되었습니다 — 친구들과 공유해 보세요!",
     "presetImported": "“{name}” 프리셋을 적용했습니다",
     "presetImportError": "잘못된 프리셋 파일: {msg}",
-    "playlistSmart": "재생목록: 스마트 일과 루틴"
+    "playlistSmart": "재생목록: 스마트 일과 루틴",
+    "shareFormat16x9": "16:9 가로",
+    "shareFormat9x16": "9:16 세로 (Reels/Shorts)",
+    "shareShowBadge": "쇼케이스 배지",
+    "shareShowBadgeTitle": "공유 이미지 및 클립에 세련된 DiyarDesk + RAM 배지 표시"
   },
   "host": {
     "traySettings": "설정…",

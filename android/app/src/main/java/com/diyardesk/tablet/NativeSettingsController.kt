@@ -50,7 +50,9 @@ class NativeSettingsController(
     private val importer: CustomThemeImporter,
     private val onToggleRustOpenGl: (Boolean) -> Unit,
     private val onImportTheme: () -> Unit,
-    private val onRemoveTheme: (String) -> Unit
+    private val onRemoveTheme: (String) -> Unit,
+    private val onExportPreset: () -> Unit = {},
+    private val onImportPreset: () -> Unit = {}
 ) {
 
     val rootView: ScrollView = ScrollView(context).apply {
@@ -392,11 +394,14 @@ class NativeSettingsController(
         frame.addView(metaCol)
         wrapper.addView(frame)
 
-        // Action row (Reset, Import, optional Remove)
+        // Action row (Reset, Import, Export/Import preset, optional Remove) inside HorizontalScrollView
+        val actionsScroll = HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            setPadding(0, dp(12), 0, 0)
+        }
         val actions = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(12), 0, 0)
         }
 
         val btnReset = styledButton(ui("resetAll", "Reset all"), "#22453B") {
@@ -414,6 +419,26 @@ class NativeSettingsController(
             ).apply { marginStart = dp(10) }
         }
         actions.addView(btnImport)
+
+        val btnExportPreset = styledButton(ui("exportPreset", "Export preset"), "#22453B") {
+            onExportPreset()
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(10) }
+        }
+        actions.addView(btnExportPreset)
+
+        val btnImportPreset = styledButton(ui("importPreset", "Import preset"), "#22453B") {
+            onImportPreset()
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(10) }
+        }
+        actions.addView(btnImportPreset)
 
         if (isCustom) {
             val btnRemove = styledButton(ui("removeTheme", "Remove"), "#7A2E34") {
@@ -435,7 +460,8 @@ class NativeSettingsController(
             actions.addView(btnRemove)
         }
 
-        wrapper.addView(actions)
+        actionsScroll.addView(actions)
+        wrapper.addView(actionsScroll)
         return wrapper
     }
 

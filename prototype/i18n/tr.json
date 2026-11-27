@@ -218,7 +218,11 @@
     "presetExported": "Reçete kaydedildi — arkadaşlarınızla paylaşabilirsiniz!",
     "presetImported": "“{name}” reçetesi uygulandı",
     "presetImportError": "Geçersiz reçete dosyası: {msg}",
-    "playlistSmart": "Döngü: Akıllı Gün Rutini"
+    "playlistSmart": "Döngü: Akıllı Gün Rutini",
+    "shareFormat16x9": "16:9 Yatay",
+    "shareFormat9x16": "9:16 Dikey (Reels/Shorts)",
+    "shareShowBadge": "Vitrin rozeti",
+    "shareShowBadgeTitle": "Paylaşılan görsel ve kliplerde zarif DiyarDesk + RAM rozeti göster"
   },
   "host": {
     "traySettings": "Ayarlar…",

@@ -40,6 +40,19 @@ static class Program
         if (EventWaitHandle.TryOpenExisting(name, out ev)) ev.Set();
     }
 
+    static string ExtractPresetArg(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--apply-preset" && i + 1 < args.Length && !string.IsNullOrEmpty(args[i + 1]))
+                return args[i + 1];
+            string a = args[i] ?? "";
+            if (!a.StartsWith("-") && a.EndsWith(".deskland-preset", StringComparison.OrdinalIgnoreCase) && File.Exists(a))
+                return a;
+        }
+        return null;
+    }
+
     [STAThread]
     static void Main(string[] args)
     {
@@ -70,11 +83,13 @@ static class Program
         }
         // Preview never migrates or shares the development edition's settings.                                 // 老名字（Habitat Wallpaper）下的数据目录、开机自启项搬过来
         bool fromAutostart = Array.IndexOf(args, "--autostart") >= 0;
+        string startupPreset = ExtractPresetArg(args);
         if (fromAutostart) AutoStartCheck.MarkLaunched();  // 开机自启跑起来了（不管后面是不是已经在运行）
         bool created;
         var mutex = new Mutex(true, "DesklandHost_Singleton" + InstallProfile.Suffix, out created);
         if (!created)
         {
+            if (!string.IsNullOrEmpty(startupPreset) && IpcControlClient.TryApplyPreset(startupPreset)) return;
             if (!fromAutostart) Signal(SettingsEventName); // 已经在运行：再次双击程序 = 打开设置（开机自启那次就悄悄退出）
             return;
         }
@@ -92,16 +107,18 @@ static class Program
         //   --defview：挂进图标层里、图标列表之下（实验：实测画不出来）；--legacy：挂进 WorkerW（换壁纸时会被连带销毁）
         string attach = "progman";
         bool autostart = false;                           // --autostart：开机自动启动，不弹设置窗口
-        foreach (string a in args)
+        for (int i = 0; i < args.Length; i++)
         {
+            string a = args[i];
+            if (a == "--apply-preset") { i++; continue; }
             if (a == "--legacy") attach = "legacy";
             else if (a == "--defview") attach = "defview";
             else if (a == "--autostart") autostart = true;
             else if (a == "--debug") DebugMode = true;
-            else if (!a.StartsWith("--")) pageDir = a;
+            else if (!a.StartsWith("--") && !a.EndsWith(".deskland-preset", StringComparison.OrdinalIgnoreCase)) pageDir = a;
         }
         WallpaperForm.AttachMode = attach;
-        Application.Run(new HostContext(pageDir, !autostart));
+        Application.Run(new HostContext(pageDir, !autostart, startupPreset));
         GC.KeepAlive(mutex);
     }
 }
@@ -785,7 +802,7 @@ class HostContext : ApplicationContext
     string updateVersion, updateUrl, updateStatus = "", updateError = "";
     double updateProgress = -1;                         // -1 = 当前阶段没有可显示的百分比
 
-    public HostContext(string pageDir, bool showSettings)
+    public HostContext(string pageDir, bool showSettings, string startupPreset = null)
     {
         this.pageDir = pageDir;
         Log.Write("启动，页面目录：" + pageDir + (showSettings ? "" : "（开机自动启动）"));
@@ -859,6 +876,12 @@ class HostContext : ApplicationContext
         ipcServer = new IpcControlServer(DispatchIpc);
         ipcServer.Start();
         StartForm();
+        if (!string.IsNullOrEmpty(startupPreset))
+        {
+            string appliedName, applyErr;
+            if (!ApplyPresetFile(startupPreset, out appliedName, out applyErr))
+                Log.Write("Başlangıç reçetesi uygulanamadı: " + (applyErr ?? ""));
+        }
         if (showSettings) OpenSettings();                // 用户双击程序启动：直接打开设置
     }
 
@@ -1435,6 +1458,15 @@ class HostContext : ApplicationContext
             SyncLockscreen();
             return Json.Obj("ok", true, "message", "lockscreen sync requested");
         }
+        if (cmd == "apply-preset")
+        {
+            object pObj;
+            string pPath = req.TryGetValue("path", out pObj) ? (pObj as string) : null;
+            string appliedName, applyErr;
+            if (!ApplyPresetFile(pPath, out appliedName, out applyErr))
+                return Json.Obj("ok", false, "error", applyErr ?? "invalid preset");
+            return Json.Obj("ok", true, "theme", Settings.Theme, "name", appliedName, "message", "preset=" + appliedName);
+        }
         if (cmd == "exit")
         {
             uiInvoker.BeginInvoke((MethodInvoker)delegate { Exit(); });
@@ -1624,6 +1656,76 @@ class HostContext : ApplicationContext
         }
     }
 
+    public bool ApplyPresetFile(string filePath, out string appliedName, out string err)
+    {
+        appliedName = "";
+        err = null;
+        try
+        {
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+            {
+                err = "Preset file not found";
+                return false;
+            }
+            var fi = new FileInfo(filePath);
+            if (fi.Length > 262144)
+            {
+                err = "Preset file too large";
+                return false;
+            }
+            var root = Json.Parse(File.ReadAllText(filePath, Encoding.UTF8)) as Dictionary<string, object>;
+            if (root == null || !root.ContainsKey("theme"))
+            {
+                err = "Missing theme";
+                return false;
+            }
+            string tid = root["theme"] as string;
+            if (string.IsNullOrEmpty(tid) || !ThemeAllowed(tid))
+            {
+                err = "Unknown theme: " + (tid ?? "");
+                return false;
+            }
+            object rawParams;
+            if (root.TryGetValue("params", out rawParams) && rawParams is Dictionary<string, object>)
+            {
+                var pmap = Settings.For(tid);
+                foreach (var kv in (Dictionary<string, object>)rawParams)
+                    pmap[kv.Key] = kv.Value;
+            }
+            object sv;
+            if (root.TryGetValue("solarSync", out sv) && sv is bool) SetSolarSync((bool)sv);
+            if (root.TryGetValue("windowAware", out sv) && sv is bool) SetWindowAware((bool)sv);
+            if (root.TryGetValue("lowMode", out sv) && sv is bool) SetLowMode((bool)sv);
+            bool switched = !string.Equals(Settings.Theme, tid, StringComparison.OrdinalIgnoreCase);
+            SwitchThemeById(tid);
+            if (!switched)
+            {
+                string msg = SettingsMessage();
+                ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+            }
+            Settings.Save();
+            object rawName;
+            string pName = root.TryGetValue("name", out rawName) ? (rawName as string) : null;
+            appliedName = !string.IsNullOrEmpty(pName) ? pName : I18n.ThemeName(tid, tid);
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            {
+                nativeSettingsWin.SyncGlobalControlsFromSettings();
+                nativeSettingsWin.SelectThemeUi(tid);
+            }
+            if (settingsWin != null && !settingsWin.IsDisposed)
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "presetImportPayload", "data", root)));
+            if (tray != null && tray.Visible)
+                tray.ShowBalloonTip(3500, "DiyarDesk", I18n.Ui("presetImported", "name", appliedName), ToolTipIcon.Info);
+            Log.Write("Reçete uygulandı: " + tid + " (" + appliedName + ")");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            err = ex.Message;
+            return false;
+        }
+    }
+
     public void ImportPresetFromNative(Form owner)
     {
         try
@@ -1633,27 +1735,9 @@ class HostContext : ApplicationContext
                 dlg.Title = I18n.Ui("importPreset");
                 dlg.Filter = "DiyarDesk Preset (*.deskland-preset;*.json)|*.deskland-preset;*.json|All Files (*.*)|*.*";
                 if (dlg.ShowDialog(owner) != DialogResult.OK) return;
-                var root = Json.Parse(File.ReadAllText(dlg.FileName, Encoding.UTF8)) as Dictionary<string, object>;
-                if (root == null || !root.ContainsKey("theme")) throw new Exception("Missing theme");
-                string tid = root["theme"] as string;
-                if (string.IsNullOrEmpty(tid) || !ThemeAllowed(tid)) throw new Exception("Unknown theme: " + (tid ?? ""));
-                object rawParams;
-                if (root.TryGetValue("params", out rawParams) && rawParams is Dictionary<string, object>)
-                {
-                    var pmap = Settings.For(tid);
-                    foreach (var kv in (Dictionary<string, object>)rawParams)
-                        pmap[kv.Key] = kv.Value;
-                }
-                object sv;
-                if (root.TryGetValue("solarSync", out sv) && sv is bool) SetSolarSync((bool)sv);
-                if (root.TryGetValue("windowAware", out sv) && sv is bool) SetWindowAware((bool)sv);
-                if (root.TryGetValue("lowMode", out sv) && sv is bool) SetLowMode((bool)sv);
-                SwitchThemeById(tid);
-                if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
-                {
-                    nativeSettingsWin.SyncGlobalControlsFromSettings();
-                    nativeSettingsWin.SelectThemeUi(tid);
-                }
+                string appliedName, err;
+                if (!ApplyPresetFile(dlg.FileName, out appliedName, out err))
+                    MessageBox.Show(owner, I18n.Ui("presetImportError", "msg", err ?? "error"), "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
         catch (Exception ex)
@@ -1822,13 +1906,21 @@ class HostContext : ApplicationContext
                 break;
             }
             case "share":
+            {
                 if (form == null) { PostShareResult(false, null, I18n.T("errNotReady")); break; }
-                form.RequestSnapshot(OnShareImage);
+                object sOpts = null;
+                m.TryGetValue("opts", out sOpts);
+                form.RequestSnapshot(OnShareImage, sOpts);
                 break;
+            }
             case "shareVideo":
+            {
                 if (form == null) { PostShareResult(false, null, I18n.T("errNotReady")); break; }
-                form.RequestRecording(OnShareVideo);
+                object vOpts = null;
+                m.TryGetValue("opts", out vOpts);
+                form.RequestRecording(OnShareVideo, vOpts);
                 break;
+            }
             case "openShare":
                 if (lastShare != null && File.Exists(lastShare)) Process.Start(lastShare);
                 break;
@@ -3303,7 +3395,7 @@ class WallpaperForm : Form
     // ---- 一键分享：请页面画一张打好马赛克的桌面图（页面不截屏，只用图标的位置） ----
     Action<string, string, string> snapshotDone;           // (缩略图, 整张 PNG, 出错信息)
     System.Windows.Forms.Timer snapshotTimeout;
-    public void RequestSnapshot(Action<string, string, string> done)
+    public void RequestSnapshot(Action<string, string, string> done, object opts = null)
     {
         if (web == null || web.CoreWebView2 == null) { done(null, null, I18n.T("errNotReady")); return; }
         if (snapshotDone != null) { done(null, null, I18n.T("errBusyImage")); return; }
@@ -3312,7 +3404,8 @@ class WallpaperForm : Form
         snapshotTimeout.Interval = 20000;
         snapshotTimeout.Tick += delegate { FinishSnapshot(null, null, I18n.T("errImageTimeout")); };
         snapshotTimeout.Start();
-        try { web.CoreWebView2.PostWebMessageAsString("{\"t\":\"snapshot\"}"); }
+        string payload = opts != null ? Json.Stringify(Json.Obj("t", "snapshot", "opts", opts)) : "{\"t\":\"snapshot\"}";
+        try { web.CoreWebView2.PostWebMessageAsString(payload); }
         catch (InvalidOperationException ex) { FinishSnapshot(null, null, I18n.T("errNotReady")); WebDead(ex); }
         catch (COMException ex) { FinishSnapshot(null, null, I18n.T("errNotReady")); WebDead(ex); }
     }
@@ -3335,7 +3428,7 @@ class WallpaperForm : Form
     Action<string, string, string, string> recordDone;    // (格式, 封面, 整段视频, 出错信息)
     System.Windows.Forms.Timer recordTimeout;
     public event Action<string> RecordProgress;            // 0..1（字符串）
-    public void RequestRecording(Action<string, string, string, string> done)
+    public void RequestRecording(Action<string, string, string, string> done, object opts = null)
     {
         if (web == null || web.CoreWebView2 == null) { done(null, null, null, I18n.T("errNotReady")); return; }
         if (recordDone != null) { done(null, null, null, I18n.T("errBusyVideo")); return; }
@@ -3344,7 +3437,8 @@ class WallpaperForm : Form
         recordTimeout.Interval = 45000;
         recordTimeout.Tick += delegate { FinishRecord(null, null, null, I18n.T("errVideoTimeout")); };
         recordTimeout.Start();
-        try { web.CoreWebView2.PostWebMessageAsString("{\"t\":\"record\"}"); }
+        string payload = opts != null ? Json.Stringify(Json.Obj("t", "record", "opts", opts)) : "{\"t\":\"record\"}";
+        try { web.CoreWebView2.PostWebMessageAsString(payload); }
         catch (InvalidOperationException ex) { FinishRecord(null, null, null, I18n.T("errNotReady")); WebDead(ex); }
         catch (COMException ex) { FinishRecord(null, null, null, I18n.T("errNotReady")); WebDead(ex); }
     }

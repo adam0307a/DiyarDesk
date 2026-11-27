@@ -218,7 +218,11 @@
     "presetExported": "配方已保存 — 快分享给朋友吧！",
     "presetImported": "已应用配方“{name}”",
     "presetImportError": "无效的配方文件：{msg}",
-    "playlistSmart": "轮换：智能日程模式"
+    "playlistSmart": "轮换：智能日程模式",
+    "shareFormat16x9": "16:9 横屏",
+    "shareFormat9x16": "9:16 竖屏 (Reels/Shorts)",
+    "shareShowBadge": "展示徽章",
+    "shareShowBadgeTitle": "在分享的图片和短片右下角显示精致的 DiyarDesk 与内存徽章"
   },
   "host": {
     "traySettings": "设置…",

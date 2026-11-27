@@ -218,7 +218,11 @@
     "presetExported": "Preset saved — share it with friends!",
     "presetImported": "Applied preset “{name}”",
     "presetImportError": "Invalid preset file: {msg}",
-    "playlistSmart": "Playlist: Smart Day Routine"
+    "playlistSmart": "Playlist: Smart Day Routine",
+    "shareFormat16x9": "16:9 Landscape",
+    "shareFormat9x16": "9:16 Vertical (Reels/Shorts)",
+    "shareShowBadge": "Showcase badge",
+    "shareShowBadgeTitle": "Show a subtle DiyarDesk + RAM badge on shared images and clips"
   },
   "host": {
     "traySettings": "Settings…",

@@ -218,7 +218,11 @@
     "presetExported": "Préréglage enregistré — prêt à partager !",
     "presetImported": "Préréglage « {name} » appliqué",
     "presetImportError": "Fichier de préréglage invalide : {msg}",
-    "playlistSmart": "Rotation : Routine du jour"
+    "playlistSmart": "Rotation : Routine du jour",
+    "shareFormat16x9": "16:9 Paysage",
+    "shareFormat9x16": "9:16 Vertical (Reels/Shorts)",
+    "shareShowBadge": "Badge vitrine",
+    "shareShowBadgeTitle": "Afficher un badge discret DiyarDesk + RAM sur les captures et clips partagés"
   },
   "host": {
     "traySettings": "Paramètres…",

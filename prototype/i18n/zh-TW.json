@@ -218,7 +218,11 @@
     "presetExported": "配方已儲存 — 歡迎分享給朋友！",
     "presetImported": "已套用配方「{name}」",
     "presetImportError": "無效的配方檔案：{msg}",
-    "playlistSmart": "輪播：智慧日夜行程"
+    "playlistSmart": "輪播：智慧日夜行程",
+    "shareFormat16x9": "16:9 橫式",
+    "shareFormat9x16": "9:16 直式 (Reels/Shorts)",
+    "shareShowBadge": "展示徽章",
+    "shareShowBadgeTitle": "在分享的圖片與短片右下角顯示精緻的 DiyarDesk 與記憶體徽章"
   },
   "host": {
     "traySettings": "設定…",

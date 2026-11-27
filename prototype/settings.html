@@ -285,6 +285,10 @@
   :lang(ja) body { font-family: "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
   :lang(ko) body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; word-break: keep-all; }
   .preview-actions .share:disabled { opacity: .6; cursor: default; }
+  .share-opts { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .share-opts select { font: inherit; font-size: 11px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); cursor: pointer; }
+  .share-badge-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); cursor: pointer; user-select: none; }
+  .share-badge-opt input { accent-color: var(--accent); cursor: pointer; }
   .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, .38); }
   .modal[hidden] { display: none; }
   .modal .box { width: 560px; max-width: calc(100vw - 48px); background: var(--bg); border-radius: 24px; padding: 24px;
@@ -585,6 +589,16 @@
         <button class="ghost-btn share" id="shareVideo" data-i18n-title="shareVideoTitle" title="用保护隐私的方式分享你的桌面动画">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.5" width="9" height="9" rx="1.5"/><path d="m10.8 6.6 3.4-2v6.8l-3.4-2"/></svg>
           <span id="shareVideoText" data-i18n="shareVideo">分享动画</span></button>
+      </div>
+      <div class="share-opts">
+        <select id="shareAspect" aria-label="Share aspect ratio">
+          <option value="16:9" data-i18n="shareFormat16x9">16:9 Landscape</option>
+          <option value="9:16" data-i18n="shareFormat9x16">9:16 Vertical (Reels/Shorts)</option>
+        </select>
+        <label class="share-badge-opt" data-i18n-title="shareShowBadgeTitle" title="Show a subtle DiyarDesk + RAM badge on shared images and clips">
+          <input type="checkbox" id="shareBadgeToggle" checked>
+          <span data-i18n="shareShowBadge">Showcase badge</span>
+        </label>
       </div>
     </section>
     <section class="card controls" id="controls"></section>
@@ -1604,15 +1618,48 @@ function canAccessPreviewFn(name) {
   try { return !!(frame.contentWindow && typeof frame.contentWindow[name] === 'function'); }
   catch (_) { return false; }
 }
+function buildShareOpts() {
+  const aspect = ($('shareAspect') && $('shareAspect').value === '9:16') ? '9:16' : '16:9';
+  const badge = !$('shareBadgeToggle') || $('shareBadgeToggle').checked;
+  const gl = !!(state.rustOpenGl || state.nativeActive);
+  let badgeText = 'DiyarDesk';
+  if (typeof state.ramMb === 'number' && state.ramMb > 0) {
+    badgeText = gl
+      ? `DiyarDesk · ${state.ramMb} MB RAM · Rust GL`
+      : `DiyarDesk · ${state.ramMb} MB RAM`;
+  } else if (gl) {
+    badgeText = 'DiyarDesk · Rust GL';
+  }
+  return { aspect, badge, badgeText };
+}
+(function initSharePrefs() {
+  try {
+    const a = localStorage.getItem('diyardesk.shareAspect');
+    if (a && $('shareAspect') && (a === '16:9' || a === '9:16')) $('shareAspect').value = a;
+    const b = localStorage.getItem('diyardesk.shareBadge');
+    if (b !== null && $('shareBadgeToggle')) $('shareBadgeToggle').checked = b !== '0';
+  } catch (_) {}
+  if ($('shareAspect')) {
+    $('shareAspect').addEventListener('change', e => {
+      try { localStorage.setItem('diyardesk.shareAspect', e.target.value); } catch (_) {}
+    });
+  }
+  if ($('shareBadgeToggle')) {
+    $('shareBadgeToggle').addEventListener('change', e => {
+      try { localStorage.setItem('diyardesk.shareBadge', e.target.checked ? '1' : '0'); } catch (_) {}
+    });
+  }
+})();
 $('share').addEventListener('click', () => {
+  const opts = buildShareOpts();
   shareBusy('image');
   if (host && !(state.canSaveSnapshot && canAccessPreviewFn('desklandSnapshot'))) {
-    send({ t: 'share' });
+    send({ t: 'share', opts });
     return;
   }
   setTimeout(() => {                                         // Capture directly from already-loaded preview iframe when available
     try {
-      const r = frame.contentWindow.desklandSnapshot();
+      const r = frame.contentWindow.desklandSnapshot(opts);
       const full = r.canvas.toDataURL('image/png');
       if (host) {
         send({ t: 'saveSnapshot', thumb: r.thumb, png: full });
@@ -1620,18 +1667,19 @@ $('share').addEventListener('click', () => {
         showShare({ ok: true, thumb: r.thumb, full });
       }
     } catch (e) {
-      if (host) send({ t: 'share' });
+      if (host) send({ t: 'share', opts });
       else showShare({ ok: false, msg: e.message });
     }
   }, 30);
 });
 $('shareVideo').addEventListener('click', () => {
+  const opts = buildShareOpts();
   shareBusy('video');
   if (host && !(state.canSaveSnapshot && canAccessPreviewFn('desklandRecord'))) {
-    send({ t: 'shareVideo' });
+    send({ t: 'shareVideo', opts });
     return;
   }
-  frame.contentWindow.desklandRecord(shareProgress).then(r => {
+  frame.contentWindow.desklandRecord(shareProgress, opts).then(r => {
     if (!host) {
       const url = URL.createObjectURL(r.blob);
       showShare({ ok: true, kind: 'video', url, full: url, thumb: r.poster, ext: r.mime === 'video/webm' ? 'webm' : 'mp4' });
@@ -1639,10 +1687,10 @@ $('shareVideo').addEventListener('click', () => {
     }
     const reader = new FileReader();
     reader.onload = () => send({ t: 'saveRecord', mime: r.mime, poster: r.poster, video: String(reader.result || '') });
-    reader.onerror = () => send({ t: 'shareVideo' });
+    reader.onerror = () => send({ t: 'shareVideo', opts });
     reader.readAsDataURL(r.blob);
   }, e => {
-    if (host) send({ t: 'shareVideo' });
+    if (host) send({ t: 'shareVideo', opts });
     else showShare({ ok: false, kind: 'video', msg: e.message });
   });
 });
