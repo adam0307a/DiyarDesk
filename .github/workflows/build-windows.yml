@@ -24,7 +24,13 @@ jobs:
         run: |
           $nsis = 'C:\Program Files (x86)\NSIS\makensis.exe'
           if (-not (Test-Path -LiteralPath $nsis)) {
-            choco install nsis -y --no-progress
+            for ($i = 1; $i -le 3 -and -not (Test-Path -LiteralPath $nsis); $i++) {
+              choco install nsis -y --no-progress
+              if (-not (Test-Path -LiteralPath $nsis)) { Start-Sleep -Seconds (5 * $i) }
+            }
+          }
+          if (-not (Test-Path -LiteralPath $nsis)) {
+            winget install --id NSIS.NSIS -e --silent --accept-package-agreements --accept-source-agreements
           }
           if (Test-Path -LiteralPath $nsis) {
             powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1 -NsisCompiler $nsis

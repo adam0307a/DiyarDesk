@@ -37,12 +37,12 @@ $WebView2Bootstrapper = [IO.Path]::GetFullPath($WebView2Bootstrapper)
 # A fixed source list prevents other editions or private working files entering this package.
 $sources = @('.gitattributes', '.gitignore', 'AGENTS.md', 'LICENSE', 'NOTICE', 'README.md', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md', 'TRADEMARKS.md',
     'host\DesktopHost.cs', 'host\Themes.cs', 'host\LanSync.cs', 'host\IpcControl.cs', 'host\SystemBridge.cs', 'host\MediaBridge.cs', 'host\NativeGlHost.cs', 'host\DesklandPreview.ico', 'host\README.md', 'host\app.manifest', 'host\build.ps1', 'host\inspect.ps1',
-    'native\diyardesk-gl\Cargo.toml', 'native\diyardesk-gl\src\gl.rs', 'native\diyardesk-gl\src\lib.rs', 'native\diyardesk-gl\src\renderer.rs', 'native\diyardesk-gl\src\shaders.rs', 'native\diyardesk-gl\src\state.rs', 'native\diyardesk-gl\src\text.rs',
+    'native\diyardesk-gl\Cargo.toml', 'native\diyardesk-gl\src\audio_reactive.rs', 'native\diyardesk-gl\src\gl.rs', 'native\diyardesk-gl\src\icon_islands.rs', 'native\diyardesk-gl\src\lib.rs', 'native\diyardesk-gl\src\renderer.rs', 'native\diyardesk-gl\src\shaders.rs', 'native\diyardesk-gl\src\state.rs', 'native\diyardesk-gl\src\text.rs',
     'native\diyardesk-gl\src\studio_glass\mod.rs', 'native\diyardesk-gl\src\studio_glass\shaders.rs',
     'native\diyardesk-gl\src\themes\mod.rs', 'native\diyardesk-gl\src\themes\common.rs', 'native\diyardesk-gl\src\themes\optical_space.rs', 'native\diyardesk-gl\src\themes\nature_worlds.rs', 'native\diyardesk-gl\src\themes\polar_winter.rs', 'native\diyardesk-gl\src\themes\design_craft.rs', 'native\diyardesk-gl\src\themes\worlds_tactical.rs',
     'tools\build-installer.ps1', 'tools\installer.nsi', 'tools\version.json')
 $themeFiles = @('flat.html', 'meadow.html', 'aurora.html', 'glade.html', 'rift.html', 'strike.html', 'pocket.html', 'roach.html', 'rosebrook.html', 'polarnight.html', 'desert.html', 'zen-archipelago.html', 'istanbul.html', 'thinking-orbs.html', 'quietsnow.html', 'studio-glass.html', 'material-impulse.html', 'material-impulse-gl.html',
-    'settings.html', 'thumbs-data.js', 'low-mode.js', 'qr.js', 'share.js', 'wall-icons.js', 'serve.mjs', 'themes.json',
+    'settings.html', 'tokens.json', 'thumbs-data.js', 'low-mode.js', 'qr.js', 'share.js', 'wall-icons.js', 'serve.mjs', 'themes.json',
     'beach-palms.js', 'meadow-boy.js', 'meadow-cat.js', 'aurora-pines.js', 'glade-trees.js', 'rift-props.js', 'strike-props.js', 'pocket-props.js', 'roach-props.js', 'rosebrook-blooms.js', 'desert-props.js', 'istanbul-city.js', 'istanbul-props.js', 'thinking-orbs-engine.js', 'quietsnow-engine.js', 'studio-glass-engine.js', 'lib\three.min.js',
     'i18n\de.json', 'i18n\en.json', 'i18n\fr.json', 'i18n\ja.json', 'i18n\ko.json', 'i18n\tr.json', 'i18n\zh-CN.json', 'i18n\zh-TW.json',
     'thumbs\beach.webp', 'thumbs\meadow.webp', 'thumbs\polarnight.webp', 'thumbs\desert.webp', 'thumbs\istanbul.webp', 'thumbs\thinking-orbs.webp',
