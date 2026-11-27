@@ -222,7 +222,21 @@
     "shareFormat16x9": "16:9 橫式",
     "shareFormat9x16": "9:16 直式 (Reels/Shorts)",
     "shareShowBadge": "展示徽章",
-    "shareShowBadgeTitle": "在分享的圖片與短片右下角顯示精緻的 DiyarDesk 與記憶體徽章"
+    "shareShowBadgeTitle": "在分享的圖片與短片右下角顯示精緻的 DiyarDesk 與記憶體徽章",
+    "welcomeIconTask": "試著拖曳任意桌面圖示，立即查看桌布即時互動！",
+    "welcomeIconDone": "太棒了！DiyarDesk 已對你的圖示移動做出即時回應。",
+    "welcomeStepStyle": "桌面風格",
+    "welcomeStyleIcons": "圖示較多",
+    "welcomeStyleClean": "極簡 / 小工具",
+    "welcomeStepPriority": "首選體驗",
+    "welcomePrioLight": "超輕量 (<50 MB)",
+    "welcomePrio3d": "3D 與光影",
+    "welcomePrioPhysics": "即時物理",
+    "welcomeRecommended": "為你推薦",
+    "androidSetupTitle": "啟用 DiyarDesk 動態桌布",
+    "androidSetupBody": "1. 點擊「設為動態桌布」→ 2. 在系統選擇器中選取 DiyarDesk → 3. 前往「圖示版面」對齊平板圖示與小工具。",
+    "androidSetupCta": "設為動態桌布",
+    "androidSetupIconsCta": "開啟圖示版面"
   },
   "host": {
     "traySettings": "設定…",

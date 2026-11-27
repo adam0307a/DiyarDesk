@@ -52,7 +52,10 @@ class NativeSettingsController(
     private val onImportTheme: () -> Unit,
     private val onRemoveTheme: (String) -> Unit,
     private val onExportPreset: () -> Unit = {},
-    private val onImportPreset: () -> Unit = {}
+    private val onImportPreset: () -> Unit = {},
+    private val isLiveWallpaperActive: () -> Boolean = { true },
+    private val onOpenWallpaperPicker: () -> Unit = {},
+    private val onOpenIconLayout: () -> Unit = {}
 ) {
 
     val rootView: ScrollView = ScrollView(context).apply {
@@ -83,6 +86,7 @@ class NativeSettingsController(
 
     private var themesList: List<JSONObject> = emptyList()
     private var effLang: String = "en"
+    private var activeCategory: String = "all"
 
     init {
         rootView.addView(
@@ -107,6 +111,10 @@ class NativeSettingsController(
 
         body.addView(buildEngineBannerCard())
         body.addView(spacer(12))
+        if (!isLiveWallpaperActive()) {
+            body.addView(buildSetupGuideCard())
+            body.addView(spacer(12))
+        }
         if (activeThemeObj != null) {
             body.addView(buildStaticPreviewCard(activeThemeObj))
             body.addView(spacer(14))
@@ -465,6 +473,50 @@ class NativeSettingsController(
         return wrapper
     }
 
+    private fun buildSetupGuideCard(): View {
+        val card = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            background = roundedBg("#18332B", 16, "#2E6A58", 1)
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+        }
+        val titleTv = TextView(context).apply {
+            text = ui("androidSetupTitle", "Activate DiyarDesk Live Wallpaper")
+            setTextColor(Color.WHITE)
+            textSize = 15.5f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+        val bodyTv = TextView(context).apply {
+            text = ui(
+                "androidSetupBody",
+                "1. Tap Set Live Wallpaper → 2. Pick DiyarDesk in the system picker → 3. Match your tablet icons in Icon Layout."
+            )
+            setTextColor(Color.parseColor("#C7E3DA"))
+            textSize = 12.5f
+            setPadding(0, dp(4), 0, dp(10))
+        }
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val ctaWallpaper = styledButton(ui("androidSetupCta", "Set Live Wallpaper"), "#1F6F5B") {
+            onOpenWallpaperPicker()
+        }
+        val ctaIcons = styledButton(ui("androidSetupIconsCta", "Open Icon Layout"), "#22453B") {
+            onOpenIconLayout()
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(10) }
+        }
+        row.addView(ctaWallpaper)
+        row.addView(ctaIcons)
+        card.addView(titleTv)
+        card.addView(bodyTv)
+        card.addView(row)
+        return card
+    }
+
     private fun buildThemePickerCard(): View {
         val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -472,26 +524,89 @@ class NativeSettingsController(
             setPadding(dp(14), dp(14), dp(14), dp(14))
         }
 
+        val hasCustom = themesList.any {
+            it.optBoolean("imported", false) || it.optString("id").startsWith("custom-")
+        }
+        val filtered = themesList.filter { th ->
+            if (activeCategory == "all") true
+            else {
+                val cat = if (th.optBoolean("imported", false) || th.optString("id").startsWith("custom-")) {
+                    "custom"
+                } else {
+                    th.optString("category", "art")
+                }
+                cat == activeCategory
+            }
+        }
+
         val header = TextView(context).apply {
-            text = "${ui("themes", "Themes")} (${themesList.size})"
+            text = "${ui("themes", "Themes")} (${filtered.size})"
             setTextColor(Color.WHITE)
             textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, 0, 0, dp(10))
+            setPadding(0, 0, 0, dp(8))
         }
         card.addView(header)
 
-        val scroll = HorizontalScrollView(context).apply {
+        val catScroll = HorizontalScrollView(context).apply {
             isHorizontalScrollBarEnabled = false
+            setPadding(0, 0, 0, dp(10))
         }
-        val row = LinearLayout(context).apply {
+        val catRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
+        }
+        val catDefs = mutableListOf(
+            "all" to ui("catAll", "All"),
+            "widgets" to ui("catWidgets", "Widgets"),
+            "design3d" to ui("catDesign3d", "3D & Design"),
+            "nature" to ui("catNature", "Nature"),
+            "art" to ui("catArt", "Art")
+        )
+        if (hasCustom) catDefs.add("custom" to ui("catCustom", "Custom"))
+        for ((catId, catLabel) in catDefs) {
+            val isOn = activeCategory == catId
+            val chip = styledButton(catLabel, if (isOn) "#1F6F5B" else "#10221D").apply {
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                setOnClickListener {
+                    if (activeCategory != catId) {
+                        activeCategory = catId
+                        refresh()
+                    }
+                }
+            }
+            catRow.addView(chip, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = dp(8) })
+        }
+        catScroll.addView(catRow)
+        card.addView(catScroll)
+
+        val widthDp = context.resources.configuration.screenWidthDp
+        val cols = when {
+            widthDp >= 900 -> 4
+            widthDp >= 600 -> 3
+            else -> 2
+        }
+        val gridContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
         }
 
         val activeId = store.activeTheme
-        for (th in themesList) {
+        var currentRow: LinearLayout? = null
+        var colIndex = 0
+        for (th in filtered) {
             val id = th.optString("id")
             if (id.isBlank()) continue
+            if (colIndex == 0) {
+                currentRow = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                }
+                gridContainer.addView(currentRow, LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(10) })
+            }
             val selected = id == activeId
             val name = themeName(id, th.optString("name", id))
 
@@ -503,8 +618,8 @@ class NativeSettingsController(
                     if (selected) 2 else 1
                 )
                 clipToOutline = true
-                layoutParams = LinearLayout.LayoutParams(dp(144), dp(96)).apply {
-                    marginEnd = dp(10)
+                layoutParams = LinearLayout.LayoutParams(0, dp(104), 1f).apply {
+                    if (colIndex < cols - 1) marginEnd = dp(10)
                 }
                 setOnClickListener {
                     if (store.activeTheme != id) {
@@ -588,11 +703,22 @@ class NativeSettingsController(
                 )
             }
             tile.addView(label)
-            row.addView(tile)
+            currentRow?.addView(tile)
+            colIndex = (colIndex + 1) % cols
         }
 
-        scroll.addView(row)
-        card.addView(scroll)
+        if (colIndex != 0 && currentRow != null) {
+            for (rem in colIndex until cols) {
+                val spacerView = View(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, dp(104), 1f).apply {
+                        if (rem < cols - 1) marginEnd = dp(10)
+                    }
+                }
+                currentRow.addView(spacerView)
+            }
+        }
+
+        card.addView(gridContainer)
         return card
     }
 

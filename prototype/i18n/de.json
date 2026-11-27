@@ -222,7 +222,21 @@
     "shareFormat16x9": "16:9 Querformat",
     "shareFormat9x16": "9:16 Hochformat (Reels/Shorts)",
     "shareShowBadge": "Showcase-Badge",
-    "shareShowBadgeTitle": "Dezentes DiyarDesk- und RAM-Badge auf geteilten Bildern und Clips anzeigen"
+    "shareShowBadgeTitle": "Dezentes DiyarDesk- und RAM-Badge auf geteilten Bildern und Clips anzeigen",
+    "welcomeIconTask": "Ziehe jetzt ein Desktop-Symbol und sieh, wie die Szene reagiert!",
+    "welcomeIconDone": "Stark! DiyarDesk hat direkt auf dein Symbol reagiert.",
+    "welcomeStepStyle": "Desktop-Stil",
+    "welcomeStyleIcons": "Viele Symbole",
+    "welcomeStyleClean": "Clean / Widgets",
+    "welcomeStepPriority": "Priorität",
+    "welcomePrioLight": "Ultraleicht (<50 MB)",
+    "welcomePrio3d": "3D & Optik",
+    "welcomePrioPhysics": "Live-Physik",
+    "welcomeRecommended": "Für dich empfohlen",
+    "androidSetupTitle": "DiyarDesk Live-Hintergrund aktivieren",
+    "androidSetupBody": "1. Tippe auf Live-Hintergrund festlegen → 2. Wähle DiyarDesk in der Systemauswahl → 3. Passe deine Tablet-Symbole im Layout an.",
+    "androidSetupCta": "Live-Hintergrund festlegen",
+    "androidSetupIconsCta": "Symbol-Layout öffnen"
   },
   "host": {
     "traySettings": "Einstellungen…",

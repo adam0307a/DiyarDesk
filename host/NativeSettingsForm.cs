@@ -33,15 +33,19 @@ class NativeSettingsForm : Form
     const uint EM_SETCUEBANNER = 0x1501;
 
     // Layout & controls
-    Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel;
-    FlowLayoutPanel topControlsFlow, themeGrid, categoryFlow;
+    Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel, welcomeCard;
+    FlowLayoutPanel topControlsFlow, themeGrid, categoryFlow, welcomeQuizFlow, welcomeRecsFlow;
     Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
+    Label welcomeTitleLbl, welcomeBodyLbl, welcomeIconStatusLbl, welcomeRecLabel;
     TextBox searchBox;
     CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
-    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset;
-    string activeCategory = "all";
+    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss;
+    string activeCategory = "all", wizStyle = "icons", wizPrio = "light", baselineIconsSig = "";
+    bool iconMoveCelebrated;
     readonly List<Button> categoryButtons = new List<Button>();
+    readonly List<Button> wizStyleBtns = new List<Button>();
+    readonly List<Button> wizPrioBtns = new List<Button>();
     Font fontBrand, fontTitle, fontSub, fontGroup, fontBody, fontSmall, fontBold;
 
     // Live Rust OpenGL preview
@@ -633,9 +637,82 @@ class NativeSettingsForm : Form
             btnClearSearch.Location = new Point(cx - btnClearSearch.Width / 2, cy + S(48));
         };
 
+        welcomeCard = new Panel();
+        welcomeCard.Dock = DockStyle.Top;
+        welcomeCard.AutoSize = true;
+        welcomeCard.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        welcomeCard.BackColor = colSurface;
+        welcomeCard.Padding = new Padding(S(12), S(10), S(12), S(10));
+        welcomeCard.Margin = new Padding(0, 0, 0, S(8));
+        welcomeCard.Visible = !Settings.WelcomeDismissed;
+
+        var welcomeHead = new Panel();
+        welcomeHead.Dock = DockStyle.Top;
+        welcomeHead.Height = S(42);
+        welcomeHead.BackColor = Color.Transparent;
+
+        welcomeTitleLbl = new Label();
+        welcomeTitleLbl.AutoSize = true;
+        welcomeTitleLbl.Font = fontBold;
+        welcomeTitleLbl.Location = new Point(0, 0);
+
+        welcomeBodyLbl = new Label();
+        welcomeBodyLbl.AutoSize = true;
+        welcomeBodyLbl.Font = fontSmall;
+        welcomeBodyLbl.ForeColor = colMuted;
+        welcomeBodyLbl.Location = new Point(0, S(20));
+
+        btnWelcomeDismiss = MakeGhostButton("Dismiss");
+        btnWelcomeDismiss.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnWelcomeDismiss.Click += delegate
+        {
+            welcomeCard.Visible = false;
+            host.DismissWelcomeFromUi();
+        };
+        welcomeHead.Resize += delegate
+        {
+            btnWelcomeDismiss.Location = new Point(Math.Max(S(240), welcomeHead.ClientSize.Width - btnWelcomeDismiss.Width - S(4)), 0);
+        };
+        welcomeHead.Controls.Add(welcomeTitleLbl);
+        welcomeHead.Controls.Add(welcomeBodyLbl);
+        welcomeHead.Controls.Add(btnWelcomeDismiss);
+
+        welcomeQuizFlow = new FlowLayoutPanel();
+        welcomeQuizFlow.Dock = DockStyle.Top;
+        welcomeQuizFlow.AutoSize = true;
+        welcomeQuizFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        welcomeQuizFlow.WrapContents = true;
+        welcomeQuizFlow.BackColor = Color.Transparent;
+        welcomeQuizFlow.Padding = new Padding(0, S(6), 0, S(4));
+
+        welcomeRecsFlow = new FlowLayoutPanel();
+        welcomeRecsFlow.Dock = DockStyle.Top;
+        welcomeRecsFlow.AutoSize = true;
+        welcomeRecsFlow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        welcomeRecsFlow.WrapContents = true;
+        welcomeRecsFlow.BackColor = Color.Transparent;
+        welcomeRecsFlow.Padding = new Padding(0, S(2), 0, S(4));
+
+        welcomeRecLabel = new Label();
+        welcomeRecLabel.AutoSize = true;
+        welcomeRecLabel.Font = fontSmall;
+        welcomeRecLabel.Margin = new Padding(0, S(4), S(6), S(4));
+
+        welcomeIconStatusLbl = new Label();
+        welcomeIconStatusLbl.Dock = DockStyle.Top;
+        welcomeIconStatusLbl.AutoSize = true;
+        welcomeIconStatusLbl.Font = fontSmall;
+        welcomeIconStatusLbl.Padding = new Padding(0, S(4), 0, 0);
+
+        welcomeCard.Controls.Add(welcomeIconStatusLbl);
+        welcomeCard.Controls.Add(welcomeRecsFlow);
+        welcomeCard.Controls.Add(welcomeQuizFlow);
+        welcomeCard.Controls.Add(welcomeHead);
+
         leftPanel.Controls.Add(themeGrid);
         leftPanel.Controls.Add(searchEmptyPanel);
         leftPanel.Controls.Add(categoryFlow);
+        leftPanel.Controls.Add(welcomeCard);
         leftPanel.Controls.Add(leftHead);
 
         bodyPanel.Controls.Add(leftPanel);
@@ -721,6 +798,7 @@ class NativeSettingsForm : Form
         for (int i = 0; i < themeCards.Count; i++)
             themeCards[i].SetPalette(colCard, colCardHover, colBorder, colText, colMuted, colAccent, colAccentSoft);
         RefreshCategoryButtonStyles();
+        RefreshWelcomePalette();
     }
 
     void ApplyPaletteRecursive(Control root)
@@ -733,7 +811,7 @@ class NativeSettingsForm : Form
                 ((ModernSliderControl)c).SetPalette(colSurface, colBorder, colAccent, colText);
                 continue;
             }
-            if (c == topPanel || c == paramsWrap || (c.Parent == rightPanel && c is Panel && c.BackColor != Color.Transparent && c.Height != S(10)))
+            if (c == topPanel || c == paramsWrap || c == welcomeCard || (c.Parent == rightPanel && c is Panel && c.BackColor != Color.Transparent && c.Height != S(10)))
             {
                 if (c != previewHostWrap) c.BackColor = colSurface;
             }
@@ -746,7 +824,7 @@ class NativeSettingsForm : Form
                 c.BackColor = colBorder;
             }
 
-            if (c is Button && c != btnSwitchWebView && c.Parent != categoryFlow)
+            if (c is Button && c != btnSwitchWebView && c.Parent != categoryFlow && c.Parent != welcomeQuizFlow)
             {
                 var b = (Button)c;
                 b.BackColor = colCard;
@@ -912,8 +990,136 @@ class NativeSettingsForm : Form
 
         SyncGlobalControlsFromSettings();
         RebuildCategoryBar();
+        BuildWelcomeQuizControls();
         RebuildThemeCards();
+        RebuildWelcomeRecommendations();
         SelectThemeUi(Settings.Theme);
+    }
+
+    void BuildWelcomeQuizControls()
+    {
+        if (welcomeTitleLbl != null) welcomeTitleLbl.Text = I18n.Ui("welcomeTipTitle");
+        if (welcomeBodyLbl != null) welcomeBodyLbl.Text = I18n.Ui("welcomeTipBody");
+        if (btnWelcomeDismiss != null) btnWelcomeDismiss.Text = I18n.Ui("welcomeTipDismiss");
+        if (welcomeRecLabel != null) welcomeRecLabel.Text = I18n.Ui("welcomeRecommended") + ":";
+        if (welcomeQuizFlow == null) return;
+
+        welcomeQuizFlow.SuspendLayout();
+        welcomeQuizFlow.Controls.Clear();
+        wizStyleBtns.Clear();
+        wizPrioBtns.Clear();
+
+        string[,] styleDefs = { { "icons", "welcomeStyleIcons" }, { "clean", "welcomeStyleClean" } };
+        for (int i = 0; i < styleDefs.GetLength(0); i++)
+        {
+            string key = styleDefs[i, 0];
+            var b = MakeGhostButton(I18n.Ui(styleDefs[i, 1]));
+            b.Tag = key;
+            b.Padding = new Padding(S(8), S(2), S(8), S(2));
+            b.Margin = new Padding(0, 0, S(6), S(4));
+            string captured = key;
+            b.Click += delegate
+            {
+                wizStyle = captured;
+                RefreshWelcomePalette();
+                RebuildWelcomeRecommendations();
+            };
+            wizStyleBtns.Add(b);
+            welcomeQuizFlow.Controls.Add(b);
+        }
+
+        string[,] prioDefs = { { "light", "welcomePrioLight" }, { "3d", "welcomePrio3d" }, { "physics", "welcomePrioPhysics" } };
+        for (int i = 0; i < prioDefs.GetLength(0); i++)
+        {
+            string key = prioDefs[i, 0];
+            var b = MakeGhostButton(I18n.Ui(prioDefs[i, 1]));
+            b.Tag = key;
+            b.Padding = new Padding(S(8), S(2), S(8), S(2));
+            b.Margin = new Padding(0, 0, S(6), S(4));
+            string captured = key;
+            b.Click += delegate
+            {
+                wizPrio = captured;
+                RefreshWelcomePalette();
+                RebuildWelcomeRecommendations();
+            };
+            wizPrioBtns.Add(b);
+            welcomeQuizFlow.Controls.Add(b);
+        }
+        welcomeQuizFlow.ResumeLayout();
+        RefreshWelcomePalette();
+    }
+
+    void RefreshWelcomePalette()
+    {
+        for (int i = 0; i < wizStyleBtns.Count; i++)
+        {
+            var b = wizStyleBtns[i];
+            bool on = string.Equals(b.Tag as string, wizStyle, StringComparison.OrdinalIgnoreCase);
+            b.BackColor = on ? colAccentSoft : colCard;
+            b.ForeColor = on ? colAccent : colText;
+            b.FlatAppearance.BorderColor = on ? colAccent : colBorder;
+            b.FlatAppearance.MouseOverBackColor = on ? colAccentSoft : colCardHover;
+        }
+        for (int i = 0; i < wizPrioBtns.Count; i++)
+        {
+            var b = wizPrioBtns[i];
+            bool on = string.Equals(b.Tag as string, wizPrio, StringComparison.OrdinalIgnoreCase);
+            b.BackColor = on ? colAccentSoft : colCard;
+            b.ForeColor = on ? colAccent : colText;
+            b.FlatAppearance.BorderColor = on ? colAccent : colBorder;
+            b.FlatAppearance.MouseOverBackColor = on ? colAccentSoft : colCardHover;
+        }
+        if (welcomeBodyLbl != null) welcomeBodyLbl.ForeColor = colMuted;
+        if (welcomeRecLabel != null) welcomeRecLabel.ForeColor = colMuted;
+        if (welcomeIconStatusLbl != null)
+        {
+            welcomeIconStatusLbl.Text = iconMoveCelebrated ? ("✓ " + I18n.Ui("welcomeIconDone")) : I18n.Ui("welcomeIconTask");
+            welcomeIconStatusLbl.ForeColor = iconMoveCelebrated
+                ? (darkTheme ? Color.FromArgb(110, 231, 183) : Color.FromArgb(4, 120, 87))
+                : colMuted;
+        }
+    }
+
+    void RebuildWelcomeRecommendations()
+    {
+        if (welcomeRecsFlow == null) return;
+        welcomeRecsFlow.SuspendLayout();
+        welcomeRecsFlow.Controls.Clear();
+        if (welcomeRecLabel != null) welcomeRecsFlow.Controls.Add(welcomeRecLabel);
+
+        string[] picks;
+        string k = wizStyle + ":" + wizPrio;
+        if (k == "icons:light") picks = new[] { "papercut", "meadow", "beach" };
+        else if (k == "icons:3d") picks = new[] { "studio-glass", "liquidglass", "istanbul" };
+        else if (k == "icons:physics") picks = new[] { "quietsnow", "ai-mascots", "rift" };
+        else if (k == "clean:light") picks = new[] { "material-impulse-gl", "papercut", "polarnight" };
+        else if (k == "clean:3d") picks = new[] { "studio-glass", "solar-system", "cosmic-eye" };
+        else picks = new[] { "quietsnow", "ai-mascots", "material-impulse-gl" };
+
+        for (int i = 0; i < picks.Length; i++)
+        {
+            var th = FindTheme(picks[i]);
+            if (th == null || !string.Equals(th["id"] as string, picks[i], StringComparison.OrdinalIgnoreCase)) continue;
+            string tid = th["id"] as string;
+            string rawName = th.ContainsKey("name") ? th["name"] as string : tid;
+            var btn = MakeGhostButton(I18n.ThemeName(tid, rawName));
+            btn.Padding = new Padding(S(9), S(2), S(9), S(2));
+            btn.Margin = new Padding(0, 0, S(6), S(2));
+            btn.BackColor = colCard;
+            btn.ForeColor = colText;
+            btn.FlatAppearance.BorderColor = colBorder;
+            btn.FlatAppearance.MouseOverBackColor = colCardHover;
+            string capturedId = tid;
+            btn.Click += delegate
+            {
+                if (!string.Equals(Settings.Theme, capturedId, StringComparison.OrdinalIgnoreCase))
+                    host.SwitchThemeFromNative(capturedId);
+                SelectThemeUi(capturedId);
+            };
+            welcomeRecsFlow.Controls.Add(btn);
+        }
+        welcomeRecsFlow.ResumeLayout();
     }
 
     public void SyncGlobalControlsFromSettings()
@@ -1764,6 +1970,18 @@ class NativeSettingsForm : Form
     public void OnIconsChanged(string desktopIconsJson)
     {
         lastIconsJson = desktopIconsJson ?? "";
+        if (welcomeCard != null && welcomeCard.Visible && !iconMoveCelebrated && !string.IsNullOrEmpty(lastIconsJson))
+        {
+            if (string.IsNullOrEmpty(baselineIconsSig))
+            {
+                baselineIconsSig = lastIconsJson;
+            }
+            else if (lastIconsJson != baselineIconsSig)
+            {
+                iconMoveCelebrated = true;
+                RefreshWelcomePalette();
+            }
+        }
         if (!IsDisposed && previewGl != null && previewGl.IsRunning)
             PushScaledIconsToPreview(lastIconsJson);
     }

@@ -235,6 +235,7 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
     override fun onResume() {
         super.onResume()
         nativeSettings?.setPollingActive(true)
+        nativeSettings?.refresh()
         if (webView != null) startWebMemPolling()
     }
 
@@ -349,7 +350,10 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                     onImportTheme = { importPicker.launch(arrayOf("*/*")) },
                     onRemoveTheme = { id -> removeCustomTheme(id) },
                     onExportPreset = { launchExportPreset() },
-                    onImportPreset = { launchImportPreset() }
+                    onImportPreset = { launchImportPreset() },
+                    isLiveWallpaperActive = { isDiyarWallpaperActive() },
+                    onOpenWallpaperPicker = { openLiveWallpaperChooser() },
+                    onOpenIconLayout = { startActivity(Intent(this, IconLayoutActivity::class.java)) }
                 )
                 nativeSettings = controller
                 contentHost.addView(
@@ -714,6 +718,15 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 put("ok", false)
                 put("error", t.message ?: "Save failed")
             })
+        }
+    }
+
+    private fun isDiyarWallpaperActive(): Boolean {
+        return try {
+            val info = WallpaperManager.getInstance(this).wallpaperInfo
+            info?.packageName == packageName
+        } catch (_: Exception) {
+            false
         }
     }
 

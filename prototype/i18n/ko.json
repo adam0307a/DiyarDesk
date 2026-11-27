@@ -222,7 +222,21 @@
     "shareFormat16x9": "16:9 가로",
     "shareFormat9x16": "9:16 세로 (Reels/Shorts)",
     "shareShowBadge": "쇼케이스 배지",
-    "shareShowBadgeTitle": "공유 이미지 및 클립에 세련된 DiyarDesk + RAM 배지 표시"
+    "shareShowBadgeTitle": "공유 이미지 및 클립에 세련된 DiyarDesk + RAM 배지 표시",
+    "welcomeIconTask": "지금 바탕화면 아이콘을 하나 드래그해 실시간 반응을 확인해 보세요!",
+    "welcomeIconDone": "좋아요! DiyarDesk가 아이콘 이동에 반응했습니다.",
+    "welcomeStepStyle": "바탕화면 스타일",
+    "welcomeStyleIcons": "아이콘 많음",
+    "welcomeStyleClean": "깔끔 / 위젯",
+    "welcomeStepPriority": "우선순위",
+    "welcomePrioLight": "초경량 (<50 MB)",
+    "welcomePrio3d": "3D & 비주얼",
+    "welcomePrioPhysics": "실시간 물리",
+    "welcomeRecommended": "맞춤 추천",
+    "androidSetupTitle": "DiyarDesk 라이브 배경화면 활성화",
+    "androidSetupBody": "1. 라이브 배경화면 설정을 누르고 → 2. 시스템 목록에서 DiyarDesk를 선택한 뒤 → 3. 아이콘 배치에서 태블릿 아이콘을 맞추세요.",
+    "androidSetupCta": "라이브 배경화면 설정",
+    "androidSetupIconsCta": "아이콘 배치 열기"
   },
   "host": {
     "traySettings": "설정…",

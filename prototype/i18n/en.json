@@ -222,7 +222,21 @@
     "shareFormat16x9": "16:9 Landscape",
     "shareFormat9x16": "9:16 Vertical (Reels/Shorts)",
     "shareShowBadge": "Showcase badge",
-    "shareShowBadgeTitle": "Show a subtle DiyarDesk + RAM badge on shared images and clips"
+    "shareShowBadgeTitle": "Show a subtle DiyarDesk + RAM badge on shared images and clips",
+    "welcomeIconTask": "Try dragging any desktop icon right now to watch the scene react!",
+    "welcomeIconDone": "Nice! DiyarDesk just reacted to your icon move.",
+    "welcomeStepStyle": "Desktop style",
+    "welcomeStyleIcons": "Many icons",
+    "welcomeStyleClean": "Clean / Widgets",
+    "welcomeStepPriority": "Priority",
+    "welcomePrioLight": "Ultra-light (<50 MB)",
+    "welcomePrio3d": "3D & Visuals",
+    "welcomePrioPhysics": "Live Physics",
+    "welcomeRecommended": "Recommended for you",
+    "androidSetupTitle": "Activate DiyarDesk Live Wallpaper",
+    "androidSetupBody": "1. Tap Set Live Wallpaper → 2. Pick DiyarDesk in the system picker → 3. Match your tablet icons in Icon Layout.",
+    "androidSetupCta": "Set Live Wallpaper",
+    "androidSetupIconsCta": "Open Icon Layout"
   },
   "host": {
     "traySettings": "Settings…",

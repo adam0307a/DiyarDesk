@@ -222,7 +222,21 @@
     "shareFormat16x9": "16:9 Paysage",
     "shareFormat9x16": "9:16 Vertical (Reels/Shorts)",
     "shareShowBadge": "Badge vitrine",
-    "shareShowBadgeTitle": "Afficher un badge discret DiyarDesk + RAM sur les captures et clips partagés"
+    "shareShowBadgeTitle": "Afficher un badge discret DiyarDesk + RAM sur les captures et clips partagés",
+    "welcomeIconTask": "Déplacez une icône du bureau maintenant pour voir la scène réagir !",
+    "welcomeIconDone": "Bravo ! DiyarDesk vient de réagir au déplacement de votre icône.",
+    "welcomeStepStyle": "Style du bureau",
+    "welcomeStyleIcons": "Nombreuses icônes",
+    "welcomeStyleClean": "Épuré / Widgets",
+    "welcomeStepPriority": "Priorité",
+    "welcomePrioLight": "Ultra-léger (<50 Mo)",
+    "welcomePrio3d": "3D & Visuels",
+    "welcomePrioPhysics": "Physique live",
+    "welcomeRecommended": "Recommandé pour vous",
+    "androidSetupTitle": "Activer le fond d’écran animé DiyarDesk",
+    "androidSetupBody": "1. Touchez Définir comme fond animé → 2. Choisissez DiyarDesk dans le sélecteur → 3. Alignez vos icônes dans Disposition.",
+    "androidSetupCta": "Définir le fond animé",
+    "androidSetupIconsCta": "Ouvrir la disposition"
   },
   "host": {
     "traySettings": "Paramètres…",

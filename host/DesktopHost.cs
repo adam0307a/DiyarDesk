@@ -458,6 +458,7 @@ static class Settings
     public static bool SystemBridge = false;
     public static bool PreferMpv = false;
     public static bool RustOpenGl = false;
+    public static bool WelcomeDismissed = false;
 
     public static List<Dictionary<string, object>> SanitizeVirtualIcons(object raw)
     {
@@ -536,6 +537,7 @@ static class Settings
             if (root.TryGetValue("systemBridge", out v) && v is bool) SystemBridge = (bool)v;
             if (root.TryGetValue("preferMpv", out v) && v is bool) PreferMpv = (bool)v;
             if (root.TryGetValue("rustOpenGl", out v) && v is bool) RustOpenGl = (bool)v;
+            if (root.TryGetValue("welcomeDismissed", out v) && v is bool) WelcomeDismissed = (bool)v;
             Log.Write("已读取设置：主题 " + Theme);
         }
         catch (Exception ex) { Log.Write("读取设置失败（将使用默认值）：" + ex.Message); }
@@ -563,7 +565,8 @@ static class Settings
                 "playlistIntervalMin", PlaylistIntervalMin,
                 "systemBridge", SystemBridge,
                 "preferMpv", PreferMpv,
-                "rustOpenGl", RustOpenGl)), new UTF8Encoding(false));
+                "rustOpenGl", RustOpenGl,
+                "welcomeDismissed", WelcomeDismissed)), new UTF8Encoding(false));
         }
         catch (Exception ex) { Log.Write("保存设置失败：" + ex.Message); }
     }
@@ -1552,6 +1555,7 @@ class HostContext : ApplicationContext
     public void SetAutoStartFromUi(bool on) { SetAutoStart(on); SyncNativeSettingsGlobals(); }
     public bool IsAutoStartEnabled() { return IsAutoStart(); }
     public string GetLastIconsJson() { return form != null ? (form.LastIcons ?? "") : ""; }
+    public void DismissWelcomeFromUi() { Settings.WelcomeDismissed = true; SaveSoon(); }
 
     public void SetLangFromUi(string lang)
     {
