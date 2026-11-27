@@ -526,9 +526,11 @@ pub struct CatShoreState {
     pub tail_phase: f32,
     ripples: Vec<ClickRipple>,
 
-    // Icons
+    // Icons & open windows
     pub icons: Vec<Rect>,
     pub icons_visible: bool,
+    pub windows: Vec<Rect>,
+    last_win_sig: u64,
 
     // Collapsible top notch bar state
     pub notch_open: f32,      // 0.0 = collapsed, 1.0 = expanded
@@ -649,6 +651,8 @@ impl CatShoreState {
             ripples: Vec::with_capacity(8),
             icons: Vec::new(),
             icons_visible: false,
+            windows: Vec::new(),
+            last_win_sig: 0,
             notch_open: 0.0,
             notch_pinned: false,
             notch_hover: false,
@@ -882,6 +886,36 @@ impl CatShoreState {
             self.icons.extend_from_slice(&icons[..icons.len().min(24)]);
         }
         self.rev = self.rev.wrapping_add(1);
+    }
+
+    pub fn set_windows(&mut self, wins: &[crate::quiet_snow::WindowInput]) {
+        self.windows.clear();
+        let mut sig: u64 = 14695981039346656037;
+        for w in wins {
+            if w.w >= 80.0 && w.h >= 60.0 {
+                self.windows.push(Rect {
+                    x: w.x,
+                    y: w.y,
+                    w: w.w,
+                    h: w.h,
+                });
+                let qx = (w.x * 0.25) as i32 as u64;
+                let qy = (w.y * 0.25) as i32 as u64;
+                sig ^= qx.wrapping_mul(1099511628211);
+                sig = sig.rotate_left(7) ^ qy;
+                if self.windows.len() >= 8 {
+                    break;
+                }
+            }
+        }
+        if sig != self.last_win_sig {
+            self.last_win_sig = sig;
+            if let Some(first) = self.windows.first().copied() {
+                let wx = (first.x + first.w * 0.5).clamp(40.0, (self.w - 40.0).max(40.0));
+                let wy = (first.y + first.h).min(self.h * 0.85).max(self.h * 0.58);
+                self.add_ripple(wx, wy, 0.55);
+            }
+        }
     }
 
     pub fn add_ripple(&mut self, x: f32, y: f32, strength: f32) {
@@ -1442,6 +1476,13 @@ impl CatShoreState {
             let dy = self.pointer_y - eye_center_y;
             let dist = (dx * dx + dy * dy).sqrt().max(1.0);
             let mag = (dist / (sc * 2.4)).clamp(0.0, 1.0);
+            ((dx / dist) * mag, (dy / dist) * mag)
+        } else if self.params.adaptive && !self.windows.is_empty() {
+            let w0 = self.windows[0];
+            let dx = (w0.x + w0.w * 0.5) - eye_center_x;
+            let dy = (w0.y + w0.h * 0.5) - eye_center_y;
+            let dist = (dx * dx + dy * dy).sqrt().max(1.0);
+            let mag = (dist / (sc * 2.6)).clamp(0.0, 0.85);
             ((dx / dist) * mag, (dy / dist) * mag)
         } else {
             // Gentle idle curiosity looking up toward notch & around shoreline
@@ -3119,6 +3160,24 @@ mod tests {
             true,
         );
         assert_ne!(st.rev, rev1);
+    }
+
+    #[test]
+    fn cat_gaze_tracks_open_window_when_pointer_idle() {
+        let mut st = CatShoreState::new(1920.0, 1080.0, 1.0);
+        st.pointer_active = false;
+        st.set_windows(&[crate::quiet_snow::WindowInput {
+            id: 7,
+            x: 1500.0,
+            y: 80.0,
+            w: 360.0,
+            h: 260.0,
+        }]);
+        for _ in 0..35 {
+            st.step(0.033);
+        }
+        assert!(st.gaze_x > 0.2, "Cat should look toward open window on the right, got {}", st.gaze_x);
+        assert!(st.gaze_y < -0.1, "Cat should look upward toward window, got {}", st.gaze_y);
     }
 
     #[cfg(not(target_os = "windows"))]

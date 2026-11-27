@@ -38,6 +38,11 @@ static class EnvironmentHelper
         if (h >= 5.0 && h < 8.0) phase = "dawn";
         else if (h >= 8.0 && h < 17.0) phase = "day";
         else if (h >= 17.0 && h < 20.0) phase = "dusk";
+        int month = now.Month;
+        string season = "winter";
+        if (month >= 3 && month <= 5) season = "spring";
+        else if (month >= 6 && month <= 8) season = "summer";
+        else if (month >= 9 && month <= 11) season = "autumn";
         double daylight = Math.Sin(((h - 6.0) / 12.0) * Math.PI);
         if (daylight < 0.0) daylight = 0.0;
         if (daylight > 1.0) daylight = 1.0;
@@ -45,6 +50,8 @@ static class EnvironmentHelper
             "t", "environment",
             "hour", Math.Round(h, 2),
             "phase", phase,
+            "month", month,
+            "season", season,
             "daylight", Math.Round(daylight, 3),
             "darkMode", IsSystemDarkMode(),
             "solarSync", solarSync));

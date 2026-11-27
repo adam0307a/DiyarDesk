@@ -6,6 +6,7 @@ use crate::state::Rect;
 /// two boxes lie within `gap_px` horizontally and vertically (including
 /// transitive chains via union-find). Returns components ordered deterministically
 /// by each cluster's earliest input index.
+#[allow(dead_code)]
 pub fn cluster_icons(icons: &[Rect], gap_px: f32) -> Vec<Rect> {
     cluster_icons_with_names(icons, &[], gap_px).0
 }

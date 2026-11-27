@@ -398,6 +398,8 @@ pub struct AppState {
     pub pointer_y: f32,
     pub pointer_active: bool,
     pub env_hour: f32,
+    pub env_season: Option<u8>,
+    pub env_solar_sync: bool,
     pub cpu: f32,
     pub mem: f32,
     pub battery: f32,
@@ -569,6 +571,8 @@ impl AppState {
             pointer_y: -999.0,
             pointer_active: false,
             env_hour: now.hour() as f32 + now.minute() as f32 / 60.0,
+            env_season: None,
+            env_solar_sync: false,
             cpu: 12.0,
             mem: 38.0,
             battery: 88.0,
@@ -1033,6 +1037,7 @@ impl AppState {
         if self.is_cat_shore_theme() {
             self.cat_shore.set_low_mode(self.low_mode);
             self.cat_shore.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            self.cat_shore.set_windows(&self.windows);
             if !self.effective_icons.is_empty() {
                 self.cat_shore.set_icons(&self.effective_icons, true);
             }
@@ -1620,11 +1625,34 @@ impl AppState {
                 }
                 self.quiet_snow.set_windows(&self.windows);
                 self.ai_mascots.set_windows(&self.windows);
+                self.cat_shore.set_windows(&self.windows);
             }
             "environment" => {
                 if let Some(hr) = v.get("hour").and_then(|x| x.as_f64()) {
                     self.env_hour = hr as f32;
                     self.istanbul.set_env_hour(self.env_hour);
+                }
+                let solar = v.get("solarSync").and_then(|x| x.as_bool()).unwrap_or(self.env_solar_sync);
+                self.env_solar_sync = solar;
+                let season_mode = match v.get("season").and_then(|x| x.as_str()) {
+                    Some("winter") => Some(0i32),
+                    Some("summer") => Some(1i32),
+                    Some("autumn") => Some(2i32),
+                    Some("spring") => Some(3i32),
+                    _ => v.get("month").and_then(|x| x.as_u64()).map(|m| match m {
+                        3..=5 => 3,
+                        6..=8 => 1,
+                        9..=11 => 2,
+                        _ => 0,
+                    }),
+                };
+                if let Some(sm) = season_mode {
+                    self.env_season = Some(sm as u8);
+                }
+                if solar {
+                    self.quiet_snow.set_seasonal_override(season_mode.or(self.env_season.map(|s| s as i32)));
+                } else {
+                    self.quiet_snow.set_seasonal_override(None);
                 }
             }
             "catShoreAction" => {

@@ -984,6 +984,8 @@ impl Default for PointerState {
 
 pub struct QuietSnowState {
     pub p: QuietSnowParams,
+    pub user_mode: i32,
+    pub seasonal_mode_override: Option<i32>,
     pub w: f32,
     pub h: f32,
     pub low_mode: bool,
@@ -1024,6 +1026,8 @@ impl QuietSnowState {
     pub fn new(w: f32, h: f32, params: QuietSnowParams, rng_seed: i32) -> Self {
         let mut st = Self {
             p: params,
+            user_mode: params.mode,
+            seasonal_mode_override: None,
             w: w.max(240.0),
             h: h.max(160.0),
             low_mode: false,
@@ -1088,12 +1092,31 @@ impl QuietSnowState {
         self.reconcile_pools(false);
     }
 
+    pub fn set_seasonal_override(&mut self, mode: Option<i32>) {
+        let normalized = mode.map(|m| m.clamp(0, 3));
+        if self.seasonal_mode_override == normalized {
+            return;
+        }
+        self.seasonal_mode_override = normalized;
+        let effective_mode = normalized.unwrap_or(self.user_mode).clamp(0, 3);
+        if self.p.mode != effective_mode {
+            self.p.mode = effective_mode;
+            self.on_mode_switch();
+            self.reconcile_pools(false);
+        }
+    }
+
     pub fn sync_params(&mut self, next: QuietSnowParams) {
-        let mode_changed = self.p.mode != next.mode;
-        let acc_changed = self.p.accumulate != next.accumulate
-            || self.p.adaptive != next.adaptive
-            || self.p.windows != next.windows;
-        self.p = next;
+        self.user_mode = next.mode.clamp(0, 3);
+        let mut effective = next;
+        if let Some(ov) = self.seasonal_mode_override {
+            effective.mode = ov.clamp(0, 3);
+        }
+        let mode_changed = self.p.mode != effective.mode;
+        let acc_changed = self.p.accumulate != effective.accumulate
+            || self.p.adaptive != effective.adaptive
+            || self.p.windows != effective.windows;
+        self.p = effective;
 
         if mode_changed {
             self.on_mode_switch();
@@ -4969,5 +4992,21 @@ mod tests {
             passed += 1;
         }
         assert_eq!(passed, 267, "All 267 recorded rust-anything cases must run and pass");
+    }
+
+    #[test]
+    fn seasonal_override_switches_and_restores_user_mode() {
+        let mut st = QuietSnowState::new(1280.0, 720.0, QuietSnowParams::default(), 42);
+        assert_eq!(st.p.mode, 0);
+        st.set_seasonal_override(Some(3)); // Sakura Spring
+        assert_eq!(st.p.mode, 3);
+        // Updating unrelated params keeps active seasonal override
+        let mut np = QuietSnowParams::default();
+        np.mode = 1;
+        st.sync_params(np);
+        assert_eq!(st.p.mode, 3);
+        // Clearing override restores user-selected mode
+        st.set_seasonal_override(None);
+        assert_eq!(st.p.mode, 1);
     }
 }
