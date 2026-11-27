@@ -189,7 +189,15 @@
     "ramTierTitle": "Geschätzter RAM- & GPU-Texturbedarf",
     "ramLiveBadge": "App-Gesamt-RAM: {mb} MB",
     "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
-    "nativeVideoBadge": "Hardware-Video · MediaPlayer (0 WebView)"
+    "nativeVideoBadge": "Hardware-Video · MediaPlayer (0 WebView)",
+    "removeThemeConfirmTitle": "Importiertes Thema entfernen?",
+    "removeThemeConfirmBody": "„{name}“ und seine gespeicherten Einstellungen entfernen? Dies kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen",
+    "searchThemesPlaceholder": "Themen suchen…",
+    "searchThemesEmpty": "Keine Themen entsprechen „{q}“.",
+    "searchThemesClear": "Suche löschen",
+    "switchToWebView": "Zu WebView2 wechseln (Import · Teilen · LAN)",
+    "switchToWebViewHint": "Zurück zu WebView2 wechseln, um benutzerdefinierte HTML/ZIP-Themen zu importieren, Aufnahmen zu teilen oder LAN-Sync zu nutzen"
   },
   "host": {
     "traySettings": "Einstellungen…",

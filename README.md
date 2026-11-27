@@ -6,7 +6,7 @@ DiyarDesk turns the space around your desktop icons into a living interactive la
 
 > **Upstream attribution:** DiyarDesk is an independent community fork based on [Deskland](https://deskland.app) (`GPL-3.0`), using its own product name (**DiyarDesk**) and original icon, with no official affiliation or endorsement from upstream Deskland. See [NOTICE](NOTICE) and [TRADEMARKS.md](TRADEMARKS.md).
 
-**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.3)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [28 Themes](#included-themes-28-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
+**English** · [Türkçe](#türkçe) · [Download Releases (v0.5.5)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [32 Themes](#included-themes-32-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
 
 <a href="https://www.buymeacoffee.com/adam0307a" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -59,15 +59,15 @@ https://github.com/user-attachments/assets/36224867-04a2-4d6a-b534-13024cdc575b
 
 ## Native Rust + OpenGL 3.3 Mode (Zero WebView2)
 
-On Windows, DiyarDesk includes a native **Rust + OpenGL 3.3 Core** rendering engine (`native/diyardesk-gl` → `diyardesk_gl.dll`) supporting **all 28 built-in themes**:
+On Windows, DiyarDesk includes a native **Rust + OpenGL 3.3 Core** rendering engine (`native/diyardesk-gl` → `diyardesk_gl.dll`) supporting **all 32 built-in themes**:
 
 - **Up to 900 MB less RAM:** Enabling **Rust OpenGL** (via the featured performance card in Settings, the system tray menu, or `--ctl rust-gl on`) switches both the wallpaper and Settings UI off WebView2 and deterministically terminates **all** DiyarDesk `msedgewebview2.exe` processes (`0 WebView2`).
 - **Native Zero-WebView2 Settings UI (`NativeSettingsForm`):** Clean dark/light-aware WinForms interface featuring a **live Rust OpenGL 3.3 theme preview**, custom dark sliders & scrollbars, `.webp` theme cards, full parameter editing, and 8-language localization.
 - **One-click WebView2 fallback:** WebView2 support remains intact—click **Switch to WebView2** (or toggle **Rust OpenGL** in the tray) anytime to import custom HTML/ZIP/GLSL/image/video themes or use privacy-safe snapshot/video sharing.
 
-## Included Themes (28 Built-in)
+## Included Themes (32 Built-in)
 
-All **28 built-in themes** are free, unlocked, localized in 8 languages, equipped with `.webp` thumbnails, and supported in both **Rust OpenGL 3.3** and **HTML5/WebGL** modes:
+All **32 built-in themes** are free, unlocked, localized in 8 languages, equipped with `.webp` thumbnails, and supported in both **Rust OpenGL 3.3** and **HTML5/WebGL** modes:
 
 - **Widgets & Interactive Labs:**
   - **DiyarDesk Impulse · OpenGL (Rust)** & **DiyarDesk Impulse · Widgets** — Material You frosted glass desktop widgets: 12-petal Cookie hybrid clock, wavy SMTC music player, offline `.ics` calendar, interactive tasks, `/todo` bar & notes
@@ -87,7 +87,7 @@ All **28 built-in themes** are free, unlocked, localized in 8 languages, equippe
 ## Features
 
 - **Adaptive icon & window reaction:** tracks live desktop icon positions (Windows Shell, KDE Plasma `IconSpy`, GVfs/Xfce) and open window bounds in real time.
-- **Zero-WebView2 Rust OpenGL 3.3 engine:** native GPU rendering for all 28 themes + native Settings UI with live OpenGL preview, cutting up to **900 MB RAM** on Windows.
+- **Zero-WebView2 Rust OpenGL 3.3 engine:** native GPU rendering for all 32 themes + native Settings UI with live OpenGL preview, cutting up to **900 MB RAM** on Windows.
 - **Multi-monitor support:** Primary, Independent, Span, and Duplicate modes.
 - **Smart power & Eco Mode:** 15 FPS Eco Mode, automatic pause on maximized/fullscreen windows, lock screen, RDP, and Battery Saver (with optional *Disable auto-pause*).
 - **Offline atmosphere & automation:** **Solar Sync** (dawn/day/dusk/night cycle), **Window-Aware** mode, **Local Playlist** rotation, and optional **mpv** hardware video backend.
@@ -167,7 +167,7 @@ DiyarDesk includes a native **Android Tablet** live wallpaper companion (`androi
 
 | Path | Contents |
 | --- | --- |
-| `native/diyardesk-gl/` | Native Rust + OpenGL 3.3 Core desktop wallpaper engine (`diyardesk_gl.dll`) for all 28 built-in themes, verified with [rust-anything](https://github.com/erkamyaman/rust-anything) ground-truth recording |
+| `native/diyardesk-gl/` | Native Rust + OpenGL 3.3 Core desktop wallpaper engine (`diyardesk_gl.dll`) for all 32 built-in themes, verified with [rust-anything](https://github.com/erkamyaman/rust-anything) ground-truth recording |
 | `host/` | Windows C#/WinForms host (`DesktopHost.cs`, zero-WebView2 `NativeSettingsForm.cs`, `NativeGlHost.cs`, `IpcControl.cs`, `LanSync.cs`, `MediaBridge.cs`, `SystemBridge.cs`) & build scripts |
 | `linux/deskland_linux/` | Modular Python Linux host, tray, fullscreen pause, icon readers, custom theme importer |
 | `linux/plasma-wallpaper/` | KDE Plasma 6 native WebEngine wallpaper plugin |
@@ -203,7 +203,7 @@ If you enjoy DiyarDesk, you can support its development:
 
 ## Türkçe
 
-[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.3)](https://github.com/adam0307a/DiyarDesk/releases/latest)
+[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.5)](https://github.com/adam0307a/DiyarDesk/releases/latest)
 
 **Masaüstü simgelerinizi manzaranın bir parçasına dönüştüren uyarlanabilir duvar kağıdı — artık WebView2'siz yerel Rust + OpenGL 3.3 Core motoruyla.**
 
@@ -215,15 +215,15 @@ If you enjoy DiyarDesk, you can support its development:
 
 ### Yerel Rust + OpenGL 3.3 Modu (0 WebView2 · 900 MB'a Kadar Daha Az RAM)
 
-Windows'ta DiyarDesk, **28 yerleşik temanın tamamını** yerel **Rust + OpenGL 3.3 Core** (`diyardesk_gl.dll`) motoruyla çalıştırabilir:
+Windows'ta DiyarDesk, **32 yerleşik temanın tamamını** yerel **Rust + OpenGL 3.3 Core** (`diyardesk_gl.dll`) motoruyla çalıştırabilir:
 
 - **900 MB'a kadar daha az RAM:** Ayarlardaki öne çıkan **Rust OpenGL** kartından, sistem tepsisi menüsünden veya `--ctl rust-gl on` komutuyla etkinleştirildiğinde hem duvar kağıdı hem de ayar penceresi WebView2'den ayrılır ve DiyarDesk'e bağlı **tüm** `msedgewebview2.exe` süreçleri kesin olarak sonlandırılır (**0 WebView2**).
 - **WebView2'siz Yerel Ayar Penceresi (`NativeSettingsForm`):** Windows açık/koyu temasıyla uyumlu yerel arayüz; içinde **canlı Rust OpenGL 3.3 önizleme**, koyu tema uyumlu özel kaydırıcılar ve kaydırma çubukları, tüm `.webp` tema kartları, parametre kontrolleri ve 8 dil desteği yer alır.
 - **Tek tıkla WebView2'ye dönüş:** WebView2 desteği korunur — özel `.zip`/`.html`/video tema içe aktarmak veya görsel/video paylaşmak istediğinizde üst çubuktaki **WebView2'ye geç** düğmesinden veya tepsi menüsünden tek tıkla geri dönebilirsiniz.
 
-### 28 Dahili Tema ve Öne Çıkan Özellikler
+### 32 Dahili Tema ve Öne Çıkan Özellikler
 
-- **28 eksiksiz dahili tema (tamamı ücretsiz, 8 dilde, `.webp` küçük resimli ve Rust OpenGL 3.3 destekli):**
+- **32 eksiksiz dahili tema (tamamı ücretsiz, 8 dilde, `.webp` küçük resimli ve Rust OpenGL 3.3 destekli):**
   - **DiyarDesk Impulse (OpenGL & Widget'lar)** (Material You saat, dalgalı SMTC müzik oynatıcı, çevrimdışı `.ics` takvim, görevler, notlar), **AI Mascot Lab (OpenGL)**, **Studio Glass 3B**, **Kâğıt Bahçe (`papercut`)**, **Sessiz Kar (`quietsnow`)**, **İstanbul — Boğaz Gün Batımı**, **Güneş Sistemi (`solar-system`)**, **Liquid Glass**, **Thinking Orbs**, **Software World**, **VoxelCraft**, **Neumorph**, **Claymorph**, **Neobrutalism**, **Sahra**, **Kutup Gecesi**, **Aurora**, **Kış**, **Zen Takımadası**, **Çayır**, **Sahil**, **Orman Açıklığı**, **Gül Deresi**, **Yarık**, **Yıldırım**, **Cep Dünyası** ve **Böcek**.
 - **Çoklu monitör ve güç yönetimi:** Ana ekran / Bağımsız / Genişletilmiş / Aynala kipleri; **Eco Mod (15 FPS)**; tam ekran, ekran kilidi ve pil tasarrufunda otomatik duraklatma (isteğe bağlı kapatılabilir).
 - **Çevrimdışı otomasyon:** **Güneş Döngüsü (Solar Sync)**, **Pencere Duyarlı** fizik, **Otomatik Tema Döngüsü (Playlist)**, **mpv** donanım hızlandırmalı video desteği, 4 haneli PIN ile bulutsuz **Yerel Wi-Fi (LAN) Eşleştirme** ve yerel **CLI/IPC** kontrolü (`Deskland.exe --ctl ...`).

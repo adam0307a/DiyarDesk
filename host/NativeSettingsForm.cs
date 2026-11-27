@@ -28,14 +28,18 @@ class NativeSettingsForm : Form
     [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
     static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
 
+    [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Unicode)]
+    static extern IntPtr SendMessageCue(IntPtr hWnd, uint msg, IntPtr wParam, string lParam);
+    const uint EM_SETCUEBANNER = 0x1501;
+
     // Layout & controls
-    Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap;
+    Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel;
     FlowLayoutPanel topControlsFlow, themeGrid;
-    Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel;
+    Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
     TextBox searchBox;
     CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
-    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll;
+    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch;
     Font fontBrand, fontTitle, fontSub, fontGroup, fontBody, fontSmall, fontBold;
 
     // Live Rust OpenGL preview
@@ -155,7 +159,7 @@ class NativeSettingsForm : Form
             colBorder = Color.FromArgb(220, 226, 235);
             colText = Color.FromArgb(22, 26, 32);
             colMuted = Color.FromArgb(100, 112, 128);
-            colAccent = Color.FromArgb(2, 132, 199);
+            colAccent = Color.FromArgb(7, 89, 133);
             colAccentSoft = Color.FromArgb(224, 242, 254);
             colInputBg = Color.FromArgb(250, 251, 253);
             colBadgeBg = Color.FromArgb(220, 252, 231);
@@ -547,6 +551,8 @@ class NativeSettingsForm : Form
         searchBox.Font = fontBody;
         searchBox.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         searchBox.BorderStyle = BorderStyle.FixedSingle;
+        searchBox.AccessibleName = "Search themes";
+        searchBox.HandleCreated += delegate { ApplySearchCue(); };
         searchBox.TextChanged += delegate { FilterThemeCards(searchBox.Text); };
 
         leftHead.Resize += delegate
@@ -565,7 +571,40 @@ class NativeSettingsForm : Form
         themeGrid.BackColor = colBg;
         themeGrid.Padding = new Padding(0, S(4), S(4), S(12));
 
+        searchEmptyPanel = new Panel();
+        searchEmptyPanel.Dock = DockStyle.Fill;
+        searchEmptyPanel.Visible = false;
+        searchEmptyPanel.BackColor = colBg;
+
+        searchEmptyLabel = new Label();
+        searchEmptyLabel.AutoSize = false;
+        searchEmptyLabel.Font = fontSub;
+        searchEmptyLabel.ForeColor = colMuted;
+        searchEmptyLabel.TextAlign = ContentAlignment.MiddleCenter;
+        searchEmptyLabel.Size = new Size(S(360), S(44));
+
+        btnClearSearch = MakeGhostButton("Clear search");
+        btnClearSearch.Click += delegate
+        {
+            if (searchBox != null)
+            {
+                searchBox.Text = "";
+                searchBox.Focus();
+            }
+        };
+
+        searchEmptyPanel.Controls.Add(searchEmptyLabel);
+        searchEmptyPanel.Controls.Add(btnClearSearch);
+        searchEmptyPanel.Resize += delegate
+        {
+            int cx = searchEmptyPanel.ClientSize.Width / 2;
+            int cy = Math.Max(S(60), searchEmptyPanel.ClientSize.Height / 3);
+            searchEmptyLabel.Location = new Point(cx - searchEmptyLabel.Width / 2, cy);
+            btnClearSearch.Location = new Point(cx - btnClearSearch.Width / 2, cy + S(48));
+        };
+
         leftPanel.Controls.Add(themeGrid);
+        leftPanel.Controls.Add(searchEmptyPanel);
         leftPanel.Controls.Add(leftHead);
 
         bodyPanel.Controls.Add(leftPanel);
@@ -666,7 +705,7 @@ class NativeSettingsForm : Form
             {
                 if (c != previewHostWrap) c.BackColor = colSurface;
             }
-            else if (c == leftPanel || c == themeGrid || c == rightPanel)
+            else if (c == leftPanel || c == themeGrid || c == rightPanel || c == searchEmptyPanel)
             {
                 c.BackColor = colBg;
             }
@@ -695,7 +734,7 @@ class NativeSettingsForm : Form
             }
             else if (c is Label)
             {
-                if (c != engineBadge && c != subtitleLabel && c != themeDescLabel && c != previewFootLabel && c != savedLabel)
+                if (c != engineBadge && c != subtitleLabel && c != themeDescLabel && c != previewFootLabel && c != savedLabel && c != searchEmptyLabel)
                     c.ForeColor = colText;
                 else if (c != engineBadge)
                     c.ForeColor = colMuted;
@@ -779,10 +818,10 @@ class NativeSettingsForm : Form
             subtitleLabel.Text = I18n.Ui("collectionSubtitle");
             chkRustGl.Text = I18n.Ui("rustOpenGl") + " (" + I18n.Ui("rustOpenGlFast") + ")";
             tip.SetToolTip(chkRustGl, I18n.Ui("rustOpenGlTitle"));
-            btnSwitchWebView.Text = I18n.Code == "tr"
-                ? "WebView2'ye geç (OpenGL kapat)"
-                : (I18n.Code == "zh-CN" ? "切回 WebView2（关闭 OpenGL）" : "Switch to WebView2 (Disable OpenGL)");
-            tip.SetToolTip(btnSwitchWebView, I18n.Ui("rustOpenGlTitle"));
+            btnSwitchWebView.Text = I18n.Ui("switchToWebView");
+            tip.SetToolTip(btnSwitchWebView, I18n.Ui("switchToWebViewHint"));
+            ApplySearchCue();
+            if (btnClearSearch != null) btnClearSearch.Text = I18n.Ui("searchThemesClear");
             chkSolarSync.Text = I18n.Ui("solarSync");
             tip.SetToolTip(chkSolarSync, I18n.Ui("solarSyncTitle"));
             chkWindowAware.Text = I18n.Ui("windowAware");
@@ -1035,9 +1074,34 @@ class NativeSettingsForm : Form
         themeGrid.ResumeLayout();
     }
 
+    void ApplySearchCue()
+    {
+        if (searchBox == null || searchBox.IsDisposed || !searchBox.IsHandleCreated) return;
+        try
+        {
+            string cue = I18n.Ui("searchThemesPlaceholder");
+            if (string.IsNullOrEmpty(cue) || cue == "searchThemesPlaceholder") cue = "Search themes…";
+            SendMessageCue(searchBox.Handle, EM_SETCUEBANNER, new IntPtr(1), cue);
+            searchBox.AccessibleName = cue;
+        }
+        catch { }
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == (Keys.Control | Keys.F) && searchBox != null && !searchBox.IsDisposed)
+        {
+            searchBox.Focus();
+            searchBox.SelectAll();
+            return true;
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
     void FilterThemeCards(string query)
     {
         string q = (query ?? "").Trim().ToLowerInvariant();
+        int visibleCount = 0;
         themeGrid.SuspendLayout();
         for (int i = 0; i < themeCards.Count; i++)
         {
@@ -1046,8 +1110,30 @@ class NativeSettingsForm : Form
                 || c.ThemeTitle.ToLowerInvariant().Contains(q)
                 || c.ThemeId.ToLowerInvariant().Contains(q);
             c.Visible = match;
+            if (match) visibleCount++;
         }
         themeGrid.ResumeLayout();
+
+        bool showEmpty = visibleCount == 0 && !string.IsNullOrEmpty(q);
+        if (searchEmptyPanel != null && themeGrid != null)
+        {
+            if (showEmpty)
+            {
+                if (searchEmptyLabel != null)
+                    searchEmptyLabel.Text = I18n.Ui("searchThemesEmpty", "q", (query ?? "").Trim());
+                themeGrid.Visible = false;
+                searchEmptyPanel.Visible = true;
+                int cx = searchEmptyPanel.ClientSize.Width / 2;
+                int cy = Math.Max(S(60), searchEmptyPanel.ClientSize.Height / 3);
+                if (searchEmptyLabel != null) searchEmptyLabel.Location = new Point(cx - searchEmptyLabel.Width / 2, cy);
+                if (btnClearSearch != null) btnClearSearch.Location = new Point(cx - btnClearSearch.Width / 2, cy + S(48));
+            }
+            else
+            {
+                searchEmptyPanel.Visible = false;
+                themeGrid.Visible = true;
+            }
+        }
     }
 
     public void SelectThemeUi(string themeId)

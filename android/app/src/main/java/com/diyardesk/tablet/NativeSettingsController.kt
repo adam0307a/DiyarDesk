@@ -24,6 +24,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -416,7 +417,15 @@ class NativeSettingsController(
 
         if (isCustom) {
             val btnRemove = styledButton(ui("removeTheme", "Remove"), "#7A2E34") {
-                onRemoveTheme(id)
+                val title = ui("removeThemeConfirmTitle", "Remove imported theme?")
+                val body = ui("removeThemeConfirmBody", "Remove “{name}” and its saved settings? This cannot be undone.")
+                    .replace("{name}", name)
+                AlertDialog.Builder(context)
+                    .setTitle(title)
+                    .setMessage(body)
+                    .setPositiveButton(ui("removeTheme", "Remove")) { _, _ -> onRemoveTheme(id) }
+                    .setNegativeButton(ui("cancel", "Cancel"), null)
+                    .show()
             }.apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -802,7 +811,7 @@ class NativeSettingsController(
         })
 
         // Virtual bar mode
-        val vbVals = listOf("auto", "on", "off")
+        val vbVals = listOf("auto", "always", "off")
         val vbLabels = listOf(
             ui("virtualBarAuto", "Icons: Auto"),
             ui("virtualBarAlways", "Icons: Always show"),

@@ -189,7 +189,15 @@
     "ramTierTitle": "预估内存与 GPU 纹理占用",
     "ramLiveBadge": "应用总内存: {mb} MB",
     "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
-    "nativeVideoBadge": "硬件视频 · MediaPlayer (零 WebView)"
+    "nativeVideoBadge": "硬件视频 · MediaPlayer (零 WebView)",
+    "removeThemeConfirmTitle": "移除已导入的主题？",
+    "removeThemeConfirmBody": "确定移除“{name}”及其已保存的设置吗？此操作无法撤销。",
+    "cancel": "取消",
+    "searchThemesPlaceholder": "搜索主题…",
+    "searchThemesEmpty": "没有找到匹配“{q}”的主题。",
+    "searchThemesClear": "清除搜索",
+    "switchToWebView": "切回 WebView2（导入 · 分享 · LAN）",
+    "switchToWebViewHint": "切回 WebView2 以导入自定义 HTML/ZIP 主题、分享截图/视频或使用局域网同步"
   },
   "host": {
     "traySettings": "设置…",

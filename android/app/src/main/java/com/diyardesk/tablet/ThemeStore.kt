@@ -206,7 +206,7 @@ class ThemeStore(private val storageDir: File) {
                 val root = JSONObject(prefsFile.readText(Charsets.UTF_8))
                 activeTheme = root.optString("theme", DEFAULT_THEME).ifBlank { DEFAULT_THEME }
                 lang = root.optString("lang", "auto").ifBlank { "auto" }
-                virtualBarMode = root.optString("virtualBarMode", "auto").ifBlank { "auto" }
+                virtualBarMode = normalizeVirtualBarMode(root.optString("virtualBarMode", "auto"))
                 lowMode = root.optBoolean("lowMode", false)
                 disableAutoPause = root.optBoolean("disableAutoPause", false)
                 val qp = root.optString("qualityProfile", "balanced")
@@ -306,9 +306,18 @@ class ThemeStore(private val storageDir: File) {
         }
     }
 
+    private fun normalizeVirtualBarMode(raw: String): String {
+        return when (raw.trim().lowercase()) {
+            "on", "always" -> "always"
+            "off" -> "off"
+            else -> "auto"
+        }
+    }
+
     fun setVirtualBarModeValue(mode: String) {
+        val clean = normalizeVirtualBarMode(mode)
         synchronized(lock) {
-            virtualBarMode = mode.ifBlank { "auto" }
+            virtualBarMode = clean
             saveLocked()
         }
         listeners.forEach { it.onSettingsChanged(this) }

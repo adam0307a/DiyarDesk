@@ -56,10 +56,10 @@ class IconLayoutActivity : AppCompatActivity(), ThemeStore.Listener {
         }
         topBar.addView(title)
 
-        fun actionBtn(labelRes: Int, bgHex: String = "#1F6F5B", onClick: () -> Unit): Button = Button(this).apply {
+        fun actionBtn(labelRes: Int, bgHex: String = "#1F6F5B", fgHex: String = "#FFFFFF", onClick: () -> Unit): Button = Button(this).apply {
             text = getString(labelRes)
             isAllCaps = false
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor(fgHex))
             setBackgroundColor(Color.parseColor(bgHex))
             val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             lp.marginStart = 10
@@ -72,7 +72,7 @@ class IconLayoutActivity : AppCompatActivity(), ThemeStore.Listener {
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        buttonsRow.addView(actionBtn(R.string.btn_live_overlay, "#D9822B") {
+        buttonsRow.addView(actionBtn(R.string.btn_live_overlay, "#D9822B", "#111111") {
             launchLiveHomeOverlay()
         })
         buttonsRow.addView(actionBtn(R.string.preset_5x6) {

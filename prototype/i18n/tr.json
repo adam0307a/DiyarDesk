@@ -189,7 +189,15 @@
     "ramTierTitle": "Tahmini RAM ve GPU doku yoğunluğu",
     "ramLiveBadge": "Uygulama Toplam RAM: {mb} MB",
     "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
-    "nativeVideoBadge": "Donanım Video · MediaPlayer (0 WebView)"
+    "nativeVideoBadge": "Donanım Video · MediaPlayer (0 WebView)",
+    "removeThemeConfirmTitle": "İçe aktarılan tema kaldırılsın mı?",
+    "removeThemeConfirmBody": "“{name}” teması ve kayıtlı ayarları kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "cancel": "Vazgeç",
+    "searchThemesPlaceholder": "Tema ara…",
+    "searchThemesEmpty": "“{q}” ile eşleşen tema bulunamadı.",
+    "searchThemesClear": "Aramayı temizle",
+    "switchToWebView": "WebView2'ye geç (İçe Aktar · Paylaş · LAN)",
+    "switchToWebViewHint": "Özel HTML/ZIP tema içe aktarmak, görsel/video paylaşmak veya LAN Eşleştirme kullanmak için WebView2 moduna geçin"
   },
   "host": {
     "traySettings": "Ayarlar…",

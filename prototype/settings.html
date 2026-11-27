@@ -19,7 +19,7 @@
 <style>
   :root {
     --bg: #ffffff; --panel: #f5f5f3; --panel-2: #ebebe8; --line: #deded9;
-    --text: #171717; --muted: #646461; --faint: #80807c;
+    --text: #171717; --muted: #646461; --faint: #6e6e6a;
     --accent: #171717; --accent-ink: #ffffff; --accent-soft: rgba(0, 0, 0, .06); --track: #deded9;
     --shadow: 0 0 0 transparent; --selection-shadow: 0 0 0 1px rgba(128, 128, 128, .28), 0 6px 18px rgba(0, 0, 0, .09);
     color-scheme: light;
@@ -71,14 +71,14 @@
   .warn { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
     background: rgba(240, 160, 40, .12); border: 1px solid rgba(220, 140, 30, .35); color: var(--text); }
   .warn[hidden] { display: none; }
-  .warn b { color: #c27310; }
+  .warn b { color: #9a5204; }
   .warn p { flex: 1; }
   .warn button { flex: none; font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 6px; cursor: pointer;
     border: 1px solid var(--line); background: var(--panel); color: var(--text); }
 
   /* 有更新时才出现；版本信息由宿主统一提供，不在页面里猜下载地址。 */
   .update-notice { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 14px 16px;
-    border: 1px solid var(--line); border-radius: 14px; background: #f5f5f3; }
+    border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
   .update-notice[hidden] { display: none; }
   .update-symbol { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%;
     background: #278b78; color: #fff; }
@@ -86,8 +86,8 @@
   .update-copy { flex: 1; min-width: 0; }
   .update-copy b { display: block; font-size: 13px; }
   .update-copy p { margin-top: 2px; color: var(--muted); font-size: 11px; }
-  .update-action { flex: none; border-color: #171717; background: #171717; color: #fff; }
-  .update-action:hover { border-color: #000; background: #000; }
+  .update-action { flex: none; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .update-action:hover { opacity: .85; }
   .update-action:disabled { opacity: .65; cursor: default; }
 
   /* ---------- 左右两栏：左边主题，右边预览 + 参数 ---------- */
@@ -99,7 +99,21 @@
   .collection-head { flex: none; padding: 2px 4px 22px; }
   .collection-head { margin-bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .collection-head-copy { min-width: 0; }
-  .import-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+  .import-actions { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; }
+  .theme-search {
+    width: 190px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg); color: var(--text); font: inherit; font-size: 12px; outline: none;
+    transition: border-color .14s, box-shadow .14s;
+  }
+  .theme-search::placeholder { color: var(--faint); }
+  .theme-search:hover { border-color: var(--muted); }
+  .theme-search:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .theme-search-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 44px 20px; border: 1px dashed var(--line); border-radius: 20px; background: var(--panel);
+    text-align: center; color: var(--muted); font-size: 13px;
+  }
+  .theme-search-empty[hidden] { display: none; }
   .import-btn { gap: 6px; padding: 8px 13px; border-radius: 12px; font-size: 12px; flex: none; }
   .import-btn svg { width: 14px; height: 14px; }
   .ghost-btn.import-help-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; font-size: 14px; font-weight: 750; line-height: 1; color: var(--muted); flex: none; }
@@ -251,6 +265,16 @@
   .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
   .modal .actions .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .modal .actions .primary:hover { color: var(--accent-ink); opacity: .8; }
+  .modal .actions .danger { background: #b91c1c; border-color: #b91c1c; color: #ffffff; }
+  .modal .actions .danger:hover { background: #991b1b; border-color: #991b1b; color: #ffffff; }
+  .modal .box { position: relative; }
+  .auth-close {
+    position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; padding: 0;
+    display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line);
+    background: transparent; color: var(--muted); font: 18px/1 inherit; cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .auth-close:hover { background: var(--accent-soft); color: var(--text); border-color: var(--muted); }
   .help-box { position: relative; width: 580px; max-height: calc(100vh - 48px); overflow-y: auto; }
   .help-article { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
   .help-article h4 { margin: 0; font-size: 14px; line-height: 1.5; }
@@ -305,7 +329,7 @@
   .color-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
   .color-row input[type=color] {
     width: 44px; height: 28px; padding: 2px; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--card); cursor: pointer;
+    background: var(--panel); cursor: pointer;
   }
   .color-hex { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
   .engine-pill {
@@ -356,6 +380,9 @@
   .rust-gl-card input:checked + .switch::after { transform: translateX(20px); }
   .rust-gl-card input:focus-visible + .switch { box-shadow: 0 0 0 3px rgba(16, 185, 129, .35); }
   @media (prefers-color-scheme: dark) {
+    .warn b { color: #f5b951; }
+    .modal .actions .danger { background: #dc2626; border-color: #dc2626; color: #ffffff; }
+    .modal .actions .danger:hover { background: #b91c1c; border-color: #b91c1c; }
     .engine-pill { background: rgba(74, 222, 128, .15); color: #86efac; border-color: rgba(74, 222, 128, .32); }
     .ram-pill { background: rgba(56, 189, 248, .15); color: #7dd3fc; border-color: rgba(56, 189, 248, .32); }
     .tier-light { background: rgba(16, 185, 129, .20); color: #6ee7b7; }
@@ -449,6 +476,7 @@
         <p data-i18n="collectionSubtitle">让图标成为风景的一部分。</p>
       </div>
       <div class="import-actions">
+        <input type="search" id="themeSearch" class="theme-search" data-i18n-placeholder="searchThemesPlaceholder" placeholder="Search themes…" aria-label="Search themes">
         <button class="ghost-btn import-btn" id="importTheme" data-i18n-title="importThemeTitle" title="导入主题包（.zip / .deskland）、HTML、图片或视频">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 2.5v11M2.5 8h11"/></svg>
           <span data-i18n="importTheme">导入主题…</span>
@@ -481,6 +509,10 @@
     </div>
     <div class="warn" id="autostartWarn" hidden role="alert"><p><b data-i18n="autostartBlocked">开机自动启动可能被拦截了</b><br><span id="autostartWarnText"></span></p><button id="autostartWarnOk" data-i18n="gotIt">知道了</button></div>
     <div class="warn" id="importWarn" hidden role="alert"><p><b id="importWarnTitle">Theme import failed</b><br><span id="importWarnText"></span></p><button id="importWarnOk" data-i18n="gotIt">知道了</button></div>
+    <div class="theme-search-empty" id="themeSearchEmpty" hidden>
+      <p id="themeSearchEmptyText"></p>
+      <button type="button" class="ghost-btn" id="themeSearchClear" data-i18n="searchThemesClear">Clear search</button>
+    </div>
     <div class="theme-list" id="themes"></div>
   </section>
 
@@ -522,7 +554,7 @@
     <div class="actions">
       <button class="ghost-btn" id="shareReveal" data-i18n="openFolder">打开所在文件夹</button>
       <button class="ghost-btn" id="shareOpen">打开图片</button>
-      <a class="ghost-btn" id="shareDownload" hidden download="Deskland.png">保存图片</a>
+      <a class="ghost-btn" id="shareDownload" hidden download="DiyarDesk.png">保存图片</a>
       <button class="ghost-btn primary" id="shareClose" data-i18n="ok">好的</button>
     </div>
   </div>
@@ -534,12 +566,12 @@
     <h3 id="helpTitle" data-i18n="helpTitle">使用帮助</h3>
     <p class="sub" data-i18n="helpSubtitle">常见使用问题和解决方法</p>
     <section class="help-article">
-      <h4 data-i18n="helpWallpaperQ">Deskland 频繁闪烁或重启，怎么办？</h4>
-      <p data-i18n="helpWallpaperA">如果系统壁纸会定时自动切换，切换时可能让 Deskland 闪烁或反复重启。请把常规壁纸改成不会自动切换的固定背景。</p>
+      <h4 data-i18n="helpWallpaperQ">DiyarDesk 频繁闪烁或重启，怎么办？</h4>
+      <p data-i18n="helpWallpaperA">如果系统壁纸会定时自动切换，切换时可能让 DiyarDesk 闪烁或反复重启。请把常规壁纸改成不会自动切换的固定背景。</p>
       <ol>
         <li data-i18n="helpWallpaperStep1">打开 Windows 设置 → 个性化 → 背景。</li>
         <li data-i18n="helpWallpaperStep2">将“个性化设置背景”设为“图片”或“纯色”，不要选择“幻灯片放映”或“Windows 聚焦”。</li>
-        <li data-i18n="helpWallpaperStep3">改完后重新打开 Deskland。</li>
+        <li data-i18n="helpWallpaperStep3">改完后重新打开 DiyarDesk。</li>
       </ol>
     </section>
     <div class="actions">
@@ -621,8 +653,8 @@
     </div>
     <div id="lanAndroidPane" class="help-article" hidden>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-        <input id="lanAddrInput" type="text" placeholder="diyardesk://pair?host=192.168.1.10&port=...&pin=... or 192.168.1.10:54321" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
-        <input id="lanPinInput" type="text" maxlength="4" placeholder="4-digit PIN (if not in URI)" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+        <input id="lanAddrInput" type="text" placeholder="diyardesk://pair?host=192.168.1.10&port=...&pin=... or 192.168.1.10:54321" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)">
+        <input id="lanPinInput" type="text" maxlength="4" placeholder="4-digit PIN (if not in URI)" style="padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)">
       </div>
       <div class="actions" style="justify-content:flex-start;margin-top:10px">
         <button class="ghost-btn primary" id="lanSyncBtn" data-i18n="lanSyncNow">Sync from desktop</button>
@@ -630,6 +662,18 @@
     </div>
     <p class="sub" id="lanStatusMsg"></p>
     <div class="actions"><button class="ghost-btn" id="lanDone" data-i18n="gotIt">Got it</button></div>
+  </div>
+</div>
+
+<div class="modal" id="removeConfirmModal" hidden role="dialog" aria-modal="true" aria-labelledby="removeConfirmTitle">
+  <div class="box">
+    <button class="auth-close" id="removeConfirmCloseX" data-i18n-title="close" title="Close" aria-label="Close">×</button>
+    <h3 id="removeConfirmTitle" data-i18n="removeThemeConfirmTitle">Remove imported theme?</h3>
+    <p class="sub" id="removeConfirmBody"></p>
+    <div class="actions">
+      <button class="ghost-btn" id="removeConfirmCancel" data-i18n="cancel">Cancel</button>
+      <button class="ghost-btn danger" id="removeConfirmOk" data-i18n="removeTheme">Remove</button>
+    </div>
   </div>
 </div>
 
@@ -653,7 +697,7 @@ const send = m => { if (host) host.postMessage(JSON.stringify(m)); };
 
 const state = { registry0: null, registry: null, theme: 'papercut', params: {}, screen: null, icons: null,
   langSetting: 'auto', langSys: 'zh-CN', autostartWarn: false, autostartSw: '', canSaveSnapshot: false,
-  ramMb: null, ramGlMb: null,
+  ramMb: null, ramGlMb: null, searchQuery: '',
   updateVersion: '', updateStatus: '', updateProgress: -1, updateError: '' };
 const $ = id => document.getElementById(id);
 const frame = $('preview');
@@ -811,7 +855,22 @@ function tierBadgeHtml(tier) {
   return `<span class="tier-badge tier-${tier}" title="${escHtml(t('ramTierTitle'))}">${escHtml(lbl)}</span>`;
 }
 function renderThemes() {
-  $('themes').innerHTML = state.registry.themes.map(th => {
+  const q = (state.searchQuery || '').trim().toLowerCase();
+  const list = q
+    ? state.registry.themes.filter(th =>
+        (th.name || '').toLowerCase().includes(q)
+        || (th.desc || '').toLowerCase().includes(q)
+        || (th.id || '').toLowerCase().includes(q))
+    : state.registry.themes;
+  const emptyEl = $('themeSearchEmpty');
+  if (emptyEl) {
+    emptyEl.hidden = list.length > 0;
+    if (list.length === 0) {
+      $('themeSearchEmptyText').textContent = t('searchThemesEmpty', { q: state.searchQuery.trim() });
+    }
+  }
+  $('themes').hidden = list.length === 0;
+  $('themes').innerHTML = list.map(th => {
     const ready = th.status === 'ready', on = th.id === state.theme;
     const tUrl = thumbUrl(th.thumb, th.id);
     return `<button class="theme${on ? ' on' : ''}" data-id="${th.id}" aria-pressed="${on}" aria-label="${th.name}" ${ready ? '' : 'disabled'}>
@@ -820,6 +879,19 @@ function renderThemes() {
         <div class="name">${th.name}</div></div>
       <div class="thumb" style="background:${resolveThumbBg(th.thumb || '#ccc')}">${tUrl ? `<img src="${tUrl}" alt="" decoding="async">` : ''}</div></button>`;
   }).join('');
+}
+if ($('themeSearch')) {
+  $('themeSearch').addEventListener('input', e => {
+    state.searchQuery = e.target.value || '';
+    renderThemes();
+  });
+}
+if ($('themeSearchClear')) {
+  $('themeSearchClear').addEventListener('click', () => {
+    state.searchQuery = '';
+    if ($('themeSearch')) { $('themeSearch').value = ''; $('themeSearch').focus(); }
+    renderThemes();
+  });
 }
 $('themes').addEventListener('click', e => {
   const b = e.target.closest('.theme');
@@ -1256,10 +1328,34 @@ $('importTheme').addEventListener('click', () => {
   else showInlineWarn(t('importTheme'), 'Import theme is available in the desktop app (supports .zip, .deskland, .html, images, and videos).');
 });
 $('importWarnOk').addEventListener('click', () => { $('importWarn').hidden = true; });
-$('removeTheme').addEventListener('click', () => {
-  const th = themeById(state.theme);
+let pendingRemoveThemeId = '';
+let removeConfirmReturnFocus = null;
+function openRemoveConfirm(th) {
   if (!th || !th.imported || !host) return;
-  send({ t: 'removeTheme', id: th.id });
+  pendingRemoveThemeId = th.id;
+  removeConfirmReturnFocus = document.activeElement;
+  $('removeConfirmBody').textContent = t('removeThemeConfirmBody', { name: th.name || th.id });
+  $('removeConfirmModal').hidden = false;
+  syncModalInert();
+  $('removeConfirmCancel').focus();
+}
+function closeRemoveConfirm() {
+  if ($('removeConfirmModal').hidden) return;
+  $('removeConfirmModal').hidden = true;
+  pendingRemoveThemeId = '';
+  syncModalInert();
+  if (removeConfirmReturnFocus) removeConfirmReturnFocus.focus();
+}
+$('removeTheme').addEventListener('click', () => {
+  openRemoveConfirm(themeById(state.theme));
+});
+$('removeConfirmCancel').addEventListener('click', closeRemoveConfirm);
+$('removeConfirmCloseX').addEventListener('click', closeRemoveConfirm);
+$('removeConfirmModal').addEventListener('click', e => { if (e.target === $('removeConfirmModal')) closeRemoveConfirm(); });
+$('removeConfirmOk').addEventListener('click', () => {
+  const id = pendingRemoveThemeId;
+  closeRemoveConfirm();
+  if (id && host) send({ t: 'removeTheme', id });
 });
 const GL_ONLY_PREVIEW_IDS = new Set([
   'material-impulse-gl',
@@ -1326,6 +1422,14 @@ function shareBusy(which) {                                  // which：null（�
   $('shareVideoText').textContent = t(which === 'video' ? 'preparingRec' : 'shareVideo');
 }
 function shareProgress(p) { $('shareVideoText').textContent = p < 1 ? t('recording', { p: Math.round(p * 100) }) : t('savingVideo'); }
+let shareReturnFocus = null;
+function syncModalInert() {
+  const anyOpen = ['shareModal', 'helpModal', 'importHelpModal', 'lanModal', 'removeConfirmModal']
+    .some(id => $(id) && !$(id).hidden);
+  for (const el of document.querySelectorAll('header.top, main.layout, footer.bottom')) {
+    el.inert = anyOpen;
+  }
+}
 function showShare(r) {
   shareBusy(null);
   if (!r.ok) {
@@ -1350,10 +1454,18 @@ function showShare(r) {
     $('shareDownload').textContent = t(video ? 'saveVideo' : 'saveImage');
     $('shareDownload').download = 'DiyarDesk.' + (video ? (r.ext || 'mp4') : 'png');
   }
+  if ($('shareModal').hidden) shareReturnFocus = document.activeElement;
   $('shareModal').hidden = false;
+  syncModalInert();
   $('shareClose').focus();
 }
-function closeShare() { $('shareModal').hidden = true; $('shareVid').pause(); }
+function closeShare() {
+  if ($('shareModal').hidden) return;
+  $('shareModal').hidden = true;
+  $('shareVid').pause();
+  syncModalInert();
+  if (shareReturnFocus) shareReturnFocus.focus();
+}
 function canAccessPreviewFn(name) {
   if (frame.hidden) return false;
   try { return !!(frame.contentWindow && typeof frame.contentWindow[name] === 'function'); }
@@ -1410,11 +1522,13 @@ function openHelp() {
   helpReturnFocus = document.activeElement;
   if ($('helpExportDiag')) $('helpExportDiag').hidden = !host;
   $('helpModal').hidden = false;
+  syncModalInert();
   $('helpCloseX').focus();
 }
 function closeHelp() {
   if ($('helpModal').hidden) return;
   $('helpModal').hidden = true;
+  syncModalInert();
   if (helpReturnFocus) helpReturnFocus.focus();
 }
 $('helpOpen').addEventListener('click', openHelp);
@@ -1426,11 +1540,13 @@ let importHelpReturnFocus = null;
 function openImportHelp() {
   importHelpReturnFocus = document.activeElement;
   $('importHelpModal').hidden = false;
+  syncModalInert();
   $('importHelpCloseX').focus();
 }
 function closeImportHelp() {
   if ($('importHelpModal').hidden) return;
   $('importHelpModal').hidden = true;
+  syncModalInert();
   if (importHelpReturnFocus) importHelpReturnFocus.focus();
 }
 $('importHelpOpen').addEventListener('click', openImportHelp);
@@ -1438,7 +1554,26 @@ $('importHelpCloseX').addEventListener('click', closeImportHelp);
 $('importHelpDone').addEventListener('click', closeImportHelp);
 $('importHelpModal').addEventListener('click', e => { if (e.target === $('importHelpModal')) closeImportHelp(); });
 
-addEventListener('keydown', e => { if (e.key === 'Escape') { closeShare(); closeHelp(); closeImportHelp(); } });
+let lanReturnFocus = null;
+function closeLan() {
+  if (!$('lanModal') || $('lanModal').hidden) return;
+  $('lanModal').hidden = true;
+  if (!window.DiyarNative) send({ t: 'stopLanPair' });
+  syncModalInert();
+  if (lanReturnFocus) lanReturnFocus.focus();
+}
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeShare(); closeHelp(); closeImportHelp(); closeLan(); closeRemoveConfirm(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+    const anyModalOpen = ['shareModal', 'helpModal', 'importHelpModal', 'lanModal', 'removeConfirmModal']
+      .some(id => $(id) && !$(id).hidden);
+    if (!anyModalOpen && $('themeSearch')) {
+      e.preventDefault();
+      $('themeSearch').focus();
+      $('themeSearch').select();
+    }
+  }
+});
 $('shareOpen').addEventListener('click', () => send({ t: 'openShare' }));
 $('shareReveal').addEventListener('click', () => send({ t: 'revealShare' }));
 if ($('exportDiag')) {
@@ -1466,13 +1601,12 @@ if ($('lanPairOpen')) {
   $('lanPairOpen').hidden = !host;
   $('lanDesktopPane').hidden = isAndroidHost;
   $('lanAndroidPane').hidden = !isAndroidHost;
-  const closeLan = () => {
-    $('lanModal').hidden = true;
-    if (!isAndroidHost) send({ t: 'stopLanPair' });
-  };
   $('lanPairOpen').addEventListener('click', () => {
+    lanReturnFocus = document.activeElement;
     $('lanStatusMsg').textContent = '';
     $('lanModal').hidden = false;
+    syncModalInert();
+    $('lanCloseX').focus();
   });
   $('lanCloseX').addEventListener('click', closeLan);
   $('lanDone').addEventListener('click', closeLan);

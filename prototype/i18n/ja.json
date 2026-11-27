@@ -189,7 +189,15 @@
     "ramTierTitle": "推定メモリ・GPUテクスチャ使用量",
     "ramLiveBadge": "アプリ合計RAM: {mb} MB",
     "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
-    "nativeVideoBadge": "ハードウェア動画 · MediaPlayer (WebViewなし)"
+    "nativeVideoBadge": "ハードウェア動画 · MediaPlayer (WebViewなし)",
+    "removeThemeConfirmTitle": "インポートしたテーマを削除しますか？",
+    "removeThemeConfirmBody": "「{name}」と保存された設定を削除しますか？この操作は元に戻せません。",
+    "cancel": "キャンセル",
+    "searchThemesPlaceholder": "テーマを検索…",
+    "searchThemesEmpty": "「{q}」に一致するテーマはありません。",
+    "searchThemesClear": "検索をクリア",
+    "switchToWebView": "WebView2 に切り替え（インポート・共有・LAN）",
+    "switchToWebViewHint": "カスタム HTML/ZIP テーマのインポート、スナップショット/動画の共有、LAN 同期には WebView2 へ切り替えてください"
   },
   "host": {
     "traySettings": "設定…",

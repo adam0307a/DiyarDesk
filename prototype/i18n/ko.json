@@ -189,7 +189,15 @@
     "ramTierTitle": "예상 RAM 및 GPU 텍스처 사용량",
     "ramLiveBadge": "앱 전체 RAM: {mb} MB",
     "ramOpenGlBadge": "OpenGL (GPU): {mb} MB",
-    "nativeVideoBadge": "하드웨어 비디오 · MediaPlayer (WebView 없음)"
+    "nativeVideoBadge": "하드웨어 비디오 · MediaPlayer (WebView 없음)",
+    "removeThemeConfirmTitle": "가져온 테마를 삭제할까요?",
+    "removeThemeConfirmBody": "“{name}” 테마와 저장된 설정을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+    "cancel": "취소",
+    "searchThemesPlaceholder": "테마 검색…",
+    "searchThemesEmpty": "“{q}”와(과) 일치하는 테마가 없습니다.",
+    "searchThemesClear": "검색 지우기",
+    "switchToWebView": "WebView2로 전환 (가져오기 · 공유 · LAN)",
+    "switchToWebViewHint": "사용자 지정 HTML/ZIP 테마 가져오기, 스냅샷/동영상 공유 또는 LAN 동기화를 사용하려면 WebView2로 전환하세요"
   },
   "host": {
     "traySettings": "설정…",
