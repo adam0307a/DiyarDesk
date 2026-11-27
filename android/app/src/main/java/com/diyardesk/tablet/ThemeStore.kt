@@ -399,6 +399,31 @@ class ThemeStore(private val storageDir: File) {
         listeners.forEach { it.onSettingsChanged(this) }
     }
 
+    private fun impulseWidgetFile(): File = File(storageDir, "impulse-widget-state.json")
+
+    fun saveImpulseWidgetState(obj: JSONObject) {
+        synchronized(lock) {
+            val clean = JSONObject().apply {
+                put("events", obj.optJSONArray("events") ?: org.json.JSONArray())
+                put("tasks", obj.optJSONArray("tasks") ?: org.json.JSONArray())
+                put("note", obj.optString("note", ""))
+            }
+            impulseWidgetFile().writeText(clean.toString(), Charsets.UTF_8)
+        }
+    }
+
+    fun loadImpulseWidgetState(): JSONObject? {
+        synchronized(lock) {
+            val f = impulseWidgetFile()
+            if (!f.exists()) return null
+            return try {
+                JSONObject(f.readText(Charsets.UTF_8))
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
     fun notifyThemesRegistryChanged() {
         listeners.forEach { it.onThemesRegistryChanged(this) }
     }

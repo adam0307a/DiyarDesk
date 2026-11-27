@@ -223,7 +223,30 @@
   .tier-light { background: rgba(16, 185, 129, .14); color: #047857; }
   .tier-medium { background: rgba(245, 158, 11, .14); color: #b45309; }
   .tier-heavy { background: rgba(239, 68, 68, .14); color: #b91c1c; }
-  .live-ram-pill { font-variant-numeric: tabular-nums; }
+  .live-ram-pill { font-variant-numeric: tabular-nums; cursor: pointer; font-family: inherit; }
+  .live-ram-pill:hover { filter: brightness(1.06); }
+  .live-ram-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ram-wrap { position: relative; display: inline-flex; align-items: center; }
+  .ram-popover {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 45; width: 290px; padding: 14px;
+    border-radius: 14px; background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 18px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; gap: 9px; font-size: 12px;
+  }
+  .ram-popover[hidden] { display: none; }
+  .ram-popover b { font-size: 13px; color: var(--text); }
+  .ram-row { display: flex; justify-content: space-between; align-items: center; color: var(--muted); gap: 8px; }
+  .ram-row strong { color: var(--text); font-variant-numeric: tabular-nums; }
+  .ram-meter { height: 7px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+  .ram-meter-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #0ea5e9); transition: width .2s ease; }
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 90; background: rgba(10, 14, 20, .72); backdrop-filter: blur(6px);
+    display: grid; place-items: center; pointer-events: none;
+  }
+  .drop-overlay[hidden] { display: none; }
+  .drop-overlay-card {
+    padding: 26px 34px; border-radius: 20px; border: 2px dashed var(--accent); background: var(--panel);
+    color: var(--text); font-size: 15px; font-weight: 600; box-shadow: 0 18px 48px rgba(0,0,0,.35);
+  }
   .theme.on .badge { background: var(--accent); color: var(--accent-ink); }
   .theme.on .badge::before { content: ""; width: 4px; height: 4px; background: currentColor; border-radius: 50%; }
   .theme .name { margin-top: 12px; font-weight: 650; font-size: 22px; line-height: 1.2; letter-spacing: -.035em; }
@@ -469,7 +492,17 @@
   <div class="top-left">
     <div class="brand">DiyarDesk</div>
     <div class="section-title" data-i18n="themes">主题</div>
-    <span class="ram-pill live-ram-pill" id="liveRamBadge" hidden></span>
+    <div class="ram-wrap">
+      <button type="button" class="ram-pill live-ram-pill" id="liveRamBadge" aria-expanded="false" aria-controls="ramComparePopover" hidden></button>
+      <div class="ram-popover" id="ramComparePopover" hidden>
+        <b data-i18n="ramCompareTitle">Why is DiyarDesk so light?</b>
+        <div class="ram-row"><span id="ramCompareCurLabel">DiyarDesk now: 45 MB RAM</span></div>
+        <div class="ram-row"><span id="ramCompareBrowserLabel">Typical browser wallpaper: ~900 MB</span></div>
+        <div class="ram-meter"><div class="ram-meter-fill" id="ramCompareFill" style="width:8%"></div></div>
+        <div class="ram-row"><span id="ramCompareSavedText" style="color:var(--text);font-weight:600"></span></div>
+        <button type="button" class="ghost-btn primary" id="ramCompareGlBtn" data-i18n="ramCompareEnableGl" hidden>Switch to Rust OpenGL (0 WebView2)</button>
+      </div>
+    </div>
   </div>
   <div class="top-right">
     <label class="lang-row" data-i18n-title="displayModeTitle" title="Multi-monitor display mode">
@@ -779,6 +812,7 @@
       </div>
       <div class="actions" style="justify-content:flex-start;margin-top:10px">
         <button class="ghost-btn primary" id="lanSyncBtn" data-i18n="lanSyncNow">Sync from desktop</button>
+        <button class="ghost-btn" id="lanPushBtn" data-i18n="lanPushBtn">Send to desktop</button>
       </div>
     </div>
     <p class="sub" id="lanStatusMsg"></p>
@@ -1382,6 +1416,7 @@ function updateLiveRamBadge() {
     if (mb !== null) {
       pill.textContent = t('ramLiveBadge', { mb });
       pill.hidden = false;
+      updateRamComparePopover(mb);
     } else {
       pill.hidden = true;
     }
@@ -1847,6 +1882,42 @@ function closeLan() {
   syncModalInert();
   if (lanReturnFocus) lanReturnFocus.focus();
 }
+function updateRamComparePopover(mb) {
+  const browserMb = 900;
+  const saved = Math.max(0, browserMb - mb);
+  if ($('ramCompareCurLabel')) $('ramCompareCurLabel').textContent = t('ramCompareCurrent', { mb });
+  if ($('ramCompareBrowserLabel')) $('ramCompareBrowserLabel').textContent = t('ramCompareBrowser', { mb: browserMb });
+  if ($('ramCompareSavedText')) $('ramCompareSavedText').textContent = t('ramCompareSaved', { mb: saved });
+  if ($('ramCompareFill')) $('ramCompareFill').style.width = Math.max(4, Math.min(100, Math.round((mb / browserMb) * 100))) + '%';
+  if ($('ramCompareGlBtn')) $('ramCompareGlBtn').hidden = !!(state.rustOpenGl || window.DiyarNative);
+}
+function closeRamPopover() {
+  if ($('ramComparePopover')) $('ramComparePopover').hidden = true;
+  if ($('liveRamBadge')) $('liveRamBadge').setAttribute('aria-expanded', 'false');
+}
+if ($('liveRamBadge') && $('ramComparePopover')) {
+  $('liveRamBadge').addEventListener('click', e => {
+    e.stopPropagation();
+    const pop = $('ramComparePopover');
+    const willOpen = pop.hidden;
+    pop.hidden = !willOpen;
+    $('liveRamBadge').setAttribute('aria-expanded', String(willOpen));
+    if (willOpen && typeof state.ramMb === 'number') updateRamComparePopover(Math.round(state.ramMb));
+  });
+  document.addEventListener('click', e => {
+    const pop = $('ramComparePopover'), pill = $('liveRamBadge');
+    if (pop && !pop.hidden && !pop.contains(e.target) && e.target !== pill) closeRamPopover();
+  });
+}
+if ($('ramCompareGlBtn')) {
+  $('ramCompareGlBtn').addEventListener('click', () => {
+    closeRamPopover();
+    if ($('rustOpenGl') && !$('rustOpenGl').checked) {
+      $('rustOpenGl').checked = true;
+      $('rustOpenGl').dispatchEvent(new Event('change'));
+    }
+  });
+}
 function closeAdvPopover(restoreFocus) {
   const pop = $('advPopover'), btn = $('advBtn');
   if (!pop || pop.hidden) return;
@@ -1891,7 +1962,7 @@ if ($('focusRuleApps')) {
   });
 }
 addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeAdvPopover(true); closeShare(); closeHelp(); closeImportHelp(); closeLan(); closeRemoveConfirm(); }
+  if (e.key === 'Escape') { closeRamPopover(); closeAdvPopover(true); closeShare(); closeHelp(); closeImportHelp(); closeLan(); closeRemoveConfirm(); }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
     const anyModalOpen = ['shareModal', 'helpModal', 'importHelpModal', 'lanModal', 'removeConfirmModal']
       .some(id => $(id) && !$(id).hidden);
@@ -2068,6 +2139,14 @@ if ($('lanPairOpen')) {
     $('lanStatusMsg').textContent = t('lanSyncing');
     send({ t: 'lanSyncConnect', uri: raw, pin });
   });
+  if ($('lanPushBtn')) {
+    $('lanPushBtn').addEventListener('click', () => {
+      const raw = ($('lanAddrInput').value || '').trim();
+      const pin = ($('lanPinInput').value || '').trim();
+      $('lanStatusMsg').textContent = t('lanSyncing');
+      send({ t: 'lanSyncPush', uri: raw, pin });
+    });
+  }
 }
 
 /* ---------- 和宿主通信 ---------- */
@@ -2218,7 +2297,7 @@ function onHost(m) {
       $('lanStatusMsg').textContent = m.ok === false ? (m.msg || t('unknownReason')) : '';
     }
   } else if (m.t === 'lanSyncResult') {
-    $('lanStatusMsg').textContent = m.ok ? t('lanSyncDone') : (m.msg || t('unknownReason'));
+    $('lanStatusMsg').textContent = m.ok ? (m.pushed ? t('lanPushDone') : t('lanSyncDone')) : (m.msg || t('unknownReason'));
   } else if (m.t === 'recProgress') {
     shareProgress(m.p);
   } else if (m.t === 'shareResult') {
@@ -2318,6 +2397,43 @@ fetch('themes.json').then(r => r.json()).then(reg => {
     send({ t: 'hello' });
   } else mockHost();
 });
+
+// 100% offline drag-and-drop for .deskland-preset / .json files
+(() => {
+  let dragDepth = 0;
+  const ov = $('dropOverlay');
+  addEventListener('dragenter', e => {
+    if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    dragDepth++;
+    if (ov) ov.hidden = false;
+  });
+  addEventListener('dragover', e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  });
+  addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0 && ov) ov.hidden = true;
+  });
+  addEventListener('drop', e => {
+    dragDepth = 0;
+    if (ov) ov.hidden = true;
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    const name = (f.name || '').toLowerCase();
+    if (name.endsWith('.deskland-preset') || name.endsWith('.json')) {
+      f.text().then(txt => applyPresetObject(JSON.parse(txt))).catch(() => {
+        showInlineWarn(t('importPreset'), t('unknownReason'));
+      });
+    } else if ($('importTheme') && !$('importTheme').hidden) {
+      showInlineWarn(t('importTheme'), t('importDropHint') || t('importThemeTitle'));
+    }
+  });
+})();
 </script>
+<div class="drop-overlay" id="dropOverlay" hidden><div class="drop-overlay-card" data-i18n="dropOverlayHint">Drop .deskland-preset file to apply</div></div>
 </body>
 </html>

@@ -18,6 +18,7 @@ sealed class LanSyncServer
     const int MaxFailedAttempts = 5;
 
     readonly object sync = new object();
+    public Action<Dictionary<string, object>> HandoffReceived;
     TcpListener listener;
     Thread acceptThread;
     volatile bool running;
@@ -153,20 +154,34 @@ sealed class LanSyncServer
                     string reqLine = reader.ReadLine();
                     if (string.IsNullOrEmpty(reqLine)) return;
                     string[] parts = reqLine.Split(' ');
-                    if (parts.Length < 2 || !string.Equals(parts[0], "GET", StringComparison.OrdinalIgnoreCase))
+                    if (parts.Length < 2)
+                    {
+                        WriteResponse(ns, 400, "Bad Request", "text/plain", Encoding.UTF8.GetBytes("Bad Request"), null);
+                        return;
+                    }
+                    string method = parts[0].ToUpperInvariant();
+                    if (method != "GET" && method != "POST")
                     {
                         WriteResponse(ns, 405, "Method Not Allowed", "text/plain", Encoding.UTF8.GetBytes("Method Not Allowed"), null);
                         return;
                     }
                     string headerPin = null;
+                    int contentLength = 0;
                     string line;
                     int headerCount = 0;
                     while (!string.IsNullOrEmpty(line = reader.ReadLine()) && headerCount < 64)
                     {
                         headerCount++;
                         int idx = line.IndexOf(':');
-                        if (idx > 0 && string.Equals(line.Substring(0, idx).Trim(), "X-Diyar-Pin", StringComparison.OrdinalIgnoreCase))
-                            headerPin = line.Substring(idx + 1).Trim();
+                        if (idx > 0)
+                        {
+                            string hk = line.Substring(0, idx).Trim();
+                            string hv = line.Substring(idx + 1).Trim();
+                            if (string.Equals(hk, "X-Diyar-Pin", StringComparison.OrdinalIgnoreCase))
+                                headerPin = hv;
+                            else if (string.Equals(hk, "Content-Length", StringComparison.OrdinalIgnoreCase))
+                                int.TryParse(hv, NumberStyles.Integer, CultureInfo.InvariantCulture, out contentLength);
+                        }
                     }
 
                     string rawTarget = parts[1];
@@ -192,7 +207,39 @@ sealed class LanSyncServer
                         return;
                     }
 
-                    if (path == "/pair/info")
+                    if (method == "POST" && path == "/pair/handoff")
+                    {
+                        if (contentLength <= 0 || contentLength > 262144)
+                        {
+                            WriteResponse(ns, 413, "Payload Too Large", "text/plain", Encoding.UTF8.GetBytes("Invalid payload size"), null);
+                            return;
+                        }
+                        char[] cbuf = new char[contentLength];
+                        int readTotal = 0;
+                        while (readTotal < contentLength)
+                        {
+                            int n = reader.Read(cbuf, readTotal, contentLength - readTotal);
+                            if (n <= 0) break;
+                            readTotal += n;
+                        }
+                        string rawBody = new string(cbuf, 0, readTotal);
+                        var bodyObj = Json.Parse(rawBody) as Dictionary<string, object>;
+                        if (bodyObj == null)
+                        {
+                            WriteResponse(ns, 400, "Bad Request", "text/plain", Encoding.UTF8.GetBytes("Invalid JSON handoff payload"), null);
+                            return;
+                        }
+                        object impObj;
+                        if (bodyObj.TryGetValue("impulseState", out impObj) && impObj is Dictionary<string, object>)
+                            WriteImpulseState((Dictionary<string, object>)impObj);
+                        var cb = HandoffReceived;
+                        if (cb != null) cb(bodyObj);
+                        byte[] okBytes = Encoding.UTF8.GetBytes(Json.Stringify(Json.Obj("ok", true)));
+                        WriteResponse(ns, 200, "OK", "application/json; charset=utf-8", okBytes, null);
+                        return;
+                    }
+
+                    if (method == "GET" && path == "/pair/info")
                     {
                         var customs = CustomThemes.Load();
                         var customList = new List<Dictionary<string, object>>();
@@ -213,14 +260,15 @@ sealed class LanSyncServer
                             "version", Application.ProductVersion,
                             "activeTheme", Settings.Theme,
                             "params", Settings.For(Settings.Theme),
-                            "customThemes", customList
+                            "customThemes", customList,
+                            "impulseState", ReadImpulseState()
                         );
                         byte[] body = Encoding.UTF8.GetBytes(Json.Stringify(payload));
                         WriteResponse(ns, 200, "OK", "application/json; charset=utf-8", body, null);
                         return;
                     }
 
-                    if (path.StartsWith("/pair/theme/", StringComparison.Ordinal) && path.EndsWith(".deskland", StringComparison.Ordinal))
+                    if (method == "GET" && path.StartsWith("/pair/theme/", StringComparison.Ordinal) && path.EndsWith(".deskland", StringComparison.Ordinal))
                     {
                         string themeId = Uri.UnescapeDataString(path.Substring("/pair/theme/".Length, path.Length - "/pair/theme/".Length - ".deskland".Length));
                         byte[] archive = PackCustomTheme(themeId);
@@ -260,6 +308,43 @@ sealed class LanSyncServer
             }
             return 200;
         }
+    }
+
+    static string ImpulseStatePath()
+    {
+        try
+        {
+            string localApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(localApp)) return null;
+            return Path.Combine(Path.Combine(localApp, "DesklandPreview"), "impulse-gl-state.json");
+        }
+        catch { return null; }
+    }
+
+    static object ReadImpulseState()
+    {
+        try
+        {
+            string p = ImpulseStatePath();
+            if (string.IsNullOrEmpty(p) || !File.Exists(p)) return null;
+            var fi = new FileInfo(p);
+            if (fi.Length <= 0 || fi.Length > 262144) return null;
+            return Json.Parse(File.ReadAllText(p, Encoding.UTF8)) as Dictionary<string, object>;
+        }
+        catch { return null; }
+    }
+
+    static void WriteImpulseState(Dictionary<string, object> imp)
+    {
+        try
+        {
+            if (imp == null) return;
+            string p = ImpulseStatePath();
+            if (string.IsNullOrEmpty(p)) return;
+            Directory.CreateDirectory(Path.GetDirectoryName(p));
+            File.WriteAllText(p, Json.Stringify(imp), new UTF8Encoding(false));
+        }
+        catch { }
     }
 
     static string ExtractQueryParam(string query, string key)

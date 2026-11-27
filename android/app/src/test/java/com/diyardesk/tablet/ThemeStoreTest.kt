@@ -142,4 +142,22 @@ class ThemeStoreTest {
         }
         assertTrue(rejected)
     }
+
+    @Test
+    fun persistsImpulseWidgetHandoffState() {
+        val dir = tmp.newFolder("impulse_handoff")
+        val s1 = ThemeStore(dir)
+        val payload = org.json.JSONObject().apply {
+            put("note", "Tablet notes")
+            put("tasks", org.json.JSONArray().put(org.json.JSONObject().apply {
+                put("text", "Test task")
+                put("done", false)
+            }))
+        }
+        s1.saveImpulseWidgetState(payload)
+        val s2 = ThemeStore(dir)
+        val loaded = s2.loadImpulseWidgetState()
+        assertEquals("Tablet notes", loaded?.getString("note"))
+        assertEquals(1, loaded?.getJSONArray("tasks")?.length())
+    }
 }

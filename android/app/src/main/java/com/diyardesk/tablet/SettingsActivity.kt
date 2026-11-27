@@ -562,6 +562,11 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                 val pin = msg.optString("pin")
                 syncFromLanDesktop(input, pin)
             }
+            "lanSyncPush" -> {
+                val input = msg.optString("uri").ifBlank { msg.optString("address") }
+                val pin = msg.optString("pin")
+                pushHandoffToDesktop(input, pin)
+            }
             "openShare" -> {
                 lastSavedShareUri?.let { uri ->
                     startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/png").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
@@ -607,6 +612,10 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                     }
                 }
                 store.setActiveTheme(activeTheme)
+                val impulseObj = info.optJSONObject("impulseState")
+                if (impulseObj != null) {
+                    store.saveImpulseWidgetState(impulseObj)
+                }
                 if (importedObj != null) {
                     store.notifyThemesRegistryChanged()
                 }
@@ -636,6 +645,42 @@ class SettingsActivity : AppCompatActivity(), ThemeStore.Listener {
                         put("t", "lanSyncResult")
                         put("ok", false)
                         put("msg", e.message ?: "LAN sync failed")
+                    })
+                }
+            }
+        }.start()
+    }
+
+    private fun pushHandoffToDesktop(rawInput: String, fallbackPin: String) {
+        val target = LanSyncClient.parsePairingInput(rawInput, fallbackPin)
+        if (target == null) {
+            dispatchToWebView(JSONObject().apply {
+                put("t", "lanSyncResult")
+                put("ok", false)
+                put("msg", "Invalid private LAN address or 4-digit PIN.")
+            })
+            return
+        }
+        Thread {
+            try {
+                val tid = store.activeTheme
+                val params = store.getParamsCopy(tid)
+                val impulse = store.loadImpulseWidgetState()
+                LanSyncClient.pushHandoff(target, tid, params, impulse)
+                runOnUiThread {
+                    dispatchToWebView(JSONObject().apply {
+                        put("t", "lanSyncResult")
+                        put("ok", true)
+                        put("pushed", true)
+                        put("theme", tid)
+                    })
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    dispatchToWebView(JSONObject().apply {
+                        put("t", "lanSyncResult")
+                        put("ok", false)
+                        put("msg", e.message ?: "LAN handoff failed")
                     })
                 }
             }

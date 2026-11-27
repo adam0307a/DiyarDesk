@@ -884,7 +884,7 @@ class HostContext : ApplicationContext
 
     readonly string pageDir;
     readonly NotifyIcon tray;
-    readonly MenuItem pauseItem, lowModeItem, rustGlItem, autoStartItem, saveIconsItem, restoreIconsItem, settingsItem, reloadItem, exitItem;
+    readonly MenuItem pauseItem, nextThemeItem, lowModeItem, rustGlItem, autoStartItem, saveIconsItem, restoreIconsItem, settingsItem, reloadItem, exitItem;
     readonly System.Windows.Forms.Timer watch;
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
@@ -938,6 +938,7 @@ class HostContext : ApplicationContext
             pauseItem.Checked = manualPause;
             ForEachWallpaper(delegate(WallpaperForm w) { w.SetManualPause(manualPause); });
         });
+        nextThemeItem = new MenuItem(I18n.Ui("trayNextTheme"), delegate { SwitchNextTheme(); });
         lowModeItem = new MenuItem(I18n.T("trayLowMode"), delegate { SetLowMode(!Settings.LowMode); });
         lowModeItem.Checked = Settings.LowMode;
         rustGlItem = new MenuItem(I18n.Ui("rustOpenGl"), delegate { SetRustOpenGl(!Settings.RustOpenGl); });
@@ -981,6 +982,7 @@ class HostContext : ApplicationContext
         tray.ContextMenu = new ContextMenu(new[] {
             settingsItem,
             pauseItem,
+            nextThemeItem,
             lowModeItem,
             rustGlItem,
             reloadItem = new MenuItem(I18n.T("trayReload"), delegate { if (form != null) form.Reload(); }),
@@ -1006,6 +1008,15 @@ class HostContext : ApplicationContext
         IntPtr _invHandle = uiInvoker.Handle;
         ipcServer = new IpcControlServer(DispatchIpc);
         ipcServer.Start();
+        lanSync.HandoffReceived = delegate(Dictionary<string, object> payload)
+        {
+            try
+            {
+                if (!exiting && uiInvoker.IsHandleCreated)
+                    uiInvoker.BeginInvoke((Action)delegate { ApplyLanHandoff(payload); });
+            }
+            catch { }
+        };
         StartForm();
         if (!string.IsNullOrEmpty(startupPreset))
         {
@@ -1021,6 +1032,7 @@ class HostContext : ApplicationContext
     {
         settingsItem.Text = I18n.T("traySettings");
         pauseItem.Text = I18n.T("trayPause");
+        if (nextThemeItem != null) nextThemeItem.Text = I18n.Ui("trayNextTheme");
         lowModeItem.Text = I18n.T("trayLowMode");
         if (rustGlItem != null) rustGlItem.Text = I18n.Ui("rustOpenGl");
         reloadItem.Text = I18n.T("trayReload");
@@ -1962,6 +1974,101 @@ class HostContext : ApplicationContext
         }
     }
 
+    public void SwitchNextTheme()
+    {
+        var ids = ReadyThemeIds();
+        if (Settings.RustOpenGl)
+        {
+            var nativeIds = new List<string>();
+            for (int i = 0; i < ids.Count; i++)
+                if (WallpaperForm.IsNativeGlTheme(ids[i]) || WallpaperForm.IsNativeVideoTheme(ids[i]))
+                    nativeIds.Add(ids[i]);
+            if (nativeIds.Count > 1) ids = nativeIds;
+        }
+        if (ids.Count <= 1) return;
+        int idx = ids.IndexOf(Settings.Theme);
+        string next = ids[(idx + 1) % ids.Count];
+        SwitchThemeById(next);
+    }
+
+    public bool HandleDroppedPath(string filePath, out string summary, out string err)
+    {
+        summary = "";
+        err = null;
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            err = "File not found";
+            return false;
+        }
+        string ext = (Path.GetExtension(filePath) ?? "").ToLowerInvariant();
+        if (ext == ".deskland-preset" || ext == ".json")
+        {
+            string appliedName;
+            if (!ApplyPresetFile(filePath, out appliedName, out err)) return false;
+            summary = I18n.Ui("dropPresetApplied", "name", appliedName);
+            return true;
+        }
+        try
+        {
+            var themeObj = CustomThemes.ImportFile(filePath, pageDir);
+            string newId = themeObj["id"] as string;
+            string newName = (themeObj.ContainsKey("name") ? themeObj["name"] as string : null) ?? newId;
+            string newPage = themeObj.ContainsKey("page") ? themeObj["page"] as string : null;
+            Settings.Theme = newId;
+            SaveSoon();
+            if (form != null && !string.IsNullOrEmpty(newPage)) form.LoadPage(newPage, newId);
+            if (settingsWin != null && !settingsWin.IsDisposed)
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", true)));
+            summary = I18n.Ui("dropThemeImported", "name", newName);
+            Log.Write("Sürükle-bırak ile tema içe aktarıldı: " + newId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            err = ex.Message;
+            return false;
+        }
+    }
+
+    void ApplyLanHandoff(Dictionary<string, object> payload)
+    {
+        if (exiting || payload == null) return;
+        try
+        {
+            object rawTid;
+            string tid = payload.TryGetValue("activeTheme", out rawTid) ? (rawTid as string) : null;
+            if (string.IsNullOrEmpty(tid) || !ThemeAllowed(tid)) return;
+            object rawParams;
+            if (payload.TryGetValue("params", out rawParams) && rawParams is Dictionary<string, object>)
+            {
+                var pmap = Settings.For(tid);
+                foreach (var kv in (Dictionary<string, object>)rawParams)
+                    pmap[kv.Key] = kv.Value;
+            }
+            bool same = string.Equals(Settings.Theme, tid, StringComparison.OrdinalIgnoreCase);
+            SwitchThemeById(tid);
+            if (same)
+            {
+                string msg = SettingsMessage();
+                ForEachWallpaper(delegate(WallpaperForm w) { w.Post(msg); });
+            }
+            Settings.Save();
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            {
+                nativeSettingsWin.SyncGlobalControlsFromSettings();
+                nativeSettingsWin.SelectThemeUi(tid);
+            }
+            if (settingsWin != null && !settingsWin.IsDisposed)
+            {
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "lanSyncResult", "ok", true, "theme", tid)));
+            }
+            if (tray != null && tray.Visible)
+                tray.ShowBalloonTip(3000, "DiyarDesk", I18n.Ui("lanSyncDone") + " (" + I18n.ThemeName(tid, tid) + ")", ToolTipIcon.Info);
+            Log.Write("LAN handoff uygulandı: " + tid);
+        }
+        catch (Exception ex) { Log.Write("LAN handoff hatası: " + ex.Message); }
+    }
+
     public bool ApplyPresetFile(string filePath, out string appliedName, out string err)
     {
         appliedName = "";
@@ -2621,27 +2728,32 @@ class HostContext : ApplicationContext
     // 不使用需要额外权限的任务计划；快捷方式创建失败时仍保留 Run 项作为回退。
     static string AutoStartShortcutPath
     {
+        get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "DiyarDesk.lnk"); }
+    }
+
+    static string LegacyAutoStartShortcutPath
+    {
         get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Deskland.lnk"); }
     }
 
-    static object OpenAutoStartShortcut()
+    static object OpenShortcutAt(string lnkPath)
     {
         object shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
         try
         {
             return shell.GetType().InvokeMember("CreateShortcut", BindingFlags.InvokeMethod,
-                null, shell, new object[] { AutoStartShortcutPath });
+                null, shell, new object[] { lnkPath });
         }
         finally { Marshal.FinalReleaseComObject(shell); }
     }
 
-    static bool AutoStartShortcutEnabled()
+    static bool ShortcutPointsToApp(string lnkPath)
     {
-        if (!File.Exists(AutoStartShortcutPath)) return false;
+        if (!File.Exists(lnkPath)) return false;
         object link = null;
         try
         {
-            link = OpenAutoStartShortcut();
+            link = OpenShortcutAt(lnkPath);
             string target = link.GetType().InvokeMember("TargetPath", BindingFlags.GetProperty,
                 null, link, null) as string;
             string arguments = link.GetType().InvokeMember("Arguments", BindingFlags.GetProperty,
@@ -2653,12 +2765,17 @@ class HostContext : ApplicationContext
         finally { if (link != null) Marshal.FinalReleaseComObject(link); }
     }
 
+    static bool AutoStartShortcutEnabled()
+    {
+        return ShortcutPointsToApp(AutoStartShortcutPath) || ShortcutPointsToApp(LegacyAutoStartShortcutPath);
+    }
+
     static bool CreateAutoStartShortcut()
     {
         object link = null;
         try
         {
-            link = OpenAutoStartShortcut();
+            link = OpenShortcutAt(AutoStartShortcutPath);
             link.GetType().InvokeMember("TargetPath", BindingFlags.SetProperty,
                 null, link, new object[] { Application.ExecutablePath });
             link.GetType().InvokeMember("Arguments", BindingFlags.SetProperty,
@@ -2668,9 +2785,14 @@ class HostContext : ApplicationContext
             link.GetType().InvokeMember("IconLocation", BindingFlags.SetProperty,
                 null, link, new object[] { Application.ExecutablePath + ",0" });
             link.GetType().InvokeMember("Description", BindingFlags.SetProperty,
-                null, link, new object[] { "Deskland" });
+                null, link, new object[] { "DiyarDesk" });
             link.GetType().InvokeMember("Save", BindingFlags.InvokeMethod, null, link, null);
-            return File.Exists(AutoStartShortcutPath);
+            if (File.Exists(AutoStartShortcutPath))
+            {
+                try { if (File.Exists(LegacyAutoStartShortcutPath)) File.Delete(LegacyAutoStartShortcutPath); } catch { }
+                return true;
+            }
+            return false;
         }
         catch (Exception ex) { Log.Write("创建启动文件夹快捷方式失败：" + ex.Message); return false; }
         finally { if (link != null) Marshal.FinalReleaseComObject(link); }
@@ -2717,6 +2839,7 @@ class HostContext : ApplicationContext
             {
                 DeleteRunAutoStart();
                 if (File.Exists(AutoStartShortcutPath)) File.Delete(AutoStartShortcutPath);
+                if (File.Exists(LegacyAutoStartShortcutPath)) File.Delete(LegacyAutoStartShortcutPath);
                 Log.Write(IsAutoStart() ? "关闭开机自动启动失败，启动项仍存在" : "已关闭开机自动启动");
             }
         }

@@ -110,4 +110,41 @@ object LanSyncClient {
             conn.disconnect()
         }
     }
+
+    fun pushHandoff(
+        target: PairingTarget,
+        activeTheme: String,
+        params: JSONObject?,
+        impulseState: JSONObject?
+    ): JSONObject {
+        require(isPrivateLanHost(target.host)) { "Only private LAN IP addresses are allowed" }
+        val payload = JSONObject().apply {
+            put("activeTheme", activeTheme)
+            if (params != null) put("params", params)
+            if (impulseState != null) put("impulseState", impulseState)
+        }
+        val bytes = payload.toString().toByteArray(Charsets.UTF_8)
+        require(bytes.size <= 262_144) { "Handoff payload too large" }
+        val url = URL("http://${target.host}:${target.port}/pair/handoff")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 4000
+            readTimeout = 8000
+            setRequestProperty("X-Diyar-Pin", target.pin)
+            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            setFixedLengthStreamingMode(bytes.size)
+        }
+        try {
+            conn.outputStream.use { it.write(bytes) }
+            val code = conn.responseCode
+            if (code == 403) throw SecurityException("Invalid pairing PIN")
+            if (code == 410) throw IllegalStateException("Pairing session expired on desktop")
+            if (code != 200) throw IllegalStateException("Desktop returned HTTP $code")
+            val body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            return JSONObject(body)
+        } finally {
+            conn.disconnect()
+        }
+    }
 }

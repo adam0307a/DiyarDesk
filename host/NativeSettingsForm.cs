@@ -100,6 +100,9 @@ class NativeSettingsForm : Form
         tip.ShowAlways = true;
 
         DetectSystemPalette();
+        AllowDrop = true;
+        DragEnter += OnFormDragEnter;
+        DragDrop += OnFormDragDrop;
         BuildUi(s);
         LoadThemes();
         ApplyLocalizedTexts();
@@ -170,8 +173,85 @@ class NativeSettingsForm : Form
             colInputBg = Color.FromArgb(250, 251, 253);
             colBadgeBg = Color.FromArgb(220, 252, 231);
         }
+        ApplySharedTokens(darkTheme);
         BackColor = colBg;
         ForeColor = colText;
+    }
+
+    static Color TryHexColor(Dictionary<string, object> map, string key, Color fallback)
+    {
+        object v;
+        if (map != null && map.TryGetValue(key, out v) && v is string)
+        {
+            try { return ColorTranslator.FromHtml((string)v); } catch { }
+        }
+        return fallback;
+    }
+
+    void ApplySharedTokens(bool dark)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(pageDir)) return;
+            string p = Path.Combine(pageDir, "tokens.json");
+            if (!File.Exists(p)) return;
+            var root = Json.Parse(File.ReadAllText(p, Encoding.UTF8)) as Dictionary<string, object>;
+            if (root == null) return;
+            object branchObj;
+            if (!root.TryGetValue(dark ? "dark" : "light", out branchObj)) return;
+            var m = branchObj as Dictionary<string, object>;
+            if (m == null) return;
+            colBg = TryHexColor(m, "bg", colBg);
+            colSurface = TryHexColor(m, "surface", colSurface);
+            colCard = TryHexColor(m, "card", colCard);
+            colCardHover = TryHexColor(m, "cardHover", colCardHover);
+            colBorder = TryHexColor(m, "border", colBorder);
+            colText = TryHexColor(m, "text", colText);
+            colMuted = TryHexColor(m, "muted", colMuted);
+            colAccent = TryHexColor(m, "accent", colAccent);
+            colAccentSoft = TryHexColor(m, "accentSoft", colAccentSoft);
+            colInputBg = TryHexColor(m, "inputBg", colInputBg);
+            colBadgeBg = TryHexColor(m, "badgeBg", colBadgeBg);
+        }
+        catch { }
+    }
+
+    void OnFormDragEnter(object sender, DragEventArgs e)
+    {
+        if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effect = DragDropEffects.Copy;
+    }
+
+    void OnFormDragDrop(object sender, DragEventArgs e)
+    {
+        try
+        {
+            if (e.Data == null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0) return;
+            string summary, err;
+            if (host.HandleDroppedPath(files[0], out summary, out err))
+            {
+                LoadThemes();
+                RebuildThemeCards();
+                SyncGlobalControlsFromSettings();
+                SelectThemeUi(Settings.Theme);
+                if (savedLabel != null)
+                {
+                    savedLabel.Text = summary;
+                    savedLabel.ForeColor = colAccent;
+                    if (savedFlashTimer != null) { savedFlashTimer.Stop(); savedFlashTimer.Start(); }
+                }
+            }
+            else if (!string.IsNullOrEmpty(err))
+            {
+                MessageBox.Show(this, err, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     void ThemeTitleBar()
@@ -248,6 +328,8 @@ class NativeSettingsForm : Form
         engineBadge.Font = fontSmall;
         engineBadge.Padding = new Padding(S(8), S(3), S(8), S(3));
         engineBadge.Margin = new Padding(0, S(5), S(8), 0);
+        engineBadge.Cursor = Cursors.Hand;
+        engineBadge.Click += delegate { ShowRamComparisonDialog(); };
 
         headerLeft.Controls.Add(brandLabel);
         headerLeft.Controls.Add(engineBadge);
@@ -955,7 +1037,19 @@ class NativeSettingsForm : Form
         engineBadge.BackColor = colBadgeBg;
         engineBadge.ForeColor = darkTheme ? Color.FromArgb(134, 239, 172) : Color.FromArgb(21, 128, 61);
         if (ramMb > 0)
-            tip.SetToolTip(engineBadge, I18n.Ui("ramLiveBadge", "mb", ramMb.ToString()) + " (Working Set)");
+            tip.SetToolTip(engineBadge, I18n.Ui("ramCompareTitle") + " · " + I18n.Ui("ramLiveBadge", "mb", ramMb.ToString()));
+    }
+
+    void ShowRamComparisonDialog()
+    {
+        int ramMb = CurrentProcessRamMb();
+        if (ramMb <= 0) ramMb = 45;
+        int browserMb = 900;
+        int savedMb = Math.Max(0, browserMb - ramMb);
+        string body = I18n.Ui("ramCompareCurrent", "mb", ramMb.ToString())
+            + "\n" + I18n.Ui("ramCompareBrowser", "mb", browserMb.ToString())
+            + "\n" + I18n.Ui("ramCompareSaved", "mb", savedMb.ToString());
+        MessageBox.Show(this, body, I18n.Ui("ramCompareTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     void LoadThemes()
