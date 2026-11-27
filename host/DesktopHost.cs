@@ -776,7 +776,7 @@ class HostContext : ApplicationContext
 
     readonly string pageDir;
     readonly NotifyIcon tray;
-    readonly MenuItem pauseItem, lowModeItem, rustGlItem, autoStartItem, settingsItem, reloadItem, exitItem;
+    readonly MenuItem pauseItem, lowModeItem, rustGlItem, autoStartItem, saveIconsItem, restoreIconsItem, settingsItem, reloadItem, exitItem;
     readonly System.Windows.Forms.Timer watch;
     readonly EventWaitHandle exitEvent, menuEvent, settingsEvent;
     readonly HotkeyWindow hotkey = new HotkeyWindow();
@@ -852,6 +852,18 @@ class HostContext : ApplicationContext
         }
         settingsItem = new MenuItem(I18n.T("traySettings"), delegate { OpenSettings(); });
         settingsItem.DefaultItem = true;                // 粗体：主入口
+        saveIconsItem = new MenuItem(I18n.Ui("iconSnapSave"), delegate
+        {
+            int c; string rk, err;
+            SaveIconSnapshot(out c, out rk, out err, true);
+        });
+        restoreIconsItem = new MenuItem(I18n.Ui("iconSnapRestore"), delegate
+        {
+            int r, ts; string rk, err;
+            RestoreIconSnapshot(out r, out ts, out rk, out err, true);
+        });
+        var snapInit = DesktopIconSnapshotStore.GetStatus();
+        restoreIconsItem.Enabled = snapInit.ContainsKey("hasSnapshot") && snapInit["hasSnapshot"] is bool && (bool)snapInit["hasSnapshot"];
 
         tray = new NotifyIcon();
         tray.Icon = AppIcon.Create();
@@ -863,6 +875,9 @@ class HostContext : ApplicationContext
             rustGlItem,
             reloadItem = new MenuItem(I18n.T("trayReload"), delegate { if (form != null) form.Reload(); }),
             autoStartItem,
+            new MenuItem("-"),
+            saveIconsItem,
+            restoreIconsItem,
             new MenuItem("-"),
             exitItem = new MenuItem(I18n.T("trayExit"), delegate { Exit(); }),
         });
@@ -897,7 +912,69 @@ class HostContext : ApplicationContext
         if (rustGlItem != null) rustGlItem.Text = I18n.Ui("rustOpenGl");
         reloadItem.Text = I18n.T("trayReload");
         autoStartItem.Text = I18n.T("trayAutostart");
+        if (saveIconsItem != null) saveIconsItem.Text = I18n.Ui("iconSnapSave");
+        if (restoreIconsItem != null) restoreIconsItem.Text = I18n.Ui("iconSnapRestore");
         exitItem.Text = I18n.T("trayExit");
+    }
+
+    static string FriendlyIconSnapshotError(string err)
+    {
+        if (err == "autoArrange") return I18n.Ui("iconSnapAutoArrange");
+        if (err == "none") return I18n.Ui("iconSnapNone");
+        if (err == "unavailable" || string.IsNullOrEmpty(err)) return I18n.Ui("iconSnapUnavailable");
+        return err;
+    }
+
+    public bool SaveIconSnapshot(out int count, out string resKey, out string err, bool showBalloon)
+    {
+        bool ok = DesktopIconSnapshotStore.SaveCurrent(out count, out resKey, out err);
+        var st = DesktopIconSnapshotStore.GetStatus();
+        if (restoreIconsItem != null)
+            restoreIconsItem.Enabled = st.ContainsKey("hasSnapshot") && st["hasSnapshot"] is bool && (bool)st["hasSnapshot"];
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "iconSnapshotStatus", "status", st)));
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.RefreshIconSnapshotButtons();
+        if (ok)
+        {
+            Log.Write("Masaüstü ikon düzeni yedeklendi: " + count + " (" + resKey + ")");
+            if (showBalloon && tray != null && tray.Visible)
+            {
+                string msg = I18n.Ui("iconSnapSaved", "n", count.ToString()).Replace("{res}", resKey);
+                tray.ShowBalloonTip(3500, "DiyarDesk", msg, ToolTipIcon.Info);
+            }
+        }
+        else if (showBalloon && tray != null && tray.Visible)
+        {
+            tray.ShowBalloonTip(4000, "DiyarDesk", FriendlyIconSnapshotError(err), ToolTipIcon.Warning);
+        }
+        return ok;
+    }
+
+    public bool RestoreIconSnapshot(out int restored, out int totalSaved, out string resKey, out string err, bool showBalloon)
+    {
+        bool ok = DesktopIconSnapshotStore.RestoreForCurrentScreen(out restored, out totalSaved, out resKey, out err);
+        var st = DesktopIconSnapshotStore.GetStatus();
+        if (restoreIconsItem != null)
+            restoreIconsItem.Enabled = st.ContainsKey("hasSnapshot") && st["hasSnapshot"] is bool && (bool)st["hasSnapshot"];
+        if (settingsWin != null && !settingsWin.IsDisposed)
+            settingsWin.Post(Json.Stringify(Json.Obj("t", "iconSnapshotStatus", "status", st)));
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.RefreshIconSnapshotButtons();
+        if (ok)
+        {
+            Log.Write("Masaüstü ikonları geri yüklendi: " + restored + "/" + totalSaved + " (" + resKey + ")");
+            if (showBalloon && tray != null && tray.Visible)
+            {
+                string msg = I18n.Ui("iconSnapRestored", "n", restored.ToString()).Replace("{res}", resKey);
+                tray.ShowBalloonTip(3500, "DiyarDesk", msg, ToolTipIcon.Info);
+            }
+        }
+        else if (showBalloon && tray != null && tray.Visible)
+        {
+            tray.ShowBalloonTip(4500, "DiyarDesk", FriendlyIconSnapshotError(err), ToolTipIcon.Warning);
+        }
+        return ok;
     }
 
     static void ApplyProcessPriority(bool low)
@@ -1470,6 +1547,31 @@ class HostContext : ApplicationContext
                 return Json.Obj("ok", false, "error", applyErr ?? "invalid preset");
             return Json.Obj("ok", true, "theme", Settings.Theme, "name", appliedName, "message", "preset=" + appliedName);
         }
+        if (cmd == "icon-snapshot")
+        {
+            object actObj;
+            string act = req.TryGetValue("action", out actObj) ? (actObj as string ?? "status").ToLowerInvariant() : "status";
+            if (act == "save")
+            {
+                int count; string rk, err;
+                if (!SaveIconSnapshot(out count, out rk, out err, false))
+                    return Json.Obj("ok", false, "error", FriendlyIconSnapshotError(err));
+                return Json.Obj("ok", true, "action", "save", "count", count, "resKey", rk,
+                    "message", "saved " + count + " icons (" + rk + ")");
+            }
+            if (act == "restore")
+            {
+                int restored, totalSaved; string rk, err;
+                if (!RestoreIconSnapshot(out restored, out totalSaved, out rk, out err, false))
+                    return Json.Obj("ok", false, "error", FriendlyIconSnapshotError(err));
+                return Json.Obj("ok", true, "action", "restore", "restored", restored, "totalSaved", totalSaved, "resKey", rk,
+                    "message", "restored " + restored + " icons (" + rk + ")");
+            }
+            var st = DesktopIconSnapshotStore.GetStatus();
+            st["ok"] = true;
+            st["message"] = "hasSnapshot=" + Convert.ToString(st["hasSnapshot"]) + " count=" + Convert.ToString(st["count"]) + " resKey=" + Convert.ToString(st["resKey"]);
+            return st;
+        }
         if (cmd == "exit")
         {
             uiInvoker.BeginInvoke((MethodInvoker)delegate { Exit(); });
@@ -1819,7 +1921,8 @@ class HostContext : ApplicationContext
                     "playlistEnabled", Settings.PlaylistEnabled, "playlistIntervalMin", Settings.PlaylistIntervalMin,
                     "systemBridge", Settings.SystemBridge, "preferMpv", Settings.PreferMpv,
                     "rustOpenGl", Settings.RustOpenGl, "rustGlAvailable", NativeGlHost.IsAvailable(),
-                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb, "ramMb", TotalHostRamMb())));
+                    "nativeActive", nativeActive, "webview2MemMb", wvMemMb, "ramMb", TotalHostRamMb(),
+                    "canIconSnapshot", true, "iconSnapshot", DesktopIconSnapshotStore.GetStatus())));
                 if (updateVersion != null) PostUpdateState();
                 if (form != null && form.LastIcons != "") settingsWin.Post(form.LastIcons);
                 break;
@@ -1968,6 +2071,34 @@ class HostContext : ApplicationContext
                     if (settingsWin != null) settingsWin.Post(Json.Stringify(Json.Obj("t", "presetExported", "ok", false, "msg", ex.Message)));
                 }
                 break;
+            case "saveIconSnapshot":
+            {
+                int count; string rk, err;
+                bool ok = SaveIconSnapshot(out count, out rk, out err, false);
+                if (settingsWin != null && !settingsWin.IsDisposed)
+                {
+                    settingsWin.Post(Json.Stringify(Json.Obj(
+                        "t", "iconSnapshotResult", "action", "save", "ok", ok,
+                        "count", count, "resKey", rk,
+                        "msg", ok ? "" : FriendlyIconSnapshotError(err),
+                        "status", DesktopIconSnapshotStore.GetStatus())));
+                }
+                break;
+            }
+            case "restoreIconSnapshot":
+            {
+                int restored, totalSaved; string rk, err;
+                bool ok = RestoreIconSnapshot(out restored, out totalSaved, out rk, out err, false);
+                if (settingsWin != null && !settingsWin.IsDisposed)
+                {
+                    settingsWin.Post(Json.Stringify(Json.Obj(
+                        "t", "iconSnapshotResult", "action", "restore", "ok", ok,
+                        "count", restored, "resKey", rk,
+                        "msg", ok ? "" : FriendlyIconSnapshotError(err),
+                        "status", DesktopIconSnapshotStore.GetStatus())));
+                }
+                break;
+            }
             case "revealDiagnostics":
                 if (lastDiagnostics != null && File.Exists(lastDiagnostics))
                     Process.Start("explorer.exe", "/select,\"" + lastDiagnostics + "\"");
@@ -5394,7 +5525,7 @@ class IconReader : IDisposable
         get { return Thread.VolatileRead(ref moveEpoch); }
     }
 
-    static IntPtr FindListView()
+    public static IntPtr FindListView()
     {
         IntPtr defView = IntPtr.Zero;
         IntPtr progman = Native.FindWindow("Progman", null);

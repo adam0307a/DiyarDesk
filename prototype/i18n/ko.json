@@ -236,7 +236,16 @@
     "androidSetupTitle": "DiyarDesk 라이브 배경화면 활성화",
     "androidSetupBody": "1. 라이브 배경화면 설정을 누르고 → 2. 시스템 목록에서 DiyarDesk를 선택한 뒤 → 3. 아이콘 배치에서 태블릿 아이콘을 맞추세요.",
     "androidSetupCta": "라이브 배경화면 설정",
-    "androidSetupIconsCta": "아이콘 배치 열기"
+    "androidSetupIconsCta": "아이콘 배치 열기",
+    "iconSnapSave": "아이콘 배치 저장",
+    "iconSnapSaveTitle": "현재 화면 해상도의 바탕화면 아이콘 위치를 백업합니다",
+    "iconSnapRestore": "아이콘 복원",
+    "iconSnapRestoreTitle": "해상도 또는 디스플레이 변경 후 저장된 바탕화면 아이콘 위치를 복원합니다",
+    "iconSnapSaved": "바탕화면 아이콘 위치 {n}개 저장됨 ({res})",
+    "iconSnapRestored": "바탕화면 아이콘 {n}개 복원됨 ({res})",
+    "iconSnapNone": "저장된 바탕화면 아이콘 배치가 아직 없습니다",
+    "iconSnapAutoArrange": "Windows 아이콘 자동 정렬이 켜져 있습니다. 바탕화면 우클릭 -> 보기 -> 아이콘 자동 정렬을 해제한 후 다시 시도하세요.",
+    "iconSnapUnavailable": "지금은 바탕화면 아이콘에 접근할 수 없습니다"
   },
   "host": {
     "traySettings": "설정…",

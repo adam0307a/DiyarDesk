@@ -236,7 +236,16 @@
     "androidSetupTitle": "Activate DiyarDesk Live Wallpaper",
     "androidSetupBody": "1. Tap Set Live Wallpaper → 2. Pick DiyarDesk in the system picker → 3. Match your tablet icons in Icon Layout.",
     "androidSetupCta": "Set Live Wallpaper",
-    "androidSetupIconsCta": "Open Icon Layout"
+    "androidSetupIconsCta": "Open Icon Layout",
+    "iconSnapSave": "Save icon layout",
+    "iconSnapSaveTitle": "Backup current desktop icon positions for this screen resolution",
+    "iconSnapRestore": "Restore icons",
+    "iconSnapRestoreTitle": "Restore saved desktop icon positions after display or resolution changes",
+    "iconSnapSaved": "Saved {n} desktop icon positions ({res})",
+    "iconSnapRestored": "Restored {n} desktop icons ({res})",
+    "iconSnapNone": "No saved desktop icon layout yet",
+    "iconSnapAutoArrange": "Windows Auto-Arrange is enabled. Right-click Desktop -> View -> uncheck Auto arrange icons, then try again.",
+    "iconSnapUnavailable": "Desktop icons could not be accessed right now"
   },
   "host": {
     "traySettings": "Settings…",

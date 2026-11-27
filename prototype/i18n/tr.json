@@ -236,7 +236,16 @@
     "androidSetupTitle": "DiyarDesk Canlı Duvar Kağıdını Etkinleştir",
     "androidSetupBody": "1. Canlı Duvar Kağıdı Yap’a dokunun → 2. Sistem seçicide DiyarDesk’i seçin → 3. İkon Düzeni’nden tablet simgelerinizi eşleştirin.",
     "androidSetupCta": "Canlı Duvar Kağıdı Yap",
-    "androidSetupIconsCta": "İkon Düzenini Aç"
+    "androidSetupIconsCta": "İkon Düzenini Aç",
+    "iconSnapSave": "İkon düzenini kaydet",
+    "iconSnapSaveTitle": "Bu ekran çözünürlüğündeki mevcut masaüstü simge konumlarını yedekle",
+    "iconSnapRestore": "İkonları geri yükle",
+    "iconSnapRestoreTitle": "Ekran veya çözünürlük değişiminden sonra kayıtlı simge konumlarını geri yükle",
+    "iconSnapSaved": "{n} masaüstü simge konumu kaydedildi ({res})",
+    "iconSnapRestored": "{n} masaüstü simgesi geri yüklendi ({res})",
+    "iconSnapNone": "Henüz kayıtlı masaüstü simge düzeni yok",
+    "iconSnapAutoArrange": "Windows Otomatik Düzenleme açık. Masaüstüne sağ tıklayıp Görünüm -> Simgeleri otomatik düzenle seçeneğini kapatıp tekrar deneyin.",
+    "iconSnapUnavailable": "Masaüstü simgelerine şu an erişilemedi"
   },
   "host": {
     "traySettings": "Ayarlar…",

@@ -766,6 +766,8 @@
   <span class="saved" id="saved" data-i18n="autosave">设置会自动保存，并立即应用到桌面</span>
   <div class="bottom-actions">
     <input type="file" id="presetFileInput" accept=".deskland-preset,.json" hidden>
+    <button class="ghost-btn" id="saveIconsBtn" hidden data-i18n="iconSnapSave" data-i18n-title="iconSnapSaveTitle" title="Backup current desktop icon positions">Save icon layout</button>
+    <button class="ghost-btn" id="restoreIconsBtn" hidden data-i18n="iconSnapRestore" data-i18n-title="iconSnapRestoreTitle" title="Restore saved desktop icon positions">Restore icons</button>
     <button class="ghost-btn" id="exportPresetBtn" data-i18n="exportPreset" data-i18n-title="exportPresetTitle" title="Save active theme and settings as .deskland-preset">Export preset</button>
     <button class="ghost-btn" id="importPresetBtn" data-i18n="importPreset" data-i18n-title="importPresetTitle" title="Load a .deskland-preset recipe file">Import preset</button>
     <button class="ghost-btn" id="syncLockscreen" hidden data-i18n="syncLockscreen" data-i18n-title="syncLockscreenTitle" title="Render blurred lock screen image from active wallpaper">Sync lock screen</button>
@@ -1934,6 +1936,28 @@ if ($('helpExportDiag')) {
   $('helpExportDiag').hidden = !host;
   $('helpExportDiag').addEventListener('click', () => { closeHelp(); send({ t: 'exportDiagnostics' }); });
 }
+function syncIconSnapshotUi(status) {
+  const show = !!state.canIconSnapshot;
+  const saveBtn = $('saveIconsBtn');
+  const restBtn = $('restoreIconsBtn');
+  if (saveBtn) saveBtn.hidden = !show;
+  if (restBtn) {
+    restBtn.hidden = !show;
+    const has = !!(status && status.hasSnapshot);
+    restBtn.disabled = !has;
+    if (has && status.count > 0) {
+      restBtn.title = t('iconSnapRestoreTitle') + ` (${status.count}, ${status.resKey || ''})`;
+    } else {
+      restBtn.title = has ? t('iconSnapRestoreTitle') : t('iconSnapNone');
+    }
+  }
+}
+if ($('saveIconsBtn')) {
+  $('saveIconsBtn').addEventListener('click', () => send({ t: 'saveIconSnapshot' }));
+}
+if ($('restoreIconsBtn')) {
+  $('restoreIconsBtn').addEventListener('click', () => send({ t: 'restoreIconSnapshot' }));
+}
 if ($('revealDiag')) {
   $('revealDiag').addEventListener('click', () => send({ t: 'revealDiagnostics' }));
 }
@@ -2013,6 +2037,8 @@ function onHost(m) {
       state.autostartWarn = !!m.autostartWarn;
       state.autostartSw = m.autostartSw || '';
       state.canSaveSnapshot = !!m.canSaveSnapshot;
+      state.canIconSnapshot = !!m.canIconSnapshot;
+      syncIconSnapshotUi(m.iconSnapshot);
       initWelcomeTip();
       showAutostartWarn();
       showUpdate();
@@ -2160,6 +2186,18 @@ function onHost(m) {
       setTimeout(() => { $('saved').textContent = t('autosave'); $('saved').classList.remove('flash'); }, 2200);
     } else if (m.msg) {
       showInlineWarn(t('exportPreset'), m.msg);
+    }
+  } else if (m.t === 'iconSnapshotStatus') {
+    if (m.status) syncIconSnapshotUi(m.status);
+  } else if (m.t === 'iconSnapshotResult') {
+    if (m.status) syncIconSnapshotUi(m.status);
+    if (m.ok) {
+      const key = m.action === 'restore' ? 'iconSnapRestored' : 'iconSnapSaved';
+      $('saved').textContent = t(key, { n: m.count || 0, res: m.resKey || '' });
+      $('saved').classList.add('flash');
+      setTimeout(() => { $('saved').textContent = t('autosave'); $('saved').classList.remove('flash'); }, 2400);
+    } else if (m.msg) {
+      showInlineWarn(t(m.action === 'restore' ? 'iconSnapRestore' : 'iconSnapSave'), m.msg);
     }
   } else if (m.t === 'presetImportPayload') {
     if (m.data) applyPresetObject(m.data);

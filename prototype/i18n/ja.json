@@ -236,7 +236,16 @@
     "androidSetupTitle": "DiyarDesk ライブ壁紙を有効にする",
     "androidSetupBody": "1.「ライブ壁紙に設定」をタップ → 2. システム一覧で DiyarDesk を選択 → 3.「アイコン配置」でタブレットのアイコンを合わせます。",
     "androidSetupCta": "ライブ壁紙に設定",
-    "androidSetupIconsCta": "アイコン配置を開く"
+    "androidSetupIconsCta": "アイコン配置を開く",
+    "iconSnapSave": "アイコン配置を保存",
+    "iconSnapSaveTitle": "現在の画面解像度でデスクトップアイコンの位置をバックアップ",
+    "iconSnapRestore": "アイコンを復元",
+    "iconSnapRestoreTitle": "解像度やディスプレイ変更後に保存したアイコン位置を復元",
+    "iconSnapSaved": "{n} 個のデスクトップアイコン位置を保存しました（{res}）",
+    "iconSnapRestored": "{n} 個のデスクトップアイコンを復元しました（{res}）",
+    "iconSnapNone": "保存されたアイコン配置はまだありません",
+    "iconSnapAutoArrange": "Windows の「アイコンの自動整列」が有効です。デスクトップを右クリック -> 表示 ->「アイコンの自動整列」のチェックを外して再試行してください。",
+    "iconSnapUnavailable": "現在デスクトップアイコンにアクセスできません"
   },
   "host": {
     "traySettings": "設定…",

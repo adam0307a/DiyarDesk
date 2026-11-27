@@ -236,7 +236,16 @@
     "androidSetupTitle": "Activer le fond d’écran animé DiyarDesk",
     "androidSetupBody": "1. Touchez Définir comme fond animé → 2. Choisissez DiyarDesk dans le sélecteur → 3. Alignez vos icônes dans Disposition.",
     "androidSetupCta": "Définir le fond animé",
-    "androidSetupIconsCta": "Ouvrir la disposition"
+    "androidSetupIconsCta": "Ouvrir la disposition",
+    "iconSnapSave": "Sauver icônes",
+    "iconSnapSaveTitle": "Sauvegarder la disposition actuelle des icônes du bureau pour cette résolution",
+    "iconSnapRestore": "Restaurer icônes",
+    "iconSnapRestoreTitle": "Restaurer les positions enregistrées des icônes après un changement d’écran ou de résolution",
+    "iconSnapSaved": "{n} positions d’icônes enregistrées ({res})",
+    "iconSnapRestored": "{n} icônes du bureau restaurées ({res})",
+    "iconSnapNone": "Aucune disposition d’icônes enregistrée",
+    "iconSnapAutoArrange": "La réorganisation automatique de Windows est activée. Clic droit Bureau -> Affichage -> décocher Réorganiser automatiquement les icônes.",
+    "iconSnapUnavailable": "Impossible d’accéder aux icônes du bureau pour le moment"
   },
   "host": {
     "traySettings": "Paramètres…",

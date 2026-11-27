@@ -40,7 +40,7 @@ class NativeSettingsForm : Form
     TextBox searchBox;
     CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
-    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss;
+    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss, btnSaveIcons, btnRestoreIcons;
     string activeCategory = "all", wizStyle = "icons", wizPrio = "light", baselineIconsSig = "";
     bool iconMoveCelebrated;
     readonly List<Button> categoryButtons = new List<Button>();
@@ -389,14 +389,63 @@ class NativeSettingsForm : Form
         // --- Bottom status bar ---
         var bottomPanel = new Panel();
         bottomPanel.Dock = DockStyle.Bottom;
-        bottomPanel.Height = S(36);
-        bottomPanel.Padding = new Padding(S(20), S(8), S(20), S(8));
+        bottomPanel.Height = S(44);
+        bottomPanel.Padding = new Padding(S(20), S(6), S(20), S(6));
         bottomPanel.BackColor = colSurface;
 
         var bottomBorder = new Panel();
         bottomBorder.Dock = DockStyle.Top;
         bottomBorder.Height = 1;
         bottomBorder.BackColor = colBorder;
+
+        var bottomActionsFlow = new FlowLayoutPanel();
+        bottomActionsFlow.Dock = DockStyle.Right;
+        bottomActionsFlow.AutoSize = true;
+        bottomActionsFlow.WrapContents = false;
+        bottomActionsFlow.BackColor = Color.Transparent;
+
+        btnSaveIcons = MakeGhostButton("Save icon layout");
+        btnSaveIcons.Margin = new Padding(S(8), S(2), 0, 0);
+        btnSaveIcons.Click += delegate
+        {
+            int cnt; string rk, err;
+            if (host.SaveIconSnapshot(out cnt, out rk, out err, false))
+            {
+                savedLabel.Text = I18n.Ui("iconSnapSaved", "n", cnt.ToString()).Replace("{res}", rk);
+                savedLabel.ForeColor = colAccent;
+                savedFlashTimer.Stop();
+                savedFlashTimer.Start();
+            }
+            else
+            {
+                string msg = err == "autoArrange" ? I18n.Ui("iconSnapAutoArrange") : (err == "unavailable" || string.IsNullOrEmpty(err) ? I18n.Ui("iconSnapUnavailable") : err);
+                MessageBox.Show(this, msg, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            RefreshIconSnapshotButtons();
+        };
+
+        btnRestoreIcons = MakeGhostButton("Restore icons");
+        btnRestoreIcons.Margin = new Padding(S(8), S(2), 0, 0);
+        btnRestoreIcons.Click += delegate
+        {
+            int rest, tot; string rk, err;
+            if (host.RestoreIconSnapshot(out rest, out tot, out rk, out err, false))
+            {
+                savedLabel.Text = I18n.Ui("iconSnapRestored", "n", rest.ToString()).Replace("{res}", rk);
+                savedLabel.ForeColor = colAccent;
+                savedFlashTimer.Stop();
+                savedFlashTimer.Start();
+            }
+            else
+            {
+                string msg = err == "autoArrange" ? I18n.Ui("iconSnapAutoArrange") : (err == "none" ? I18n.Ui("iconSnapNone") : (err == "unavailable" || string.IsNullOrEmpty(err) ? I18n.Ui("iconSnapUnavailable") : err));
+                MessageBox.Show(this, msg, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            RefreshIconSnapshotButtons();
+        };
+
+        bottomActionsFlow.Controls.Add(btnSaveIcons);
+        bottomActionsFlow.Controls.Add(btnRestoreIcons);
 
         savedLabel = new Label();
         savedLabel.Dock = DockStyle.Fill;
@@ -405,6 +454,7 @@ class NativeSettingsForm : Form
         savedLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         bottomPanel.Controls.Add(savedLabel);
+        bottomPanel.Controls.Add(bottomActionsFlow);
         bottomPanel.Controls.Add(bottomBorder);
 
         // --- Main two-column split ---
@@ -989,11 +1039,29 @@ class NativeSettingsForm : Form
         finally { suppressEvents = false; }
 
         SyncGlobalControlsFromSettings();
+        RefreshIconSnapshotButtons();
         RebuildCategoryBar();
         BuildWelcomeQuizControls();
         RebuildThemeCards();
         RebuildWelcomeRecommendations();
         SelectThemeUi(Settings.Theme);
+    }
+
+    public void RefreshIconSnapshotButtons()
+    {
+        if (IsDisposed || btnSaveIcons == null || btnRestoreIcons == null) return;
+        btnSaveIcons.Text = I18n.Ui("iconSnapSave");
+        tip.SetToolTip(btnSaveIcons, I18n.Ui("iconSnapSaveTitle"));
+        var st = DesktopIconSnapshotStore.GetStatus();
+        bool has = st.ContainsKey("hasSnapshot") && st["hasSnapshot"] is bool && (bool)st["hasSnapshot"];
+        string rk = st.ContainsKey("resKey") ? (st["resKey"] as string ?? "") : "";
+        int cnt = 0;
+        if (st.ContainsKey("count")) try { cnt = Convert.ToInt32(st["count"]); } catch { }
+        btnRestoreIcons.Enabled = has;
+        btnRestoreIcons.Text = I18n.Ui("iconSnapRestore");
+        tip.SetToolTip(btnRestoreIcons, has && cnt > 0
+            ? (I18n.Ui("iconSnapRestoreTitle") + " (" + cnt + ", " + rk + ")")
+            : I18n.Ui("iconSnapNone"));
     }
 
     void BuildWelcomeQuizControls()

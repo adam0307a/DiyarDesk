@@ -236,7 +236,16 @@
     "androidSetupTitle": "DiyarDesk Live-Hintergrund aktivieren",
     "androidSetupBody": "1. Tippe auf Live-Hintergrund festlegen → 2. Wähle DiyarDesk in der Systemauswahl → 3. Passe deine Tablet-Symbole im Layout an.",
     "androidSetupCta": "Live-Hintergrund festlegen",
-    "androidSetupIconsCta": "Symbol-Layout öffnen"
+    "androidSetupIconsCta": "Symbol-Layout öffnen",
+    "iconSnapSave": "Symbol-Layout speichern",
+    "iconSnapSaveTitle": "Aktuelle Desktop-Symbolpositionen für diese Bildschirmauflösung sichern",
+    "iconSnapRestore": "Symbole wiederherstellen",
+    "iconSnapRestoreTitle": "Gesicherte Desktop-Symbolpositionen nach Anzeige- oder Auflösungswechsel wiederherstellen",
+    "iconSnapSaved": "{n} Desktop-Symbolpositionen gespeichert ({res})",
+    "iconSnapRestored": "{n} Desktop-Symbole wiederhergestellt ({res})",
+    "iconSnapNone": "Noch kein Desktop-Symbol-Layout gespeichert",
+    "iconSnapAutoArrange": "Windows Auto-Anordnung ist aktiv. Rechtsklick Desktop -> Ansicht -> Symbole automatisch anordnen deaktivieren.",
+    "iconSnapUnavailable": "Desktop-Symbole sind derzeit nicht erreichbar"
   },
   "host": {
     "traySettings": "Einstellungen…",

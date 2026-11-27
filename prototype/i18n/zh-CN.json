@@ -236,7 +236,16 @@
     "androidSetupTitle": "启用 DiyarDesk 动态壁纸",
     "androidSetupBody": "1. 点击「设为动态壁纸」→ 2. 在系统列表中选择 DiyarDesk → 3. 前往「图标布局」对齐桌面图标与小组件。",
     "androidSetupCta": "设为动态壁纸",
-    "androidSetupIconsCta": "打开图标布局"
+    "androidSetupIconsCta": "打开图标布局",
+    "iconSnapSave": "备份图标布局",
+    "iconSnapSaveTitle": "保存当前屏幕分辨率下的桌面图标位置",
+    "iconSnapRestore": "恢复图标位置",
+    "iconSnapRestoreTitle": "在分辨率或显示器变化后恢复已保存的桌面图标位置",
+    "iconSnapSaved": "已备份 {n} 个桌面图标位置（{res}）",
+    "iconSnapRestored": "已恢复 {n} 个桌面图标位置（{res}）",
+    "iconSnapNone": "尚未备份桌面图标布局",
+    "iconSnapAutoArrange": "Windows 已启用“自动排列图标”。请在桌面右键 -> 查看 -> 取消勾选“自动排列图标”后重试。",
+    "iconSnapUnavailable": "暂时无法读取桌面图标"
   },
   "host": {
     "traySettings": "设置…",

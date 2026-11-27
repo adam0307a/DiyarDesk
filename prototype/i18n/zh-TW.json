@@ -236,7 +236,16 @@
     "androidSetupTitle": "啟用 DiyarDesk 動態桌布",
     "androidSetupBody": "1. 點擊「設為動態桌布」→ 2. 在系統選擇器中選取 DiyarDesk → 3. 前往「圖示版面」對齊平板圖示與小工具。",
     "androidSetupCta": "設為動態桌布",
-    "androidSetupIconsCta": "開啟圖示版面"
+    "androidSetupIconsCta": "開啟圖示版面",
+    "iconSnapSave": "備份圖示版面",
+    "iconSnapSaveTitle": "儲存目前螢幕解析度下的桌面圖示位置",
+    "iconSnapRestore": "還原圖示位置",
+    "iconSnapRestoreTitle": "在解析度或顯示器變更後還原已儲存的桌面圖示位置",
+    "iconSnapSaved": "已備份 {n} 個桌面圖示位置（{res}）",
+    "iconSnapRestored": "已還原 {n} 個桌面圖示位置（{res}）",
+    "iconSnapNone": "尚未備份桌面圖示版面",
+    "iconSnapAutoArrange": "Windows 已啟用「自動排列圖示」。請在桌面按右鍵 -> 檢視 -> 取消勾選「自動排列圖示」後重試。",
+    "iconSnapUnavailable": "暫時無法存取桌面圖示"
   },
   "host": {
     "traySettings": "設定…",

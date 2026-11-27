@@ -8,8 +8,22 @@
 // C# 5 compatible (.NET Framework 4.x csc.exe).
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows.Forms;
+
+class IconSnapshotEntry
+{
+    public string Key;
+    public string Name;
+    public int X;
+    public int Y;
+}
 
 class ShellIconReader : IDisposable
 {
@@ -17,6 +31,8 @@ class ShellIconReader : IDisposable
     const int SwfoNeedDispatch = 1;
     const uint SvgioAllView = 0x2;
     const uint ShgdnNormal = 0x0;
+    const uint ShgdnForParsing = 0x8000;
+    const uint SvsiPositionItem = 0x00000002;
     const int LvmGetItemSpacing = 0x1033;
     const int StrRetBytes = 272; // sizeof(STRRET) on x64 is 272 bytes (uint + pad + 260-byte union)
 
@@ -228,12 +244,17 @@ class ShellIconReader : IDisposable
 
     string ReadDisplayName(IntPtr pidl)
     {
+        return ReadItemName(pidl, ShgdnNormal);
+    }
+
+    string ReadItemName(IntPtr pidl, uint flags)
+    {
         if (shellFolder == null || pidl == IntPtr.Zero) return "";
         if (strRetBuf == IntPtr.Zero) strRetBuf = Marshal.AllocCoTaskMem(StrRetBytes);
         // Zero header so StrRetToBSTR never reads stale fields
         Marshal.WriteInt32(strRetBuf, 0, 0);
         Marshal.WriteIntPtr(strRetBuf, IntPtr.Size, IntPtr.Zero);
-        if (shellFolder.GetDisplayNameOf(pidl, ShgdnNormal, strRetBuf) != 0) return "";
+        if (shellFolder.GetDisplayNameOf(pidl, flags, strRetBuf) != 0) return "";
         IntPtr bstr = IntPtr.Zero;
         try
         {
@@ -398,6 +419,188 @@ class ShellIconReader : IDisposable
         boundListView = IntPtr.Zero;
     }
 
+    public bool TryCapturePositions(IntPtr listView, out List<IconSnapshotEntry> entries, out string err)
+    {
+        entries = null;
+        err = null;
+        if (listView == IntPtr.Zero || !Native.IsWindow(listView) || !EnsureBound(listView))
+        {
+            err = "unavailable";
+            return false;
+        }
+        try
+        {
+            int count;
+            if (folderView.ItemCount(SvgioAllView, out count) != 0 || count < 0)
+            {
+                err = "unavailable";
+                ReleaseCom();
+                return false;
+            }
+            var list = new List<IconSnapshotEntry>(count);
+            for (int i = 0; i < count; i++)
+            {
+                IntPtr pidl = IntPtr.Zero;
+                try
+                {
+                    if (folderView.Item(i, out pidl) != 0 || pidl == IntPtr.Zero) continue;
+                    Native.POINT pt;
+                    if (folderView.GetItemPosition(pidl, out pt) != 0) continue;
+                    string name = ReadItemName(pidl, ShgdnNormal);
+                    string key = ReadItemName(pidl, ShgdnForParsing);
+                    if (string.IsNullOrEmpty(key)) key = name;
+                    if (string.IsNullOrEmpty(key) && string.IsNullOrEmpty(name)) continue;
+                    var item = new IconSnapshotEntry();
+                    item.Key = key;
+                    item.Name = name;
+                    item.X = pt.X;
+                    item.Y = pt.Y;
+                    list.Add(item);
+                }
+                finally
+                {
+                    if (pidl != IntPtr.Zero) Marshal.FreeCoTaskMem(pidl);
+                }
+            }
+            entries = list;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            err = ex.Message;
+            ReleaseCom();
+            return false;
+        }
+    }
+
+    public bool TryRestorePositions(IntPtr listView, List<IconSnapshotEntry> savedEntries, int curW, int curH, out int restoredCount, out string err)
+    {
+        restoredCount = 0;
+        err = null;
+        if (savedEntries == null || savedEntries.Count == 0)
+        {
+            err = "none";
+            return false;
+        }
+        if (listView == IntPtr.Zero || !Native.IsWindow(listView) || !EnsureBound(listView))
+        {
+            err = "unavailable";
+            return false;
+        }
+        try
+        {
+            if (folderView.GetAutoArrange() == 0)
+            {
+                err = "autoArrange";
+                return false;
+            }
+            int count;
+            if (folderView.ItemCount(SvgioAllView, out count) != 0 || count < 0)
+            {
+                err = "unavailable";
+                ReleaseCom();
+                return false;
+            }
+
+            var byKey = new Dictionary<string, IconSnapshotEntry>(StringComparer.OrdinalIgnoreCase);
+            var byName = new Dictionary<string, IconSnapshotEntry>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < savedEntries.Count; i++)
+            {
+                var e = savedEntries[i];
+                if (e == null) continue;
+                if (!string.IsNullOrEmpty(e.Key) && !byKey.ContainsKey(e.Key)) byKey[e.Key] = e;
+                if (!string.IsNullOrEmpty(e.Name) && !byName.ContainsKey(e.Name)) byName[e.Name] = e;
+            }
+
+            var origin = new Native.POINT();
+            Native.ClientToScreen(listView, ref origin);
+            Rectangle vs = SystemInformation.VirtualScreen;
+            int minX = vs.Left - origin.X;
+            int minY = vs.Top - origin.Y;
+            int maxX = Math.Max(minX + 32, vs.Right - origin.X - 64);
+            int maxY = Math.Max(minY + 32, vs.Bottom - origin.Y - 80);
+            if (SystemInformation.MonitorCount <= 1)
+            {
+                minX = 0;
+                minY = 0;
+                maxX = Math.Max(64, curW - 64);
+                maxY = Math.Max(64, curH - 80);
+            }
+
+            var pidls = new List<IntPtr>(count);
+            var pts = new List<Native.POINT>(count);
+            try
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    IntPtr pidl = IntPtr.Zero;
+                    if (folderView.Item(i, out pidl) != 0 || pidl == IntPtr.Zero) continue;
+                    string key = ReadItemName(pidl, ShgdnForParsing);
+                    string name = ReadItemName(pidl, ShgdnNormal);
+                    IconSnapshotEntry match = null;
+                    if (!string.IsNullOrEmpty(key)) byKey.TryGetValue(key, out match);
+                    if (match == null && !string.IsNullOrEmpty(name)) byName.TryGetValue(name, out match);
+                    if (match == null)
+                    {
+                        Marshal.FreeCoTaskMem(pidl);
+                        continue;
+                    }
+                    var pt = new Native.POINT();
+                    pt.X = Math.Max(minX, Math.Min(maxX, match.X));
+                    pt.Y = Math.Max(minY, Math.Min(maxY, match.Y));
+                    pidls.Add(pidl);
+                    pts.Add(pt);
+                }
+
+                if (pidls.Count == 0)
+                {
+                    restoredCount = 0;
+                    return true;
+                }
+
+                int ptSize = Marshal.SizeOf(typeof(Native.POINT));
+                IntPtr apidl = IntPtr.Zero;
+                IntPtr apt = IntPtr.Zero;
+                try
+                {
+                    apidl = Marshal.AllocHGlobal(pidls.Count * IntPtr.Size);
+                    apt = Marshal.AllocHGlobal(pts.Count * ptSize);
+                    for (int k = 0; k < pidls.Count; k++)
+                    {
+                        Marshal.WriteIntPtr(apidl, k * IntPtr.Size, pidls[k]);
+                        Marshal.StructureToPtr(pts[k], IntPtr.Add(apt, k * ptSize), false);
+                    }
+                    int hr = folderView.SelectAndPositionItems((uint)pidls.Count, apidl, apt, SvsiPositionItem);
+                    if (hr != 0)
+                    {
+                        err = "COM 0x" + hr.ToString("X8", CultureInfo.InvariantCulture);
+                        return false;
+                    }
+                    restoredCount = pidls.Count;
+                    return true;
+                }
+                finally
+                {
+                    if (apidl != IntPtr.Zero) Marshal.FreeHGlobal(apidl);
+                    if (apt != IntPtr.Zero) Marshal.FreeHGlobal(apt);
+                }
+            }
+            finally
+            {
+                for (int k = 0; k < pidls.Count; k++)
+                {
+                    if (pidls[k] != IntPtr.Zero) Marshal.FreeCoTaskMem(pidls[k]);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            err = ex.Message;
+            ReleaseCom();
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         ReleaseCom();
@@ -406,5 +609,189 @@ class ShellIconReader : IDisposable
             Marshal.FreeCoTaskMem(strRetBuf);
             strRetBuf = IntPtr.Zero;
         }
+    }
+}
+
+static class DesktopIconSnapshotStore
+{
+    static readonly string FilePath = Path.Combine(Log.DataDir, "icon-snapshots.json");
+
+    public static string CurrentResolutionKey()
+    {
+        Rectangle b = Screen.PrimaryScreen.Bounds;
+        return b.Width.ToString(CultureInfo.InvariantCulture) + "x" + b.Height.ToString(CultureInfo.InvariantCulture);
+    }
+
+    static Dictionary<string, object> LoadRoot()
+    {
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                var d = Json.Parse(File.ReadAllText(FilePath, Encoding.UTF8)) as Dictionary<string, object>;
+                if (d != null) return d;
+            }
+        }
+        catch { }
+        return new Dictionary<string, object>();
+    }
+
+    static Dictionary<string, object> GetMap(Dictionary<string, object> root, string key)
+    {
+        object raw;
+        if (root != null && root.TryGetValue(key, out raw) && raw is Dictionary<string, object>)
+            return (Dictionary<string, object>)raw;
+        return new Dictionary<string, object>();
+    }
+
+    static object[] AsArr(object raw)
+    {
+        var arr = raw as object[];
+        if (arr != null) return arr;
+        var al = raw as ArrayList;
+        return al != null ? al.ToArray() : null;
+    }
+
+    public static bool SaveCurrent(out int count, out string resKey, out string err)
+    {
+        count = 0;
+        resKey = CurrentResolutionKey();
+        err = null;
+        IntPtr lv = IconReader.FindListView();
+        List<IconSnapshotEntry> captured;
+        using (var sr = new ShellIconReader())
+        {
+            if (!sr.TryCapturePositions(lv, out captured, out err) || captured == null)
+                return false;
+        }
+
+        var list = new List<object>(captured.Count);
+        for (int i = 0; i < captured.Count; i++)
+        {
+            var e = captured[i];
+            list.Add(Json.Obj("key", e.Key, "name", e.Name, "x", e.X, "y", e.Y));
+        }
+
+        var root = LoadRoot();
+        var snaps = GetMap(root, "snapshots");
+        snaps[resKey] = Json.Obj(
+            "savedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+            "count", captured.Count,
+            "items", list.ToArray());
+        root["version"] = 1;
+        root["latestKey"] = resKey;
+        root["snapshots"] = snaps;
+
+        try
+        {
+            Directory.CreateDirectory(Log.DataDir);
+            File.WriteAllText(FilePath, Json.Stringify(root), new UTF8Encoding(false));
+            count = captured.Count;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            err = ex.Message;
+            return false;
+        }
+    }
+
+    public static bool RestoreForCurrentScreen(out int restored, out int totalSaved, out string resKey, out string err)
+    {
+        restored = 0;
+        totalSaved = 0;
+        resKey = CurrentResolutionKey();
+        err = null;
+
+        var root = LoadRoot();
+        var snaps = GetMap(root, "snapshots");
+        object snapObj = null;
+        if (!snaps.TryGetValue(resKey, out snapObj))
+        {
+            object latestObj;
+            string lk = root.TryGetValue("latestKey", out latestObj) ? (latestObj as string) : null;
+            if (!string.IsNullOrEmpty(lk) && snaps.TryGetValue(lk, out snapObj))
+                resKey = lk;
+        }
+
+        var snapDict = snapObj as Dictionary<string, object>;
+        if (snapDict == null)
+        {
+            err = "none";
+            return false;
+        }
+
+        object rawItems;
+        var itemsArr = snapDict.TryGetValue("items", out rawItems) ? AsArr(rawItems) : null;
+        if (itemsArr == null || itemsArr.Length == 0)
+        {
+            err = "none";
+            return false;
+        }
+
+        var entries = new List<IconSnapshotEntry>(itemsArr.Length);
+        for (int i = 0; i < itemsArr.Length; i++)
+        {
+            var d = itemsArr[i] as Dictionary<string, object>;
+            if (d == null) continue;
+            var e = new IconSnapshotEntry();
+            e.Key = d.ContainsKey("key") ? (d["key"] as string ?? "") : "";
+            e.Name = d.ContainsKey("name") ? (d["name"] as string ?? "") : "";
+            try
+            {
+                e.X = d.ContainsKey("x") ? Convert.ToInt32(d["x"], CultureInfo.InvariantCulture) : 0;
+                e.Y = d.ContainsKey("y") ? Convert.ToInt32(d["y"], CultureInfo.InvariantCulture) : 0;
+                entries.Add(e);
+            }
+            catch { }
+        }
+        totalSaved = entries.Count;
+        if (entries.Count == 0)
+        {
+            err = "none";
+            return false;
+        }
+
+        Rectangle scr = Screen.PrimaryScreen.Bounds;
+        IntPtr lv = IconReader.FindListView();
+        using (var sr = new ShellIconReader())
+        {
+            return sr.TryRestorePositions(lv, entries, scr.Width, scr.Height, out restored, out err);
+        }
+    }
+
+    public static Dictionary<string, object> GetStatus()
+    {
+        string cur = CurrentResolutionKey();
+        var root = LoadRoot();
+        var snaps = GetMap(root, "snapshots");
+        bool exact = false;
+        string rk = cur;
+        object snapObj = null;
+        if (snaps.TryGetValue(cur, out snapObj) && snapObj is Dictionary<string, object>)
+        {
+            exact = true;
+        }
+        else
+        {
+            object latestObj;
+            string lk = root.TryGetValue("latestKey", out latestObj) ? (latestObj as string) : null;
+            if (!string.IsNullOrEmpty(lk) && snaps.TryGetValue(lk, out snapObj) && snapObj is Dictionary<string, object>)
+                rk = lk;
+        }
+
+        var snapDict = snapObj as Dictionary<string, object>;
+        bool has = snapDict != null;
+        int cnt = 0;
+        string ts = "";
+        if (has)
+        {
+            object cv, tv;
+            if (snapDict.TryGetValue("count", out cv))
+                try { cnt = Convert.ToInt32(cv, CultureInfo.InvariantCulture); } catch { }
+            if (snapDict.TryGetValue("savedAt", out tv) && tv is string)
+                ts = (string)tv;
+        }
+        return Json.Obj("hasSnapshot", has, "count", cnt, "resKey", rk, "savedAt", ts, "exactMatch", exact);
     }
 }

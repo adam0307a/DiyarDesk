@@ -169,7 +169,7 @@ static class IpcControlClient
         // args starts at "--ctl"
         if (args.Length < 2)
         {
-            Console.Error.WriteLine("Usage: Deskland.exe --ctl <status|setwp|setprop|apply-preset|pause|play|toggle|random|lowmode|solar|window-aware|playlist|reload|exit> [args...]");
+            Console.Error.WriteLine("Usage: Deskland.exe --ctl <status|setwp|setprop|apply-preset|icon-snapshot|pause|play|toggle|random|lowmode|solar|window-aware|playlist|reload|exit> [args...]");
             return 2;
         }
         bool asJson = false;
@@ -197,6 +197,10 @@ static class IpcControlClient
         {
             try { req["path"] = Path.GetFullPath(positional[1]); }
             catch { req["path"] = positional[1]; }
+        }
+        else if (cmd == "icon-snapshot")
+        {
+            req["action"] = positional.Count >= 2 ? positional[1].ToLowerInvariant() : "status";
         }
         else if ((cmd == "lowmode" || cmd == "solar" || cmd == "window-aware" || cmd == "system-bridge" || cmd == "mpv" || cmd == "rust-gl"))
         {
