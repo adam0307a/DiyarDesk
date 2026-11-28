@@ -47,6 +47,12 @@ object NativeGlBridge {
         "persephone",
         "eye-within-words",
         "cosmic-eye",
+        "ascii-clownfish",
+        "ascii-jellyfish",
+        "ascii-shark",
+        "ascii-lotus",
+        "ascii-cat-knight",
+        "turkish-flag",
     )
 
     /** Built-in themes that exist only in the native Rust + OpenGL engine (no full HTML/Canvas runtime). */
@@ -57,6 +63,12 @@ object NativeGlBridge {
         "persephone",
         "eye-within-words",
         "cosmic-eye",
+        "ascii-clownfish",
+        "ascii-jellyfish",
+        "ascii-shark",
+        "ascii-lotus",
+        "ascii-cat-knight",
+        "turkish-flag",
     )
 
     @Volatile

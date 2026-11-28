@@ -22,7 +22,7 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright 2026 DiyarDesk & Deskland
 !define MUI_ABORTWARNING
 !define MUI_ICON "${PAYLOAD}\host\bin\DesklandPreview.ico"
 !define MUI_UNICON "${PAYLOAD}\host\bin\DesklandPreview.ico"
-!define MUI_FINISHPAGE_RUN "$INSTDIR\host\bin\Deskland.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\host\bin\DiyarDesk.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "$(LaunchDeskland)"
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${PAYLOAD}\LICENSE"
@@ -151,6 +151,14 @@ Section "$(AppFiles)" SecApp
       Abort
     ${EndIf}
   ${EndIf}
+  IfFileExists "$INSTDIR\host\bin\DiyarDesk.exe" 0 check_old_exe
+  ExecWait '"$INSTDIR\host\bin\DiyarDesk.exe" --exit-installed' $0
+  ${If} $0 != 0
+    MessageBox MB_ICONSTOP "$(CloseFailed)"
+    SetErrorLevel 3
+    Abort
+  ${EndIf}
+  check_old_exe:
   IfFileExists "$INSTDIR\host\bin\Deskland.exe" 0 closed
   ExecWait '"$INSTDIR\host\bin\Deskland.exe" --exit-installed' $0
   ${If} $0 != 0
@@ -158,18 +166,19 @@ Section "$(AppFiles)" SecApp
     SetErrorLevel 3
     Abort
   ${EndIf}
+  Delete "$INSTDIR\host\bin\Deskland.exe"
   closed:
   !include "${FILE_LIST}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateDirectory "$SMPROGRAMS\DiyarDesk"
-  CreateShortcut "$SMPROGRAMS\DiyarDesk\DiyarDesk.lnk" "$INSTDIR\host\bin\Deskland.exe"
+  CreateShortcut "$SMPROGRAMS\DiyarDesk\DiyarDesk.lnk" "$INSTDIR\host\bin\DiyarDesk.exe"
   CreateShortcut "$SMPROGRAMS\DiyarDesk\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKCU "Software\DesklandPreview\Installer" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayName" "DiyarDesk"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayVersion" "${VERSION}"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "Publisher" "DiyarDesk contributors"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayIcon" "$INSTDIR\host\bin\Deskland.exe"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "DisplayIcon" "$INSTDIR\host\bin\DiyarDesk.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DesklandPreview" "NoModify" 1
@@ -179,8 +188,8 @@ Section "$(AppFiles)" SecApp
   WriteRegStr HKCU "Software\Classes\.deskland-preset" "" "DiyarDesk.Preset"
   WriteRegStr HKCU "Software\Classes\.deskland-preset" "Content Type" "application/json"
   WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset" "" "DiyarDesk Preset"
-  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\DefaultIcon" "" "$INSTDIR\host\bin\Deskland.exe,0"
-  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\shell\open\command" "" '$\"$INSTDIR\host\bin\Deskland.exe$\" $\"%1$\"'
+  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\DefaultIcon" "" "$INSTDIR\host\bin\DiyarDesk.exe,0"
+  WriteRegStr HKCU "Software\Classes\DiyarDesk.Preset\shell\open\command" "" '$\"$INSTDIR\host\bin\DiyarDesk.exe$\" $\"%1$\"'
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 SectionEnd
 
@@ -189,6 +198,14 @@ Function un.onInit
   SetRegView 64
 FunctionEnd
 Section "Uninstall"
+  IfFileExists "$INSTDIR\host\bin\DiyarDesk.exe" 0 un_check_old
+  ExecWait '"$INSTDIR\host\bin\DiyarDesk.exe" --exit-installed' $0
+  ${If} $0 != 0
+    MessageBox MB_ICONSTOP "$(CloseFailed)"
+    SetErrorLevel 3
+    Abort
+  ${EndIf}
+  un_check_old:
   IfFileExists "$INSTDIR\host\bin\Deskland.exe" 0 unclosed
   ExecWait '"$INSTDIR\host\bin\Deskland.exe" --exit-installed' $0
   ${If} $0 != 0
@@ -198,7 +215,10 @@ Section "Uninstall"
   ${EndIf}
   unclosed:
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPreview"
-  ${UnStrStr} $1 $0 '$\"$INSTDIR\host\bin\Deskland.exe$\"'
+  ${UnStrStr} $1 $0 '$\"$INSTDIR\host\bin\DiyarDesk.exe$\"'
+  ${If} $1 == ""
+    ${UnStrStr} $1 $0 '$\"$INSTDIR\host\bin\Deskland.exe$\"'
+  ${EndIf}
   ${If} $1 != ""
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "DesklandPreview"
   ${EndIf}

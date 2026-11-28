@@ -272,8 +272,12 @@
   .preview-static img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
   .preview-static img[hidden] { display: none; }
   .preview-static-badge { position: relative; z-index: 1; padding: 4px 10px; border-radius: 999px; background: rgba(8, 12, 18, 0.72); border: 1px solid rgba(255, 255, 255, 0.16); color: #eef5ff; font-size: 11px; font-weight: 600; letter-spacing: .02em; backdrop-filter: blur(6px); }
-  .preview-foot { margin-top: 12px; color: var(--muted); font-size: 10px; display: flex; align-items: center; gap: 6px; }
+  .preview-foot { margin-top: 12px; color: var(--muted); font-size: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .preview-foot-left { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
   .live-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--text); }
+  .live-dot.off { background: var(--muted); opacity: .45; box-shadow: none; }
+  .preview-toggle-btn { padding: 3px 9px; font-size: 11px; line-height: 1.3; }
+  .preview-ram-note { margin: 8px 0 0; padding: 6px 9px; border-radius: 9px; font-size: 11px; line-height: 1.4; color: var(--muted); background: rgba(128,128,128,.08); border: 1px solid rgba(128,128,128,.16); }
 
   .controls { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); padding-right: 4px; margin-right: -4px; }
   .controls::-webkit-scrollbar { width: 8px; }
@@ -670,7 +674,11 @@
       </div>
       <p class="theme-credit" id="themeCredit" hidden><span id="themeCreditPrefix"></span> <a id="themeCreditLink" href="#" target="_blank" rel="noopener noreferrer"></a></p>
       <div class="stage" id="stage"><div class="preview" id="previewBox"><iframe id="preview" data-i18n-title="livePreview" title="实时预览" tabindex="-1"></iframe><div class="preview-static" id="previewStatic" hidden><img id="previewStaticImg" alt="" decoding="async"><span class="preview-static-badge" id="previewStaticBadge">Rust OpenGL</span></div></div></div>
-      <p class="preview-foot"><span class="live-dot"></span><span id="previewFoot">实时预览</span></p>
+      <div class="preview-foot">
+        <span class="preview-foot-left"><span class="live-dot" id="previewDot"></span><span id="previewFoot">实时预览</span></span>
+        <button type="button" class="ghost-btn preview-toggle-btn" id="previewToggle" data-i18n-title="previewToggleTitle" data-i18n="previewHide">关闭预览</button>
+      </div>
+      <p class="preview-ram-note" id="previewRamNote" data-i18n="previewRamTip"></p>
       <div class="preview-actions">
         <input type="file" id="audioFileInput" accept="audio/*" hidden>
         <button class="ghost-btn share" id="reseed" data-i18n-title="refreshTitle" title="重新生成这个主题的画面">
@@ -929,6 +937,7 @@ function applyStatic() {
     Object.entries(LANGS).map(([c, n]) => `<option value="${c}">${n}</option>`).join('');
   $('lang').value = state.langSetting in LANGS ? state.langSetting : 'auto';
   $('lang').setAttribute('aria-label', t('language'));
+  if (typeof syncPreviewToggleUi === 'function') syncPreviewToggleUi();
 }
 async function setLang(code) {
   if (!LANGS[code]) code = 'en';
@@ -1424,7 +1433,9 @@ function updateLiveRamBadge() {
   const stBadge = $('previewStaticBadge');
   if (stBadge) {
     const th = state.theme ? themeById(state.theme) : null;
-    if (shouldUseStaticPreview(th) && mb !== null) {
+    if (previewDisabled) {
+      stBadge.textContent = mb !== null ? (t('previewOffBadge') + ' · ' + t('ramLiveBadge', { mb })) : t('previewOffBadge');
+    } else if (shouldUseStaticPreview(th) && mb !== null) {
       stBadge.textContent = t('rustOpenGl') + ' · ' + t('ramLiveBadge', { mb });
     } else {
       stBadge.textContent = t('rustOpenGl');
@@ -1580,9 +1591,24 @@ frame.addEventListener('load', () => {
   clearTimeout(previewReadyTimer);
   previewReadyTimer = setTimeout(sendPreviewBootstrap, 180);
 });
+function syncPreviewToggleUi() {
+  const btn = $('previewToggle');
+  const dot = $('previewDot');
+  if (btn) {
+    btn.textContent = t(previewDisabled ? 'previewShow' : 'previewHide');
+    btn.title = t('previewToggleTitle');
+  }
+  if (dot) dot.classList.toggle('off', !!previewDisabled);
+}
 function updateFoot() {
   const th = themeById(state.theme);
-  $('previewFoot').textContent = shouldUseStaticPreview(th) ? t('rustOpenGl') : t('livePreview');
+  const foot = $('previewFoot');
+  if (foot) {
+    foot.textContent = previewDisabled
+      ? t('previewOffBadge')
+      : (shouldUseStaticPreview(th) ? t('rustOpenGl') : t('livePreview'));
+  }
+  syncPreviewToggleUi();
 }
 
 function renderHead() {
@@ -1649,11 +1675,29 @@ const GL_ONLY_PREVIEW_IDS = new Set([
   'persephone',
   'eye-within-words',
   'cosmic-eye',
+  'ascii-clownfish',
+  'ascii-jellyfish',
+  'ascii-shark',
+  'ascii-lotus',
+  'ascii-cat-knight',
+  'turkish-flag',
 ]);
+const PREVIEW_OFF_KEY = 'deskland.previewOff';
+let previewDisabled = (() => {
+  try { return localStorage.getItem(PREVIEW_OFF_KEY) === '1'; } catch (_) { return false; }
+})();
 function shouldUseStaticPreview(th) {
+  if (previewDisabled) return true;
   if (!th) return false;
   if (state.rustOpenGl || state.nativeActive) return true;
   return !!(host && GL_ONLY_PREVIEW_IDS.has(th.id));
+}
+if ($('previewToggle')) {
+  $('previewToggle').addEventListener('click', () => {
+    previewDisabled = !previewDisabled;
+    try { localStorage.setItem(PREVIEW_OFF_KEY, previewDisabled ? '1' : '0'); } catch (_) {}
+    showTheme();
+  });
 }
 function unloadPreviewIframe() {
   previewReady = false;

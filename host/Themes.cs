@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -170,6 +171,9 @@ static class CustomThemes
     public static readonly HashSet<string> ArchiveAllowedBasenames = new HashSet<string>(new string[] {
         "license", "notice", "readme", "copying", "authors", "changelog"
     }, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> ArchiveAllowedNativeExts = new HashSet<string>(new string[] {
+        ".dll", ".rs", ".toml", ".lock"
+    }, StringComparer.OrdinalIgnoreCase);
     static readonly PropertyInfo ZipExternalAttrsProp = typeof(ZipArchiveEntry).GetProperty("ExternalAttributes");
 
     public const long MaxArchiveBytes = 150L * 1024L * 1024L;
@@ -177,9 +181,18 @@ static class CustomThemes
 
     public static bool IsAllowedArchiveMember(string fileName)
     {
+        return IsAllowedArchiveMember(fileName, false);
+    }
+
+    public static bool IsAllowedArchiveMember(string fileName, bool allowNative)
+    {
         if (string.IsNullOrEmpty(fileName)) return false;
         string ext = Path.GetExtension(fileName);
-        if (!string.IsNullOrEmpty(ext)) return ArchiveAllowedExts.Contains(ext);
+        if (!string.IsNullOrEmpty(ext))
+        {
+            if (ArchiveAllowedExts.Contains(ext)) return true;
+            return allowNative && ArchiveAllowedNativeExts.Contains(ext);
+        }
         return ArchiveAllowedBasenames.Contains(fileName);
     }
 
@@ -330,6 +343,11 @@ static class CustomThemes
 
     static List<ZipEntryPlan> SafeZipMembers(ZipArchive archive)
     {
+        return SafeZipMembers(archive, false);
+    }
+
+    static List<ZipEntryPlan> SafeZipMembers(ZipArchive archive, bool allowNative)
+    {
         var entries = new List<ZipEntryPlan>();
         long totalSize = 0;
         var topDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -355,7 +373,7 @@ static class CustomThemes
             }
             if (parts.Count == 0) continue;
             if (string.Equals(parts[0], "__MACOSX", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!IsAllowedArchiveMember(parts[parts.Count - 1]))
+            if (!IsAllowedArchiveMember(parts[parts.Count - 1], allowNative))
                 throw new InvalidOperationException("Unsupported file type in theme archive: " + entry.FullName);
 
             totalSize += Math.Max(0L, entry.Length);
@@ -875,7 +893,427 @@ static class CustomThemes
             + "})();\n</script>\n</body>\n</html>\n";
     }
 
+    public static Dictionary<string, object> FindById(string themeId)
+    {
+        if (string.IsNullOrEmpty(themeId)) return null;
+        var list = Load();
+        for (int i = 0; i < list.Count; i++)
+        {
+            string tid = list[i].ContainsKey("id") ? list[i]["id"] as string : null;
+            if (string.Equals(tid, themeId, StringComparison.OrdinalIgnoreCase))
+                return list[i];
+        }
+        return null;
+    }
+
+    public static bool IsCustomGlTheme(Dictionary<string, object> theme)
+    {
+        if (theme == null) return false;
+        object raw;
+        if (!theme.TryGetValue("engine", out raw) || !(raw is string)) return false;
+        string eng = ((string)raw).Trim().ToLowerInvariant();
+        return eng == "opengl-glsl" || eng == "opengl-rust";
+    }
+
+    public static bool IsCustomGlThemeId(string themeId)
+    {
+        return IsCustomGlTheme(FindById(themeId));
+    }
+
+    public static string BuildCustomGlMessage(string themeId)
+    {
+        return BuildCustomGlMessage(FindById(themeId));
+    }
+
+    public static string BuildCustomGlMessage(Dictionary<string, object> theme)
+    {
+        if (!IsCustomGlTheme(theme)) return null;
+        string engine = Convert.ToString(theme["engine"], CultureInfo.InvariantCulture).Trim().ToLowerInvariant();
+        string id = theme.ContainsKey("id") ? (theme["id"] as string ?? "") : "";
+        string dir = theme.ContainsKey("themeDir") ? (theme["themeDir"] as string ?? "").Trim() : "";
+        if (string.IsNullOrEmpty(dir) && !string.IsNullOrEmpty(id))
+            dir = Path.Combine(Dir, id);
+        string entry = theme.ContainsKey("entry") ? (theme["entry"] as string ?? "").Trim() : "";
+        if (string.IsNullOrEmpty(dir) || string.IsNullOrEmpty(entry)) return null;
+
+        var msg = Json.Obj(
+            "t", "customGl",
+            "engine", engine,
+            "dir", dir,
+            "entry", entry);
+
+        object rawVert;
+        if (theme.TryGetValue("vert", out rawVert) && rawVert is string)
+        {
+            string vert = ((string)rawVert).Trim();
+            if (!string.IsNullOrEmpty(vert)) msg["vert"] = vert;
+        }
+
+        object rawTex;
+        if (theme.TryGetValue("textures", out rawTex) && rawTex is IEnumerable && !(rawTex is string))
+        {
+            var texList = new List<string>();
+            foreach (object to in (IEnumerable)rawTex)
+            {
+                string ts = to as string;
+                if (!string.IsNullOrEmpty(ts) && ts.Trim().Length > 0)
+                {
+                    texList.Add(ts.Trim());
+                    if (texList.Count >= 4) break;
+                }
+            }
+            if (texList.Count > 0) msg["textures"] = texList;
+        }
+
+        var paramOrder = new List<string>();
+        var colorOrder = new List<string>();
+        object rawGroups;
+        if (theme.TryGetValue("groups", out rawGroups) && rawGroups is IEnumerable && !(rawGroups is string))
+        {
+            foreach (object go in (IEnumerable)rawGroups)
+            {
+                var grp = go as Dictionary<string, object>;
+                if (grp == null || !grp.ContainsKey("params")) continue;
+                var ps = grp["params"] as IEnumerable;
+                if (ps == null || grp["params"] is string) continue;
+                foreach (object po in ps)
+                {
+                    var p = po as Dictionary<string, object>;
+                    if (p == null) continue;
+                    string key = p.ContainsKey("key") ? (p["key"] as string ?? "").Trim() : "";
+                    if (string.IsNullOrEmpty(key)) continue;
+                    string ptype = p.ContainsKey("type") ? (p["type"] as string ?? "").Trim().ToLowerInvariant() : "";
+                    if (ptype == "color")
+                    {
+                        if (colorOrder.Count < 8) colorOrder.Add(key);
+                    }
+                    else
+                    {
+                        if (paramOrder.Count < 16) paramOrder.Add(key);
+                    }
+                }
+            }
+        }
+        if (paramOrder.Count > 0) msg["paramOrder"] = paramOrder;
+        if (colorOrder.Count > 0) msg["colorOrder"] = colorOrder;
+        return Json.Stringify(msg);
+    }
+
+    public sealed class ImportScanResult
+    {
+        public string Kind;
+        public List<string> Engines = new List<string>();
+        public bool RequiresNativeTrust;
+        public bool HasRustSource;
+        public bool HasPrebuiltBinary;
+        public string Name;
+    }
+
+    static string NormalizeManifestEngine(object rawEngine)
+    {
+        string eng = rawEngine != null ? Convert.ToString(rawEngine, CultureInfo.InvariantCulture).Trim().ToLowerInvariant() : "";
+        if (eng == "opengl-glsl" || eng == "glsl" || eng == "native-glsl" || eng == "shader") return "opengl-glsl";
+        if (eng == "opengl-rust" || eng == "rust-gl" || eng == "rust" || eng == "native-rust" || eng == "cdylib") return "opengl-rust";
+        if (eng == "web" || eng == "html" || eng == "webgl" || eng == "canvas") return "web";
+        return "";
+    }
+
+    public static ImportScanResult InspectImportSource(string sourcePath)
+    {
+        if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath))
+            throw new FileNotFoundException("Selected file does not exist.");
+        string ext = (Path.GetExtension(sourcePath) ?? "").ToLowerInvariant();
+        string stem = Path.GetFileNameWithoutExtension(sourcePath);
+        string title = PrettyTitle(stem);
+        if (title.Length > 60) title = title.Substring(0, 60);
+
+        if (HasExt(ext, ShaderExts))
+        {
+            var r = new ImportScanResult();
+            r.Kind = "dual";
+            r.Engines.Add("opengl-glsl");
+            r.Engines.Add("web");
+            r.Name = title;
+            return r;
+        }
+        if (!HasExt(ext, ArchiveExts))
+        {
+            var r = new ImportScanResult();
+            r.Kind = "web";
+            r.Engines.Add("web");
+            r.Name = title;
+            return r;
+        }
+
+        ZipArchive zf;
+        try { zf = ZipFile.OpenRead(sourcePath); }
+        catch (InvalidDataException) { throw new InvalidOperationException("Archive is corrupted or not a valid ZIP file."); }
+        using (zf)
+        {
+            var entries = SafeZipMembers(zf, true);
+            var relPaths = new List<string>(entries.Count);
+            var relLower = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < entries.Count; i++)
+            {
+                string rp = string.Join("/", entries[i].Parts);
+                relPaths.Add(rp);
+                if (!relLower.ContainsKey(rp)) relLower[rp] = entries[i].Entry;
+            }
+
+            var manifest = new Dictionary<string, object>();
+            string[] manifestNames = new string[] { "manifest.json", "theme.json" };
+            for (int i = 0; i < manifestNames.Length; i++)
+            {
+                ZipArchiveEntry me;
+                if (!relLower.TryGetValue(manifestNames[i], out me)) continue;
+                try
+                {
+                    using (Stream ms = me.Open())
+                    using (var sr = new StreamReader(ms, Encoding.UTF8))
+                    {
+                        var parsed = Json.Parse(sr.ReadToEnd()) as Dictionary<string, object>;
+                        if (parsed != null)
+                        {
+                            manifest = parsed;
+                            break;
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            object nameObj = null;
+            if (!manifest.TryGetValue("name", out nameObj) || nameObj == null) manifest.TryGetValue("title", out nameObj);
+            string name = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : title;
+            if (name.Length > 60) name = name.Substring(0, 60);
+
+            object engineObj = null;
+            manifest.TryGetValue("engine", out engineObj);
+            string declared = NormalizeManifestEngine(engineObj);
+
+            bool hasCargo = relLower.ContainsKey("cargo.toml");
+            bool hasRs = false;
+            bool hasPrebuiltBinary = false;
+            bool hasGlsl = false;
+            bool hasHtml = false;
+            bool hasRootIndexHtml = relLower.ContainsKey("index.html");
+
+            for (int i = 0; i < relPaths.Count; i++)
+            {
+                string e = (Path.GetExtension(relPaths[i]) ?? "").ToLowerInvariant();
+                if (e == ".rs") hasRs = true;
+                else if (e == ".dll") hasPrebuiltBinary = true;
+                else if (HasExt(e, ShaderExts)) hasGlsl = true;
+                else if (HasExt(e, HtmlExts)) hasHtml = true;
+            }
+
+            bool hasRustSource = hasCargo && hasRs;
+            bool hasRustPlugin = hasRustSource || hasPrebuiltBinary || declared == "opengl-rust";
+            if (!hasRustPlugin)
+            {
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    string last = entries[i].Parts[entries[i].Parts.Length - 1];
+                    if (!IsAllowedArchiveMember(last, false))
+                        throw new InvalidOperationException("Unsupported file type in theme archive: " + string.Join("/", entries[i].Parts));
+                }
+            }
+
+            var engines = new List<string>();
+            bool hasManifestShader = manifest.ContainsKey("shader") && manifest["shader"] != null;
+            if (hasRustPlugin)
+                engines.Add("opengl-rust");
+            else if (declared == "opengl-glsl" || (hasGlsl && !hasHtml) || hasManifestShader)
+                engines.Add("opengl-glsl");
+
+            if (hasHtml && declared != "opengl-glsl" && declared != "opengl-rust")
+                engines.Add("web");
+            else if (hasHtml && (declared == "opengl-glsl" || declared == "opengl-rust") && hasRootIndexHtml)
+                engines.Add("web");
+
+            if (engines.Count == 0) engines.Add("web");
+
+            var res = new ImportScanResult();
+            res.Kind = engines.Count > 1 ? "dual" : engines[0];
+            res.Engines = engines;
+            res.RequiresNativeTrust = engines.Contains("opengl-rust");
+            res.HasRustSource = hasRustSource;
+            res.HasPrebuiltBinary = hasPrebuiltBinary;
+            res.Name = name;
+            return res;
+        }
+    }
+
+    static string SafeRelFile(string themeDir, string rel, string[] allowedExts)
+    {
+        string clean = NormalizeArchiveRel(rel);
+        if (string.IsNullOrEmpty(clean))
+            throw new InvalidOperationException("Unsafe relative path in theme manifest.");
+        string cand = Path.Combine(themeDir, clean.Replace('/', Path.DirectorySeparatorChar));
+        if (!IsUnderDir(cand, themeDir) || !File.Exists(cand))
+            throw new InvalidOperationException("Referenced asset not found in archive: " + clean);
+        if (allowedExts != null && !HasExt(Path.GetExtension(cand), allowedExts))
+            throw new InvalidOperationException("Unsupported asset extension: " + clean);
+        return clean;
+    }
+
+    static string FindEntryGlsl(string themeDir, string preferred)
+    {
+        if (!string.IsNullOrEmpty(preferred))
+            return SafeRelFile(themeDir, preferred, ShaderExts);
+        string[] common = new string[] { "main.frag", "shader.frag", "main.glsl", "shader.glsl" };
+        for (int i = 0; i < common.Length; i++)
+            if (File.Exists(Path.Combine(themeDir, common[i]))) return common[i];
+
+        string[] rootFiles = Directory.GetFiles(themeDir);
+        Array.Sort(rootFiles, StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < rootFiles.Length; i++)
+            if (HasExt(Path.GetExtension(rootFiles[i]), ShaderExts)) return Path.GetFileName(rootFiles[i]);
+
+        string[] allFiles = Directory.GetFiles(themeDir, "*", SearchOption.AllDirectories);
+        Array.Sort(allFiles, StringComparer.OrdinalIgnoreCase);
+        string prefix = Path.GetFullPath(themeDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        for (int i = 0; i < allFiles.Length; i++)
+        {
+            if (HasExt(Path.GetExtension(allFiles[i]), ShaderExts))
+            {
+                string full = Path.GetFullPath(allFiles[i]);
+                if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    return full.Substring(prefix.Length).Replace('\\', '/');
+            }
+        }
+        throw new InvalidOperationException("No .frag or .glsl fragment shader found in archive.");
+    }
+
+    static string FindPrebuiltPlugin(string themeDir, string preferred)
+    {
+        if (!string.IsNullOrEmpty(preferred))
+        {
+            string clean = NormalizeArchiveRel(preferred);
+            if (!string.IsNullOrEmpty(clean))
+            {
+                string cand = Path.Combine(themeDir, clean.Replace('/', Path.DirectorySeparatorChar));
+                if (IsUnderDir(cand, themeDir) && File.Exists(cand) && string.Equals(Path.GetExtension(cand), ".dll", StringComparison.OrdinalIgnoreCase))
+                    return clean;
+            }
+        }
+        string[] subDirs = new string[] {
+            Path.Combine(Path.Combine(themeDir, "bin"), "windows-x86_64"),
+            Path.Combine(Path.Combine(themeDir, "bin"), "win64"),
+            Path.Combine(Path.Combine(themeDir, "bin"), "windows")
+        };
+        string prefix = Path.GetFullPath(themeDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        for (int s = 0; s < subDirs.Length; s++)
+        {
+            if (!Directory.Exists(subDirs[s])) continue;
+            string[] files = Directory.GetFiles(subDirs[s], "*.dll");
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            if (files.Length > 0)
+            {
+                string full = Path.GetFullPath(files[0]);
+                if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    return full.Substring(prefix.Length).Replace('\\', '/');
+            }
+        }
+        string[] rootDlls = Directory.GetFiles(themeDir, "*.dll");
+        Array.Sort(rootDlls, StringComparer.OrdinalIgnoreCase);
+        if (rootDlls.Length > 0) return Path.GetFileName(rootDlls[0]);
+        return null;
+    }
+
+    static string FindCargoExe()
+    {
+        string pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+        string[] dirs = pathEnv.Split(';');
+        for (int i = 0; i < dirs.Length; i++)
+        {
+            string d = dirs[i].Trim();
+            if (string.IsNullOrEmpty(d)) continue;
+            string cand = Path.Combine(d, "cargo.exe");
+            if (File.Exists(cand)) return cand;
+        }
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrEmpty(home))
+        {
+            string fallback = Path.Combine(Path.Combine(home, ".cargo"), "bin");
+            string cand = Path.Combine(fallback, "cargo.exe");
+            if (File.Exists(cand)) return cand;
+        }
+        return null;
+    }
+
+    static string CompileRustPlugin(string themeDir)
+    {
+        string cargoExe = FindCargoExe();
+        if (string.IsNullOrEmpty(cargoExe))
+            throw new InvalidOperationException("Rust + OpenGL eklentisini kaynak koddan derlemek için sistemde Cargo (Rust) kurulu olmalıdır.");
+        string cargoToml = Path.Combine(themeDir, "Cargo.toml");
+        if (!File.Exists(cargoToml))
+            throw new InvalidOperationException("Rust eklenti paketinde Cargo.toml bulunamadı.");
+
+        var psi = new ProcessStartInfo();
+        psi.FileName = cargoExe;
+        psi.Arguments = "build --release";
+        psi.WorkingDirectory = themeDir;
+        psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        string cargoBinDir = Path.GetDirectoryName(cargoExe);
+        string curPath = psi.EnvironmentVariables["PATH"] ?? "";
+        if (!string.IsNullOrEmpty(cargoBinDir) && curPath.IndexOf(cargoBinDir, StringComparison.OrdinalIgnoreCase) < 0)
+            psi.EnvironmentVariables["PATH"] = cargoBinDir + ";" + curPath;
+
+        using (var proc = Process.Start(psi))
+        {
+            string stdout = proc.StandardOutput.ReadToEnd();
+            string stderr = proc.StandardError.ReadToEnd();
+            if (!proc.WaitForExit(300000))
+            {
+                try { proc.Kill(); } catch { }
+                throw new InvalidOperationException("Cargo derlemesi zaman aşımına uğradı.");
+            }
+            if (proc.ExitCode != 0)
+            {
+                string raw = string.IsNullOrEmpty(stderr) ? stdout : stderr;
+                string[] lines = raw.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                int start = Math.Max(0, lines.Length - 10);
+                var sb = new StringBuilder("Rust eklentisi derlenemedi:\n");
+                for (int i = start; i < lines.Length; i++) sb.AppendLine(lines[i]);
+                throw new InvalidOperationException(sb.ToString());
+            }
+        }
+
+        string relDir = Path.Combine(Path.Combine(themeDir, "target"), "release");
+        string[] built = Directory.Exists(relDir) ? Directory.GetFiles(relDir, "*.dll") : new string[0];
+        Array.Sort(built, StringComparer.OrdinalIgnoreCase);
+        if (built.Length == 0)
+            throw new InvalidOperationException("Cargo derlemesi tamamlandı ancak target/release altında .dll (`crate-type = [\"cdylib\"]`) bulunamadı.");
+
+        string outDir = Path.Combine(Path.Combine(themeDir, "bin"), "windows-x86_64");
+        Directory.CreateDirectory(outDir);
+        string outFile = Path.Combine(outDir, "plugin.dll");
+        File.Copy(built[0], outFile, true);
+        try { Directory.Delete(Path.Combine(themeDir, "target"), true); } catch { }
+        return "bin/windows-x86_64/plugin.dll";
+    }
+
+    static string NativeGlCardHtml(string title, string engine)
+    {
+        string safeTitle = WebUtility.HtmlEncode(title ?? "Native OpenGL Theme");
+        string label = engine == "opengl-rust" ? "Native Rust + OpenGL 3.3 Plugin" : "Native OpenGL 3.3 Core GLSL Shader";
+        return "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>" + safeTitle + "</title>\n"
+            + "<style>html,body{margin:0;width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(circle at 28% 35%,rgba(88,180,255,.28),transparent 52%),#0d1422;color:#e6eef9;font-family:system-ui,sans-serif;text-align:center} .badge{display:inline-block;margin-top:8px;padding:4px 10px;border-radius:999px;background:rgba(34,211,238,.16);color:#67e8f9;font-size:12px}</style>\n"
+            + "</head>\n<body>\n<div><strong>" + safeTitle + "</strong><div class=\"badge\">" + WebUtility.HtmlEncode(label) + "</div></div>\n"
+            + "<script>if(window.chrome&&window.chrome.webview)window.chrome.webview.postMessage('ready');</script>\n</body>\n</html>\n";
+    }
+
     public static Dictionary<string, object> ImportFile(string sourcePath, string pageDir)
+    {
+        return ImportFile(sourcePath, pageDir, null, false);
+    }
+
+    public static Dictionary<string, object> ImportFile(string sourcePath, string pageDir, string preferredEngine, bool allowNativeCode)
     {
         if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath))
             throw new FileNotFoundException("Selected file does not exist.");
@@ -887,6 +1325,14 @@ static class CustomThemes
             throw new InvalidOperationException("Unsupported file type: " + (string.IsNullOrEmpty(ext) ? "none" : ext));
         if (!HasExt(ext, ArchiveExts) && fi.Length > MaxArchiveBytes)
             throw new InvalidOperationException("Selected file exceeds 150 MB size limit.");
+
+        ImportScanResult scan = InspectImportSource(sourcePath);
+        string chosenEngine = NormalizeManifestEngine(preferredEngine);
+        if (string.IsNullOrEmpty(chosenEngine) || !scan.Engines.Contains(chosenEngine))
+            chosenEngine = scan.Engines[0];
+
+        if (chosenEngine == "opengl-rust" && !allowNativeCode)
+            throw new InvalidOperationException("Native Rust + OpenGL eklentisi çalıştırılabilir kod içerir; içe aktarmak için güvenlik onayı gereklidir.");
 
         Directory.CreateDirectory(Dir);
         var current = Load();
@@ -918,7 +1364,7 @@ static class CustomThemes
                 catch (InvalidDataException) { throw new InvalidOperationException("Archive is corrupted or not a valid ZIP file."); }
                 using (zf)
                 {
-                    var entries = SafeZipMembers(zf);
+                    var entries = SafeZipMembers(zf, chosenEngine == "opengl-rust");
                     long remaining = MaxArchiveBytes;
                     for (int i = 0; i < entries.Count; i++)
                     {
@@ -961,26 +1407,11 @@ static class CustomThemes
                     catch { livelyProps = null; }
                 }
 
-                object entryPref = null;
-                string[] entryKeys = new string[] { "entry", "page", "main", "file" };
-                for (int i = 0; i < entryKeys.Length; i++)
-                {
-                    if (manifest.TryGetValue(entryKeys[i], out entryPref) && entryPref != null) break;
-                }
-                if (entryPref == null && livelyInfo != null) livelyInfo.TryGetValue("FileName", out entryPref);
-                string entry = FindEntryHtml(themeDir, entryPref as string);
-                string entryHtml = ValidateHtmlFile(Path.Combine(themeDir, entry.Replace('/', Path.DirectorySeparatorChar)));
-                string htmlTitle = ExtractHtmlTitle(entryHtml, PrettyTitle(stem));
-
                 object nameObj = null, descObj = null, adapObj = null, thumbObj = null, groupsObj = null, settingsObj = null;
                 if (!manifest.TryGetValue("name", out nameObj) || nameObj == null) manifest.TryGetValue("title", out nameObj);
                 if (nameObj == null && livelyInfo != null) livelyInfo.TryGetValue("Title", out nameObj);
-                string tName = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : htmlTitle;
-                if (tName.Length > 60) tName = tName.Substring(0, 60);
                 if (!manifest.TryGetValue("desc", out descObj) || descObj == null) manifest.TryGetValue("description", out descObj);
                 if (descObj == null && livelyInfo != null) livelyInfo.TryGetValue("Desc", out descObj);
-                string tDesc = descObj != null ? Convert.ToString(descObj, CultureInfo.InvariantCulture) : "Imported custom theme package.";
-                bool adaptive = manifest.TryGetValue("adaptive", out adapObj) && adapObj is bool && (bool)adapObj;
                 if (!manifest.TryGetValue("thumb", out thumbObj) || thumbObj == null)
                 {
                     if (!manifest.TryGetValue("thumbnail", out thumbObj) || thumbObj == null)
@@ -988,24 +1419,139 @@ static class CustomThemes
                 }
                 if (thumbObj == null && livelyInfo != null) livelyInfo.TryGetValue("Thumbnail", out thumbObj);
 
-                themeObj = Json.Obj(
-                    "id", themeId,
-                    "name", tName,
-                    "desc", tDesc,
-                    "page", "__custom/" + themeId + "/" + entry,
-                    "entry", entry,
-                    "status", "ready",
-                    "product", "free",
-                    "imported", true,
-                    "adaptive", adaptive,
-                    "thumb", FindArchiveThumb(themeDir, themeId, thumbObj));
                 List<Dictionary<string, object>> groups = null;
                 if (manifest.TryGetValue("groups", out groupsObj)) groups = SanitizeGroups(groupsObj);
                 if ((groups == null || groups.Count == 0) && manifest.TryGetValue("settings", out settingsObj))
                     groups = GroupsFromSettings(settingsObj);
                 if ((groups == null || groups.Count == 0) && livelyProps != null)
                     groups = GroupsFromSettings(livelyProps);
-                if (groups != null && groups.Count > 0) themeObj["groups"] = groups;
+
+                if (chosenEngine == "opengl-glsl")
+                {
+                    object prefShaderObj = null;
+                    if (!manifest.TryGetValue("shader", out prefShaderObj) || prefShaderObj == null)
+                        if (!manifest.TryGetValue("fragment", out prefShaderObj) || prefShaderObj == null)
+                            manifest.TryGetValue("entry", out prefShaderObj);
+                    string prefShader = prefShaderObj as string;
+                    if (!string.IsNullOrEmpty(prefShader) && HasExt(Path.GetExtension(prefShader), HtmlExts)) prefShader = null;
+                    string entry = FindEntryGlsl(themeDir, prefShader);
+
+                    object vertObj = null;
+                    if (!manifest.TryGetValue("vert", out vertObj) || vertObj == null) manifest.TryGetValue("vertex", out vertObj);
+                    string vertRel = vertObj is string && ((string)vertObj).Trim().Length > 0
+                        ? SafeRelFile(themeDir, (string)vertObj, new string[] { ".vert", ".glsl" })
+                        : null;
+
+                    var texturesRel = new List<string>();
+                    object rawTextures;
+                    if (manifest.TryGetValue("textures", out rawTextures) && rawTextures is IEnumerable && !(rawTextures is string))
+                    {
+                        foreach (object to in (IEnumerable)rawTextures)
+                        {
+                            string tp = to as string;
+                            if (!string.IsNullOrEmpty(tp) && tp.Trim().Length > 0)
+                            {
+                                texturesRel.Add(SafeRelFile(themeDir, tp, ImageExts));
+                                if (texturesRel.Count >= 4) break;
+                            }
+                        }
+                    }
+
+                    string tName = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : PrettyTitle(stem);
+                    if (tName.Length > 60) tName = tName.Substring(0, 60);
+                    string tDesc = descObj != null ? Convert.ToString(descObj, CultureInfo.InvariantCulture) : "Imported OpenGL 3.3 Core GLSL shader theme.";
+                    bool adaptive = !manifest.TryGetValue("adaptive", out adapObj) || !(adapObj is bool) || (bool)adapObj;
+                    if (!File.Exists(Path.Combine(themeDir, "index.html")))
+                        File.WriteAllText(Path.Combine(themeDir, "index.html"), NativeGlCardHtml(tName, "opengl-glsl"), new UTF8Encoding(false));
+
+                    themeObj = Json.Obj(
+                        "id", themeId,
+                        "name", tName,
+                        "desc", tDesc,
+                        "engine", "opengl-glsl",
+                        "themeDir", Path.GetFullPath(themeDir),
+                        "entry", entry,
+                        "page", "__custom/" + themeId + "/index.html",
+                        "category", "custom",
+                        "memoryTier", "light",
+                        "status", "ready",
+                        "product", "free",
+                        "custom", true,
+                        "imported", true,
+                        "adaptive", adaptive,
+                        "thumb", FindArchiveThumb(themeDir, themeId, thumbObj));
+                    if (!string.IsNullOrEmpty(vertRel)) themeObj["vert"] = vertRel;
+                    if (texturesRel.Count > 0) themeObj["textures"] = texturesRel;
+                    if (groups != null && groups.Count > 0) themeObj["groups"] = groups;
+                }
+                else if (chosenEngine == "opengl-rust")
+                {
+                    object binObj = null;
+                    if (!manifest.TryGetValue("plugin", out binObj) || binObj == null) manifest.TryGetValue("binary", out binObj);
+                    string entry = FindPrebuiltPlugin(themeDir, binObj as string);
+                    if (string.IsNullOrEmpty(entry)) entry = CompileRustPlugin(themeDir);
+
+                    string tName = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : PrettyTitle(stem);
+                    if (tName.Length > 60) tName = tName.Substring(0, 60);
+                    string tDesc = descObj != null ? Convert.ToString(descObj, CultureInfo.InvariantCulture) : "Imported native Rust + OpenGL 3.3 plugin theme.";
+                    bool adaptive = !manifest.TryGetValue("adaptive", out adapObj) || !(adapObj is bool) || (bool)adapObj;
+                    if (!File.Exists(Path.Combine(themeDir, "index.html")))
+                        File.WriteAllText(Path.Combine(themeDir, "index.html"), NativeGlCardHtml(tName, "opengl-rust"), new UTF8Encoding(false));
+
+                    themeObj = Json.Obj(
+                        "id", themeId,
+                        "name", tName,
+                        "desc", tDesc,
+                        "engine", "opengl-rust",
+                        "themeDir", Path.GetFullPath(themeDir),
+                        "entry", entry,
+                        "page", "__custom/" + themeId + "/index.html",
+                        "category", "custom",
+                        "memoryTier", "light",
+                        "status", "ready",
+                        "product", "free",
+                        "custom", true,
+                        "imported", true,
+                        "adaptive", adaptive,
+                        "thumb", FindArchiveThumb(themeDir, themeId, thumbObj));
+                    if (groups != null && groups.Count > 0) themeObj["groups"] = groups;
+                }
+                else
+                {
+                    object entryPref = null;
+                    string[] entryKeys = new string[] { "entry", "page", "main", "file" };
+                    for (int i = 0; i < entryKeys.Length; i++)
+                    {
+                        if (manifest.TryGetValue(entryKeys[i], out entryPref) && entryPref != null) break;
+                    }
+                    if (entryPref == null && livelyInfo != null) livelyInfo.TryGetValue("FileName", out entryPref);
+                    string prefStr = entryPref as string;
+                    if (!string.IsNullOrEmpty(prefStr) && !HasExt(Path.GetExtension(prefStr), HtmlExts)) prefStr = null;
+                    string entry = FindEntryHtml(themeDir, prefStr);
+                    string entryHtml = ValidateHtmlFile(Path.Combine(themeDir, entry.Replace('/', Path.DirectorySeparatorChar)));
+                    string htmlTitle = ExtractHtmlTitle(entryHtml, PrettyTitle(stem));
+
+                    string tName = nameObj != null ? Convert.ToString(nameObj, CultureInfo.InvariantCulture) : htmlTitle;
+                    if (tName.Length > 60) tName = tName.Substring(0, 60);
+                    string tDesc = descObj != null ? Convert.ToString(descObj, CultureInfo.InvariantCulture) : "Imported custom theme package.";
+                    bool adaptive = manifest.TryGetValue("adaptive", out adapObj) && adapObj is bool && (bool)adapObj;
+
+                    themeObj = Json.Obj(
+                        "id", themeId,
+                        "name", tName,
+                        "desc", tDesc,
+                        "engine", "web",
+                        "page", "__custom/" + themeId + "/" + entry,
+                        "entry", entry,
+                        "category", "custom",
+                        "status", "ready",
+                        "product", "free",
+                        "custom", true,
+                        "imported", true,
+                        "adaptive", adaptive,
+                        "thumb", FindArchiveThumb(themeDir, themeId, thumbObj));
+                    if (groups != null && groups.Count > 0) themeObj["groups"] = groups;
+                }
             }
             else if (HasExt(ext, ShaderExts))
             {
@@ -1015,25 +1561,55 @@ static class CustomThemes
                 string glsl = Encoding.UTF8.GetString(rawBytes);
                 string title = PrettyTitle(stem);
                 if (title.Length > 60) title = title.Substring(0, 60);
-                File.WriteAllText(Path.Combine(themeDir, "shader.glsl"), glsl, new UTF8Encoding(false));
-                File.WriteAllText(Path.Combine(themeDir, "index.html"), ShaderWrapperHtml(title, glsl), new UTF8Encoding(false));
                 var shaderGroups = new List<Dictionary<string, object>>();
                 shaderGroups.Add(Json.Obj("name", "Shader", "params", new object[] {
                     Json.Obj("key", "speed", "label", "Speed", "min", 0.1, "max", 3.0, "step", 0.05, "default", 1.0, "format", "times"),
                     Json.Obj("key", "brightness", "label", "Brightness", "min", 0.4, "max", 1.4, "step", 0.01, "default", 1.0, "format", "percent")
                 }));
-                themeObj = Json.Obj(
-                    "id", themeId,
-                    "name", title,
-                    "desc", "Imported GLSL WebGL fragment shader.",
-                    "page", "__custom/" + themeId + "/index.html",
-                    "entry", "index.html",
-                    "status", "ready",
-                    "product", "free",
-                    "imported", true,
-                    "adaptive", true,
-                    "thumb", "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)",
-                    "groups", shaderGroups);
+                string gradThumb = "radial-gradient(circle at 28% 35%, rgba(168,95,255,0.52) 0%, transparent 50%), radial-gradient(circle at 75% 68%, rgba(72,210,255,0.42) 0%, transparent 48%), linear-gradient(150deg, #131126 0%, #1d2642 55%, #111829 100%)";
+
+                if (chosenEngine == "opengl-glsl")
+                {
+                    File.WriteAllText(Path.Combine(themeDir, "main.frag"), glsl, new UTF8Encoding(false));
+                    File.WriteAllText(Path.Combine(themeDir, "index.html"), NativeGlCardHtml(title, "opengl-glsl"), new UTF8Encoding(false));
+                    themeObj = Json.Obj(
+                        "id", themeId,
+                        "name", title,
+                        "desc", "Imported OpenGL 3.3 Core GLSL fragment shader.",
+                        "engine", "opengl-glsl",
+                        "themeDir", Path.GetFullPath(themeDir),
+                        "entry", "main.frag",
+                        "page", "__custom/" + themeId + "/index.html",
+                        "category", "custom",
+                        "memoryTier", "light",
+                        "status", "ready",
+                        "product", "free",
+                        "custom", true,
+                        "imported", true,
+                        "adaptive", true,
+                        "thumb", gradThumb,
+                        "groups", shaderGroups);
+                }
+                else
+                {
+                    File.WriteAllText(Path.Combine(themeDir, "shader.glsl"), glsl, new UTF8Encoding(false));
+                    File.WriteAllText(Path.Combine(themeDir, "index.html"), ShaderWrapperHtml(title, glsl), new UTF8Encoding(false));
+                    themeObj = Json.Obj(
+                        "id", themeId,
+                        "name", title,
+                        "desc", "Imported GLSL WebGL fragment shader.",
+                        "engine", "web",
+                        "page", "__custom/" + themeId + "/index.html",
+                        "entry", "index.html",
+                        "category", "custom",
+                        "status", "ready",
+                        "product", "free",
+                        "custom", true,
+                        "imported", true,
+                        "adaptive", true,
+                        "thumb", gradThumb,
+                        "groups", shaderGroups);
+                }
             }
             else if (HasExt(ext, HtmlExts))
             {
@@ -1044,10 +1620,13 @@ static class CustomThemes
                     "id", themeId,
                     "name", title,
                     "desc", "Imported interactive HTML wallpaper.",
+                    "engine", "web",
                     "page", "__custom/" + themeId + "/index.html",
                     "entry", "index.html",
+                    "category", "custom",
                     "status", "ready",
                     "product", "free",
+                    "custom", true,
                     "imported", true,
                     "adaptive", false,
                     "thumb", "radial-gradient(circle at 30% 35%, rgba(98,195,255,0.45) 0%, transparent 48%), radial-gradient(circle at 75% 70%, rgba(120,235,190,0.35) 0%, transparent 45%), linear-gradient(150deg, #162231 0%, #243e54 55%, #172738 100%)");
@@ -1068,10 +1647,14 @@ static class CustomThemes
                     "id", themeId,
                     "name", title,
                     "desc", isVideo ? "Imported animated video wallpaper." : "Imported custom image wallpaper.",
+                    "engine", "web",
+                    "mediaType", isVideo ? "video" : "image",
                     "page", "__custom/" + themeId + "/index.html",
                     "entry", "index.html",
+                    "category", "custom",
                     "status", "ready",
                     "product", "free",
+                    "custom", true,
                     "imported", true,
                     "adaptive", true,
                     "thumb", thumb,

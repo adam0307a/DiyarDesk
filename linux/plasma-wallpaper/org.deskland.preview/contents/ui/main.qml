@@ -73,10 +73,16 @@ WallpaperItem {
         "cat-shore": true,
         "persephone": true,
         "eye-within-words": true,
-        "cosmic-eye": true
+        "cosmic-eye": true,
+        "ascii-clownfish": true,
+        "ascii-jellyfish": true,
+        "ascii-shark": true,
+        "ascii-lotus": true,
+        "ascii-cat-knight": true,
+        "turkish-flag": true
     })
 
-    readonly property bool isGlOnlyTheme: theme === "material-impulse-gl" || theme === "ai-mascots" || theme === "cat-shore" || theme === "persephone" || theme === "eye-within-words" || theme === "cosmic-eye"
+    readonly property bool isGlOnlyTheme: theme === "material-impulse-gl" || theme === "ai-mascots" || theme === "cat-shore" || theme === "persephone" || theme === "eye-within-words" || theme === "cosmic-eye" || theme === "ascii-clownfish" || theme === "ascii-jellyfish" || theme === "ascii-shark" || theme === "ascii-lotus" || theme === "ascii-cat-knight" || theme === "turkish-flag"
     readonly property bool wantNativeGl: !nativeGlFailed && (isGlOnlyTheme || (rustOpenGl && !!nativeGlThemes[theme]))
 
     onShowingDesktopChanged: pauseEvalTimer.restart()

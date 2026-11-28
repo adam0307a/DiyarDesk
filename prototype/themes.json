@@ -4117,7 +4117,7 @@
       "status": "ready",
       "product": "free",
       "memoryTier": "light",
-      "thumb": "radial-gradient(circle at 44% 59%, rgba(16,18,22,0.92) 0%, rgba(16,18,22,0.88) 10%, rgba(126,204,228,0.45) 14%, transparent 34%), linear-gradient(225deg, #e5c67b 0%, #cda95c 28%, #5ba3bd 54%, #1f506b 100%)",
+      "thumb": "url(thumbs/cat-shore.webp?v=7164915ca2) center / cover no-repeat, radial-gradient(circle at 44% 59%, rgba(16,18,22,0.92) 0%, rgba(16,18,22,0.88) 10%, rgba(126,204,228,0.45) 14%, transparent 34%), linear-gradient(225deg, #e5c67b 0%, #cda95c 28%, #5ba3bd 54%, #1f506b 100%)",
       "groups": [
         {
           "name": "顶部展开栏与黑猫",
@@ -4205,7 +4205,7 @@
       "status": "ready",
       "product": "free",
       "memoryTier": "light",
-      "thumb": "radial-gradient(circle at 50% 34%, rgba(235,242,255,0.44) 0%, rgba(140,152,190,0.22) 24%, transparent 56%), linear-gradient(180deg, #08050f 0%, #110d20 55%, #08050f 100%)",
+      "thumb": "url(thumbs/persephone.webp?v=aecddcd38b) center / cover no-repeat, radial-gradient(circle at 50% 34%, rgba(235,242,255,0.44) 0%, rgba(140,152,190,0.22) 24%, transparent 56%), linear-gradient(180deg, #08050f 0%, #110d20 55%, #08050f 100%)",
       "groups": [
         {
           "name": "神像光色与编排",
@@ -4329,7 +4329,7 @@
         "label": "mishratanya2311/eye_python",
         "url": "https://github.com/mishratanya2311/eye_python"
       },
-      "thumb": "radial-gradient(ellipse 46% 26% at 50% 50%, rgba(6,11,22,0.94) 0%, rgba(22,238,218,0.20) 38%, transparent 62%), radial-gradient(circle at 50% 50%, rgba(0,222,252,0.30) 0%, transparent 22%), linear-gradient(180deg, #03060d 0%, #060d18 55%, #03060d 100%)",
+      "thumb": "url(thumbs/eye-within-words.webp?v=049d7682ba) center / cover no-repeat, radial-gradient(ellipse 46% 26% at 50% 50%, rgba(6,11,22,0.94) 0%, rgba(22,238,218,0.20) 38%, transparent 62%), radial-gradient(circle at 50% 50%, rgba(0,222,252,0.30) 0%, transparent 22%), linear-gradient(180deg, #03060d 0%, #060d18 55%, #03060d 100%)",
       "groups": [
         {
           "name": "调色板与编排",
@@ -4421,7 +4421,7 @@
       "status": "ready",
       "product": "free",
       "memoryTier": "light",
-      "thumb": "radial-gradient(circle at 50% 50%, #050507 0%, #050507 15%, rgba(216,155,72,0.82) 23%, rgba(128,76,28,0.68) 33%, rgba(20,11,6,0.92) 40%, rgba(220,224,230,0.28) 54%, transparent 68%), linear-gradient(180deg, #1b100a 0%, #2a1911 50%, #140b07 100%)",
+      "thumb": "url(thumbs/cosmic-eye.webp?v=5eef451cfe) center / cover no-repeat, radial-gradient(circle at 50% 50%, #050507 0%, #050507 15%, rgba(216,155,72,0.82) 23%, rgba(128,76,28,0.68) 33%, rgba(20,11,6,0.92) 40%, rgba(220,224,230,0.28) 54%, transparent 68%), linear-gradient(180deg, #1b100a 0%, #2a1911 50%, #140b07 100%)",
       "groups": [
         {
           "name": "ASCII 风格与色彩",
@@ -4498,6 +4498,635 @@
         }
       ],
       "category": "art"
+    },
+    {
+      "id": "ascii-clownfish",
+      "adaptive": true,
+      "name": "小丑鱼与海葵 · ASCII (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 交互式 ASCII 珊瑚礁壁纸：3D 摆尾小丑鱼在 50 条发光海葵触手间穿行。移动鼠标搅拌水流，点击桌面投喂浮游饵料，桌面图标化作海底礁石。",
+      "page": "ascii-clownfish.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/ascii-clownfish.webp?v=bab8f63dbe) center / cover no-repeat, radial-gradient(circle at 48% 36%, #ff7a16 0%, #faf8f0 13%, #ee4212 24%, transparent 45%), radial-gradient(circle at 52% 72%, rgba(186,228,236,0.55) 0%, rgba(112,94,160,0.65) 28%, transparent 56%), linear-gradient(180deg, #06101b 0%, #020408 100%)",
+      "groups": [
+        {
+          "name": "ASCII 风格与色彩",
+          "params": [
+            {
+              "key": "palette",
+              "label": "主题配色",
+              "hint": "原版暖橙小丑鱼（1:1）、蓝宝石礁石或深海荧光霓虹",
+              "options": [
+                "原版珊瑚橙",
+                "蓝宝石礁石",
+                "霓虹荧光海"
+              ],
+              "values": [
+                "original",
+                "variant1",
+                "variant2"
+              ],
+              "default": "original"
+            },
+            {
+              "key": "charSize",
+              "label": "字符密度",
+              "hint": "ASCII 等宽字符网格尺寸（越小越细腻）",
+              "min": 5,
+              "max": 14,
+              "step": 0.5,
+              "default": 7.5,
+              "unit": "px"
+            },
+            {
+              "key": "glow",
+              "label": "霓虹辉光",
+              "hint": "字符边缘与水下浮游生物的发光强度",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "物理动态与交互",
+          "params": [
+            {
+              "key": "speed",
+              "label": "游动节奏",
+              "hint": "鱼尾摆频、海葵涌流与摄像机环绕速度",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "光标水流与投喂",
+              "hint": "移动鼠标拨动海葵并点亮触手，点击掉落光点鱼饵吸引小丑鱼追食",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标避让衬底",
+              "hint": "海葵触手柔和绕开桌面图标，并在图标后方提供深色衬底",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "art"
+    },
+    {
+      "id": "ascii-jellyfish",
+      "adaptive": true,
+      "name": "双生水母之心 · ASCII (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 实时 ASCII 生物光壁纸：一对青蓝与粉紫水母伴随脉动螺旋上升，触须交织成跳动的 3D 发光爱心。移动鼠标拨动流苏，点击触发心跳脉冲光波。",
+      "page": "ascii-jellyfish.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/ascii-jellyfish.webp?v=3f64884c1f) center / cover no-repeat, radial-gradient(circle at 38% 42%, rgba(255,120,188,0.75) 0%, rgba(162,82,224,0.32) 30%, transparent 54%), radial-gradient(circle at 62% 42%, rgba(86,206,248,0.75) 0%, rgba(44,124,212,0.32) 30%, transparent 54%), linear-gradient(180deg, #040b18 0%, #02050c 100%)",
+      "groups": [
+        {
+          "name": "ASCII 风格与色彩",
+          "params": [
+            {
+              "key": "palette",
+              "label": "双生配色",
+              "hint": "原版冰青粉紫（1:1）、翡翠金辉或日落玫瑰星云",
+              "options": [
+                "原版冰青粉紫",
+                "翡翠金辉",
+                "日落玫瑰"
+              ],
+              "values": [
+                "original",
+                "variant1",
+                "variant2"
+              ],
+              "default": "original"
+            },
+            {
+              "key": "charSize",
+              "label": "字符密度",
+              "hint": "ASCII 等宽字符网格尺寸（越小越细腻）",
+              "min": 5,
+              "max": 14,
+              "step": 0.5,
+              "default": 7.5,
+              "unit": "px"
+            },
+            {
+              "key": "glow",
+              "label": "生物辉光",
+              "hint": "水母伞盖边缘与丝状触须的生物发光晕染",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "螺旋舞动与交互",
+          "params": [
+            {
+              "key": "speed",
+              "label": "脉冲速度",
+              "hint": "双水母螺旋上升与伞盖收缩的节奏",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "鼠标漩涡与心脉",
+              "hint": "移动鼠标产生视差并拨动长触须，点击爆发发光爱心波纹",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标可读衬底",
+              "hint": "在桌面图标后方叠加柔和深渊圆角衬底",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "art"
+    },
+    {
+      "id": "ascii-shark",
+      "adaptive": true,
+      "name": "鲨影截击 · ASCII (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 海洋流体 ASCII 壁纸：80 尾银色鱼群在阳光水波焦散下分流，鲨鱼沿脊柱波形追击。移动鼠标惊散近处鱼群，点击释放冲击波与加速冲刺。",
+      "page": "ascii-shark.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/ascii-shark.webp?v=0947a4624f) center / cover no-repeat, radial-gradient(circle at 30% 34%, rgba(220,242,234,0.60) 0%, transparent 40%), radial-gradient(circle at 68% 64%, rgba(20,38,52,0.90) 0%, transparent 46%), linear-gradient(160deg, #124857 0%, #0b2d38 60%, #061b24 100%)",
+      "groups": [
+        {
+          "name": "海洋光影与字符",
+          "params": [
+            {
+              "key": "palette",
+              "label": "海域色调",
+              "hint": "原版日光浅礁碧蓝（1:1）、深海幽蓝或暮光暖礁",
+              "options": [
+                "原版浅礁碧蓝",
+                "深海幽蓝",
+                "暮光暖礁"
+              ],
+              "values": [
+                "original",
+                "variant1",
+                "variant2"
+              ],
+              "default": "original"
+            },
+            {
+              "key": "charSize",
+              "label": "字符密度",
+              "hint": "ASCII 等宽字符网格尺寸（越小越细腻）",
+              "min": 5,
+              "max": 14,
+              "step": 0.5,
+              "default": 7.5,
+              "unit": "px"
+            },
+            {
+              "key": "glow",
+              "label": "鱼鳞反光",
+              "hint": "银色鱼群与水波焦散高亮柔光强度",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "鱼群生态与交互",
+          "params": [
+            {
+              "key": "speed",
+              "label": "追击速度",
+              "hint": "鲨鱼游动与 80 尾银色鱼群分流循环的节奏",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "鼠标惊群与水波",
+              "hint": "移动鼠标扰动水波并驱散鱼群，点击桌面触发水下冲击波与鲨鱼冲刺",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标暗礁避让",
+              "hint": "鱼群自然绕开桌面图标并增强文字背景对比度",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "art"
+    },
+    {
+      "id": "ascii-lotus",
+      "adaptive": true,
+      "name": "雨后紫莲与熊蜂 · ASCII (Rust)",
+      "desc": "原生 Rust + OpenGL 3.3 Sobel 轮廓 ASCII 壁纸：雨后 14 瓣紫莲缓放，露珠沿叶脉滚落激起涟漪，熊蜂振翅采蜜。移动鼠标吹拂花叶并吸引熊蜂，点击落下雨滴激起 ASCII 水纹。",
+      "page": "ascii-lotus.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/ascii-lotus.webp?v=6f0e8c5204) center / cover no-repeat, radial-gradient(circle at 50% 42%, rgba(255,212,118,0.65) 0%, rgba(182,92,168,0.72) 20%, rgba(118,38,86,0.62) 36%, transparent 56%), radial-gradient(circle at 46% 74%, rgba(62,126,94,0.52) 0%, transparent 45%), linear-gradient(180deg, #0b131b 0%, #060e16 100%)",
+      "groups": [
+        {
+          "name": "花色与轮廓",
+          "params": [
+            {
+              "key": "palette",
+              "label": "睡莲花色",
+              "hint": "原版雨后紫莲（1:1 采样纹理）、靛蓝月色或晨曦粉莲",
+              "options": [
+                "原版紫莲",
+                "月夜靛莲",
+                "晨曦粉莲"
+              ],
+              "values": [
+                "original",
+                "variant1",
+                "variant2"
+              ],
+              "default": "original"
+            },
+            {
+              "key": "charSize",
+              "label": "字符密度",
+              "hint": "ASCII 等宽字符网格尺寸（越小越细腻）",
+              "min": 5,
+              "max": 14,
+              "step": 0.5,
+              "default": 7.5,
+              "unit": "px"
+            },
+            {
+              "key": "glow",
+              "label": "水波柔光",
+              "hint": "花蕊金粉与睡莲水面涟漪的亮度加成",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "微风与落雨交互",
+          "params": [
+            {
+              "key": "speed",
+              "label": "绽放节奏",
+              "hint": "花瓣舒展、露珠滑落与熊蜂飞行的循环速度",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "拂风唤蜂与落雨",
+              "hint": "移动鼠标掀起轻风晃动花叶并吸引熊蜂，点击掉落水滴泛起池塘涟漪",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "图标清池衬底",
+              "hint": "在桌面图标后方保留柔和深池水影衬底",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "art"
+    },
+    {
+      "id": "ascii-cat-knight",
+      "adaptive": true,
+      "name": "Şövalye Kedi · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 ASCII duvar kağıdı: gümüş zırhlı yavru kedi dikey parlayan kılıcını tutarken rüzgârda Verlet kumaş fizikli pelerini dalgalanır, göz kırpar ve çimenler salınır. Fare ile göz takibi, pelerin rüzgârı ve kılıç parlaması tetiklenir.",
+      "page": "ascii-cat-knight.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/ascii-cat-knight.webp?v=a161f30053) center / cover no-repeat, radial-gradient(circle at 44% 34%, rgba(235,226,210,0.68) 0%, rgba(168,158,144,0.36) 24%, transparent 50%), radial-gradient(circle at 68% 66%, rgba(125,116,108,0.42) 0%, transparent 46%), linear-gradient(180deg, #0b0b0d 0%, #020203 100%)",
+      "groups": [
+        {
+          "name": "Görünüm ve Kamera",
+          "params": [
+            {
+              "key": "palette",
+              "label": "Zırh Paleti",
+              "hint": "Orijinal sıcak gümüş parşömen, Altın Şövalye veya Ay Işığı Muhafızı",
+              "options": [
+                "Orijinal Gümüş",
+                "Altın Paladin",
+                "Ay Işığı Muhafızı"
+              ],
+              "values": [
+                "original",
+                "amber",
+                "moonlight"
+              ],
+              "default": "original"
+            },
+            {
+              "key": "cameraMode",
+              "label": "Kamera Modu",
+              "hint": "Tam boy şövalye, sinematik yakınlaştırmalı döngü veya yakın portre kadrajı",
+              "options": [
+                "Tam Boy Şövalye",
+                "Sinematik Uzaklaşma",
+                "Yakın Portre"
+              ],
+              "values": [
+                "full",
+                "cinematic",
+                "portrait"
+              ],
+              "default": "full"
+            },
+            {
+              "key": "charSize",
+              "label": "ASCII Hücre Boyutu",
+              "hint": "Eşit aralıklı ASCII ızgara yoğunluğu (küçüldükçe detay artar)",
+              "min": 3.5,
+              "max": 12,
+              "step": 0.5,
+              "default": 4.5,
+              "unit": "px"
+            },
+            {
+              "key": "glow",
+              "label": "Kılıç ve Fosfor Işıltısı",
+              "hint": "Kılıç parlaması ve zırh vurgularının yumuşak fosfor ışıltısı",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 0.48,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "Rüzgâr Fiziği ve Etkileşim",
+          "params": [
+            {
+              "key": "wind",
+              "label": "Rüzgâr Şiddeti",
+              "hint": "Pelerin dalgalanması, tüy titreşimi ve çimen salınımı gücü",
+              "min": 0.2,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "speed",
+              "label": "Hareket Hızı",
+              "hint": "Verlet pelerin fiziği, göz kırpma ve kamera geçiş temposu",
+              "min": 0.3,
+              "max": 2,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "Rüzgâr, Göz ve Kılıç Etkileşimi",
+              "hint": "Fare pelerine rüzgâr verir ve gözleri çeker; tıklamak kılıcı parlatıp esinti patlatır",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "Simge Rüzgâr Yönlendirmesi",
+              "hint": "Pelerin kumaşı masaüstü simgelerini hisseder ve altlarında okunaklı arka plan korunur",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "art"
+    },
+    {
+      "id": "turkish-flag",
+      "adaptive": true,
+      "name": "Dalgalanan Türk Bayrağı · (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 canlı masaüstü duvar kağıdı: gönderde altın alemli direği ve süzülen bulutlu gökyüzüyle (Gün Işığı, Gün Batımı, Yıldızlı Gece veya Saatle Otomatik) 2893 sayılı Türk Bayrağı Kanunu oranlarına sadık, Verlet kumaş fizikli dalgalanan Türk Bayrağı.",
+      "page": "turkish-flag.html",
+      "status": "ready",
+      "product": "free",
+      "memoryTier": "light",
+      "thumb": "url(thumbs/turkish-flag.webp?v=583bb917cd) center / cover no-repeat, radial-gradient(circle at 46% 42%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.88) 5%, transparent 6%), radial-gradient(circle at 42% 42%, rgba(227,10,23,0.92) 0%, rgba(227,10,23,0.92) 22%, transparent 48%), radial-gradient(circle at 78% 24%, rgba(255,220,145,0.65) 0%, transparent 42%), linear-gradient(180deg, #144fa8 0%, #3e87d6 58%, #9bd0f6 100%)",
+      "groups": [
+        {
+          "name": "Gökyüzü ve Atmosfer",
+          "params": [
+            {
+              "key": "skyMode",
+              "label": "Gökyüzü Modu",
+              "hint": "Güneşli gün ışığı, kızıl gün batımı, yıldızlı gece veya yerel saate göre otomatik geçiş",
+              "options": [
+                "Gün Işığı",
+                "Gün Batımı",
+                "Gece ve Yıldızlar",
+                "Otomatik (Saat)"
+              ],
+              "values": [
+                "daylight",
+                "sunset",
+                "night",
+                "auto"
+              ],
+              "default": "daylight"
+            },
+            {
+              "key": "clouds",
+              "label": "Bulut Yoğunluğu",
+              "hint": "Gökyüzünde süzülen yüksek ve orta katman bulutların yoğunluğu",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 0.85,
+              "format": "times"
+            },
+            {
+              "key": "atmosphere",
+              "label": "Atmosfer ve Işık",
+              "hint": "Güneş/ay halesi, ufuk parıltısı ve kumaş arkadan ışık geçirgenliği",
+              "min": 0,
+              "max": 1.5,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            }
+          ]
+        },
+        {
+          "name": "Bayrak ve Rüzgâr Fiziği",
+          "params": [
+            {
+              "key": "wind",
+              "label": "Rüzgâr Şiddeti",
+              "hint": "Bayrağın gerginliği, dalga genliği ve bulutların akış hızı",
+              "min": 0.2,
+              "max": 2.0,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "speed",
+              "label": "Dalgalanma Hızı",
+              "hint": "Verlet kumaş fiziği ve rüzgâr dalgalarının zaman temposu",
+              "min": 0.3,
+              "max": 2.0,
+              "step": 0.05,
+              "default": 1.0,
+              "format": "times"
+            },
+            {
+              "key": "fabric",
+              "label": "Kumaş Dokusu",
+              "hint": "Parlak saten ipek, tok pamuklu dokuma veya ağır tören kadifesi",
+              "options": [
+                "İpek Saten",
+                "Pamuklu Dokuma",
+                "Tören Kadifesi"
+              ],
+              "values": [
+                "silk",
+                "cotton",
+                "ceremonial"
+              ],
+              "default": "silk"
+            },
+            {
+              "key": "mouseInteract",
+              "label": "Fare Rüzgâr Etkileşimi",
+              "hint": "İmleç bayrağın üzerinde esinti oluşturur; tıklamak canlı bir rüzgâr darbesi verir",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            },
+            {
+              "key": "adaptive",
+              "label": "Simge Okunabilirlik Zemini",
+              "hint": "Parlak bulutlar üzerinde masaüstü simgelerinin altında yumuşak kontrast sağlar",
+              "min": 0,
+              "max": 1,
+              "step": 1,
+              "default": 1
+            }
+          ]
+        }
+      ],
+      "category": "nature",
+      "presets": [
+        {
+          "id": "anatolian-sun",
+          "name": "Anadolu Güneşi",
+          "values": {
+            "skyMode": "daylight",
+            "clouds": 0.85,
+            "atmosphere": 1.05,
+            "wind": 1.0,
+            "fabric": "silk"
+          }
+        },
+        {
+          "id": "crimson-sunset",
+          "name": "Kızıl Gün Batımı",
+          "values": {
+            "skyMode": "sunset",
+            "clouds": 0.95,
+            "atmosphere": 1.25,
+            "wind": 0.9,
+            "fabric": "silk"
+          }
+        },
+        {
+          "id": "starry-night",
+          "name": "Yıldızlı Gece",
+          "values": {
+            "skyMode": "night",
+            "clouds": 0.6,
+            "atmosphere": 1.15,
+            "wind": 0.8,
+            "fabric": "ceremonial"
+          }
+        },
+        {
+          "id": "strong-poyraz",
+          "name": "Sert Poyraz",
+          "values": {
+            "skyMode": "daylight",
+            "clouds": 1.15,
+            "atmosphere": 1.0,
+            "wind": 1.75,
+            "speed": 1.25,
+            "fabric": "cotton"
+          }
+        }
+      ]
     }
   ]
 }

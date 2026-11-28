@@ -42,14 +42,14 @@ $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $csc)) { throw '找不到 .NET Framework C# 编译器，请在 64 位 Windows 上构建。' }
 $appVersion = (Get-Content -LiteralPath (Join-Path $root '..\tools\version.json') -Raw | ConvertFrom-Json).version
 if ($appVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid application version' }
-$versionSource = Join-Path $bin 'Deskland-version.cs'
+$versionSource = Join-Path $bin 'DiyarDesk-version.cs'
 $versionText = @"
 using System.Reflection;
-[assembly: AssemblyTitle("Deskland Preview")]
-[assembly: AssemblyProduct("Deskland Preview")]
+[assembly: AssemblyTitle("DiyarDesk")]
+[assembly: AssemblyProduct("DiyarDesk")]
 [assembly: AssemblyVersion("$appVersion.0")]
 [assembly: AssemblyFileVersion("$appVersion.0")]
-[assembly: AssemblyCopyright("Copyright 2026 Deskland authors")]
+[assembly: AssemblyCopyright("Copyright 2026 DiyarDesk contributors")]
 "@
 [IO.File]::WriteAllText($versionSource, $versionText, (New-Object Text.UTF8Encoding($false)))
 $rtDir = [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
@@ -87,7 +87,7 @@ if ((Test-Path -LiteralPath $winRtDll) -and (Test-Path -LiteralPath (Join-Path $
 }
 & $csc /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 /win32manifest:"$root\app.manifest" `
     /win32icon:"$root\DesklandPreview.ico" `
-    /out:"$bin\Deskland.exe" `
+    /out:"$bin\DiyarDesk.exe" `
     /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll `
     /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
     @wpfRefs `
@@ -127,12 +127,14 @@ if (Test-Path -LiteralPath $rustDll) {
         $locked = $true
     }
     if ($locked) {
-        Write-Warning "diyardesk_gl.dll kullanımda (Deskland.exe çalışıyor?). Önce uygulamayı kapatın."
-        $procs = Get-Process -Name "Deskland","DiyarDesk" -ErrorAction SilentlyContinue
+        Write-Warning "diyardesk_gl.dll kullanımda (DiyarDesk.exe çalışıyor?). Önce uygulamayı kapatın."
+        $procs = Get-Process -Name "DiyarDesk","Deskland" -ErrorAction SilentlyContinue
         if ($procs) {
             Write-Host "Çalışan süreçler: $($procs.Name -join ', ')"
         }
     }
     Copy-Item -LiteralPath $rustDll -Destination $destDll -Force
 }
-Write-Host "编译完成：$bin\Deskland.exe"
+Remove-Item -LiteralPath (Join-Path $bin 'Deskland.exe') -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath (Join-Path $bin 'Deskland-version.cs') -Force -ErrorAction SilentlyContinue
+Write-Host "Derleme tamamlandi: $bin\DiyarDesk.exe"

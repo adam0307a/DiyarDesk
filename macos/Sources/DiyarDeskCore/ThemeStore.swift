@@ -23,7 +23,8 @@ public enum NativeGlSupport {
         "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
         "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
         "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
-        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye"
+        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye",
+        "ascii-clownfish", "ascii-jellyfish", "ascii-shark", "ascii-lotus", "ascii-cat-knight", "turkish-flag"
     ]
 
     public static let nativeGlOnlyPages: Set<String> = [
@@ -32,7 +33,13 @@ public enum NativeGlSupport {
         "cat-shore.html",
         "persephone.html",
         "eye-within-words.html",
-        "cosmic-eye.html"
+        "cosmic-eye.html",
+        "ascii-clownfish.html",
+        "ascii-jellyfish.html",
+        "ascii-shark.html",
+        "ascii-lotus.html",
+        "ascii-cat-knight.html",
+        "turkish-flag.html"
     ]
 
     public static let avFoundationVideoExts: Set<String> = ["mp4", "mov", "m4v"]

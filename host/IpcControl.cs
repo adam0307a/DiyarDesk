@@ -1,4 +1,4 @@
-// Local Named Pipe CLI IPC server/client (`Deskland.exe --ctl ...`) + local Solar/Dark-Mode helper.
+// Local Named Pipe CLI IPC server/client (`DiyarDesk.exe --ctl ...`) + local Solar/Dark-Mode helper.
 // 100% local-only, C# 5 compatible (.NET Framework 4.x csc.exe).
 
 using System;
@@ -176,7 +176,7 @@ static class IpcControlClient
         // args starts at "--ctl"
         if (args.Length < 2)
         {
-            Console.Error.WriteLine("Usage: Deskland.exe --ctl <status|setwp|setprop|apply-preset|icon-snapshot|focus-rules|icon-islands|pause|play|toggle|random|lowmode|solar|window-aware|system-bridge|playlist|reload|exit> [args...]");
+            Console.Error.WriteLine("Usage: DiyarDesk.exe --ctl <status|setwp|setprop|apply-preset|icon-snapshot|focus-rules|icon-islands|pause|play|toggle|random|lowmode|solar|window-aware|system-bridge|playlist|reload|exit> [args...]");
             return 2;
         }
         bool asJson = false;

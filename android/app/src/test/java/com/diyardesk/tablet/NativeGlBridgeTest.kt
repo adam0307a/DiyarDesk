@@ -25,7 +25,13 @@ class NativeGlBridgeTest {
             "cat-shore",
             "persephone",
             "eye-within-words",
-            "cosmic-eye"
+            "cosmic-eye",
+            "ascii-clownfish",
+            "ascii-jellyfish",
+            "ascii-shark",
+            "ascii-lotus",
+            "ascii-cat-knight",
+            "turkish-flag"
         )
         for (id in expected) {
             assertTrue("Expected native GL theme: $id", NativeGlBridge.isNativeTheme(id))
@@ -111,6 +117,12 @@ class NativeGlBridgeTest {
     fun nativeSettingsAndWallpaperRoutingShutsDownWebViewInOpenGlMode() {
         // GL-only themes
         assertTrue(NativeGlBridge.isGlOnlyTheme("cosmic-eye"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("ascii-clownfish"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("ascii-jellyfish"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("ascii-shark"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("ascii-lotus"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("ascii-cat-knight"))
+        assertTrue(NativeGlBridge.isGlOnlyTheme("turkish-flag"))
         assertTrue(NativeGlBridge.isGlOnlyTheme("eye-within-words"))
         assertTrue(NativeGlBridge.isGlOnlyTheme("material-impulse-gl"))
         assertFalse(NativeGlBridge.isGlOnlyTheme("papercut"))

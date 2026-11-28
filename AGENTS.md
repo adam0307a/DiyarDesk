@@ -183,7 +183,7 @@ gradle --project-dir android testDebugUnitTest assembleDebug
 
 ### Windows Host & Installer (on Windows)
 ```powershell
-powershell -ExecutionPolicy Bypass -File host\build.ps1          # builds host/bin/Deskland.exe
+powershell -ExecutionPolicy Bypass -File host\build.ps1          # builds host/bin/DiyarDesk.exe
 powershell -ExecutionPolicy Bypass -File tools\build-installer.ps1  # NSIS installer -> dist/
 ```
 Note: Editing `prototype/` HTML/JS/CSS/JSON does **not** require recompiling `host/DesktopHost.cs`; reload via tray menu **Reload** (or restart `app-deskland@autostart.service` on Linux).
@@ -192,6 +192,6 @@ Note: Editing `prototype/` HTML/JS/CSS/JSON does **not** require recompiling `ho
 
 ## 8. Product Identity, Security & Licensing Guardrails
 
-- **Product identity**: Display name is **`DiyarDesk`** (independent fork based on Deskland Preview GPL-3.0, with original logo in `linux/packaging/deskland.svg`). Internal runtime/compatibility IDs (`~/.config/deskland`, `/usr/lib/deskland`, `org.deskland.preview`, `org.deskland.iconspy`, `Software\DesklandPreview`, `host/bin/Deskland.exe`) are preserved so user configs, Plasma plugins, and installed binaries remain compatible without data loss.
+- **Product identity**: Display name is **`DiyarDesk`** (independent fork based on Deskland Preview GPL-3.0, with original logo in `linux/packaging/deskland.svg`). Internal runtime/compatibility IDs (`~/.config/deskland`, `/usr/lib/deskland`, `org.deskland.preview`, `org.deskland.iconspy`, `Software\DesklandPreview`, `host/bin/DiyarDesk.exe`) are preserved so user configs, Plasma plugins, and installed binaries remain compatible without data loss.
 - **Never commit** build/binary caches or secrets: `host/bin/`, `host/lib/`, `__pycache__/`, `.pytest_cache/`, personal config/credentials, or hardcoded user-local paths in runtime code.
 - **Security & Legal**: Preserve `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`, and `TRADEMARKS.md`. Obtain explicit confirmation from the project owner before modifying trademark/branding assets or publishing releases. Do not add external auth/telemetry/store/update endpoints.

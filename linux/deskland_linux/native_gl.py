@@ -59,6 +59,12 @@ NATIVE_GL_THEMES: frozenset[str] = frozenset(
         "persephone",
         "eye-within-words",
         "cosmic-eye",
+        "ascii-clownfish",
+        "ascii-jellyfish",
+        "ascii-shark",
+        "ascii-lotus",
+        "ascii-cat-knight",
+        "turkish-flag",
     }
 )
 
@@ -70,6 +76,12 @@ NATIVE_GL_ONLY_PAGES: frozenset[str] = frozenset(
         "persephone.html",
         "eye-within-words.html",
         "cosmic-eye.html",
+        "ascii-clownfish.html",
+        "ascii-jellyfish.html",
+        "ascii-shark.html",
+        "ascii-lotus.html",
+        "ascii-cat-knight.html",
+        "turkish-flag.html",
     }
 )
 

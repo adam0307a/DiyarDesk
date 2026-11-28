@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <title>Türk Bayrağı — Native Rust + OpenGL 3.3</title>
+  <style>
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background:
+        radial-gradient(circle at 74% 26%, rgba(255, 224, 152, 0.42) 0%, transparent 44%),
+        radial-gradient(circle at 46% 48%, rgba(227, 10, 23, 0.56) 0%, rgba(155, 12, 24, 0.25) 36%, transparent 62%),
+        linear-gradient(180deg, #164fa8 0%, #3a85d4 58%, #9ccdf4 100%);
+      color: #f9fafc;
+      font: 500 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+    }
+    .card {
+      padding: 18px 24px; border-radius: 16px;
+      background: rgba(14, 24, 44, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(8px);
+      max-width: 390px;
+    }
+    .title { font-size: 15px; font-weight: 600; color: #ffffff; margin-bottom: 6px; }
+    .sub { font-size: 12px; color: #d6e4f7; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Dalgalanan Türk Bayrağı · (Rust)</div>
+    <div class="sub">Native Rust + OpenGL 3.3 (<code>libdiyardesk_gl.so</code> / <code>diyardesk_gl.dll</code>)</div>
+  </div>
+  <script>
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage(JSON.stringify({ t: 'ready' }), '*'); } catch (e) {}
+    }
+  </script>
+</body>
+</html>

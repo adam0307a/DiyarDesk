@@ -56,9 +56,9 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
-        // Deskland.exe --exit ：通知正在运行的实例正常退出（恢复原壁纸）
-        // Deskland.exe --menu ：让正在运行的实例在鼠标位置弹出菜单
-        // Deskland.exe --settings ：让正在运行的实例打开设置窗口
+        // DiyarDesk.exe --exit ：通知正在运行的实例正常退出（恢复原壁纸）
+        // DiyarDesk.exe --menu ：让正在运行的实例在鼠标位置弹出菜单
+        // DiyarDesk.exe --settings ：让正在运行的实例打开设置窗口
         if (args.Length > 0 && args[0] == "--exit") { Signal(ExitEventName); return; }
         if (args.Length > 0 && args[0] == "--menu") { Signal(MenuEventName); return; }
         if (args.Length > 0 && args[0] == "--settings") { Signal(SettingsEventName); return; }
@@ -1991,6 +1991,41 @@ class HostContext : ApplicationContext
         SwitchThemeById(next);
     }
 
+    bool ChooseImportEngine(string filePath, Form owner, out string chosenEngine, out bool allowNative)
+    {
+        chosenEngine = "web";
+        allowNative = false;
+        var scan = CustomThemes.InspectImportSource(filePath);
+        if (scan.Engines.Count > 0) chosenEngine = scan.Engines[0];
+
+        if (scan.RequiresNativeTrust)
+        {
+            string kindNote = scan.HasRustSource && !scan.HasPrebuiltBinary
+                ? "Bu paket Cargo ile yerel kod (.dll) derleyip çalıştıracaktır."
+                : "Bu paket yerel çalıştırılabilir kod (.dll) içermektedir.";
+            string prompt = "\"" + scan.Name + "\" yerel Rust + OpenGL 3.3 eklentisi olarak içe aktarılsın mı?\n\n" + kindNote;
+            DialogResult ans = MessageBox.Show(owner, prompt, "DiyarDesk", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (ans == DialogResult.Yes)
+            {
+                chosenEngine = "opengl-rust";
+                allowNative = true;
+                return true;
+            }
+            string fallback = null;
+            for (int i = 0; i < scan.Engines.Count; i++)
+            {
+                if (scan.Engines[i] != "opengl-rust") { fallback = scan.Engines[i]; break; }
+            }
+            if (string.IsNullOrEmpty(fallback)) return false;
+            chosenEngine = fallback;
+            return true;
+        }
+
+        if (scan.Engines.Contains("opengl-glsl"))
+            chosenEngine = (Settings.RustOpenGl || !scan.Engines.Contains("web")) ? "opengl-glsl" : "web";
+        return true;
+    }
+
     public bool HandleDroppedPath(string filePath, out string summary, out string err)
     {
         summary = "";
@@ -2010,15 +2045,26 @@ class HostContext : ApplicationContext
         }
         try
         {
-            var themeObj = CustomThemes.ImportFile(filePath, pageDir);
+            Form owner = (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed) ? (Form)nativeSettingsWin : (Form)settingsWin;
+            string chosenEngine;
+            bool allowNative;
+            if (!ChooseImportEngine(filePath, owner, out chosenEngine, out allowNative))
+                return false;
+            var themeObj = CustomThemes.ImportFile(filePath, pageDir, chosenEngine, allowNative);
             string newId = themeObj["id"] as string;
             string newName = (themeObj.ContainsKey("name") ? themeObj["name"] as string : null) ?? newId;
             string newPage = themeObj.ContainsKey("page") ? themeObj["page"] as string : null;
-            Settings.Theme = newId;
-            SaveSoon();
-            if (form != null && !string.IsNullOrEmpty(newPage)) form.LoadPage(newPage, newId);
+            bool canNative = WallpaperForm.IsNativeGlTheme(newId) || WallpaperForm.IsNativeVideoTheme(newId);
+            if (!Settings.RustOpenGl || canNative)
+            {
+                Settings.Theme = newId;
+                SaveSoon();
+                ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(newPage, newId); });
+            }
             if (settingsWin != null && !settingsWin.IsDisposed)
-                settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", true)));
+                settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", !Settings.RustOpenGl || canNative)));
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                nativeSettingsWin.ReloadThemesAndSelect(Settings.Theme);
             summary = I18n.Ui("dropThemeImported", "name", newName);
             Log.Write("Sürükle-bırak ile tema içe aktarıldı: " + newId);
             return true;
@@ -2590,13 +2636,18 @@ class HostContext : ApplicationContext
         if (string.IsNullOrEmpty(chosen)) return;
         try
         {
-            var themeObj = CustomThemes.ImportFile(chosen, pageDir);
+            string chosenEngine;
+            bool allowNative;
+            if (!ChooseImportEngine(chosen, settingsWin, out chosenEngine, out allowNative)) return;
+            var themeObj = CustomThemes.ImportFile(chosen, pageDir, chosenEngine, allowNative);
             string newId = themeObj["id"] as string;
             string newPage = themeObj["page"] as string;
             Settings.Theme = newId;
             SaveSoon();
-            if (form != null && !string.IsNullOrEmpty(newPage)) form.LoadPage(newPage, newId);
+            ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(newPage, newId); });
             settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", true)));
+            if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                nativeSettingsWin.ReloadThemesAndSelect(Settings.Theme);
             Log.Write("已导入自定义主题：" + newId);
         }
         catch (Exception ex)
@@ -2604,6 +2655,82 @@ class HostContext : ApplicationContext
             Log.Write("导入主题失败：" + ex);
             settingsWin.Post(Json.Stringify(Json.Obj("t", "importError", "msg", ex.Message)));
         }
+    }
+
+    public void ImportThemeFromNative(Form owner)
+    {
+        if (owner == null || owner.IsDisposed) return;
+        string chosen = null;
+        using (var dlg = new System.Windows.Forms.OpenFileDialog())
+        {
+            string title = I18n.Ui("importTheme");
+            dlg.Title = string.IsNullOrEmpty(title) || title == "importTheme" ? "Import theme" : title;
+            dlg.Filter = "Theme packages, GLSL, videos, HTML, images (*.zip;*.deskland;*.glsl;*.frag;*.mp4;*.webm;*.mkv;*.mov;*.html;*.htm;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp)|*.zip;*.deskland;*.glsl;*.frag;*.mp4;*.webm;*.mkv;*.mov;*.html;*.htm;*.png;*.jpg;*.jpeg;*.webp;*.gif;*.svg;*.avif;*.bmp|All Files (*.*)|*.*";
+            dlg.RestoreDirectory = true;
+            if (dlg.ShowDialog(owner) != DialogResult.OK) return;
+            chosen = dlg.FileName;
+        }
+        if (string.IsNullOrEmpty(chosen)) return;
+        try
+        {
+            string chosenEngine;
+            bool allowNative;
+            if (!ChooseImportEngine(chosen, owner, out chosenEngine, out allowNative)) return;
+
+            var themeObj = CustomThemes.ImportFile(chosen, pageDir, chosenEngine, allowNative);
+            string newId = themeObj["id"] as string;
+            string newName = (themeObj.ContainsKey("name") ? themeObj["name"] as string : null) ?? newId;
+            string newPage = themeObj.ContainsKey("page") ? themeObj["page"] as string : null;
+            bool canNative = WallpaperForm.IsNativeGlTheme(newId) || WallpaperForm.IsNativeVideoTheme(newId);
+
+            if (canNative || !Settings.RustOpenGl)
+            {
+                Settings.Theme = newId;
+                SaveSoon();
+                ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(newPage, newId); });
+                if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+                    nativeSettingsWin.ReloadThemesAndSelect(newId);
+                if (settingsWin != null && !settingsWin.IsDisposed)
+                    settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", true)));
+            }
+            else
+            {
+                if (settingsWin != null && !settingsWin.IsDisposed)
+                    settingsWin.Post(Json.Stringify(Json.Obj("t", "themeImported", "theme", themeObj, "select", false)));
+                string msg = "\"" + newName + "\" içe aktarıldı.\n\nBu tema HTML/WebView2 tabanlıdır. Şimdi WebView2 moduna geçip bu temayı açmak ister misiniz?";
+                if (MessageBox.Show(owner, msg, "DiyarDesk", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
+                {
+                    Settings.Theme = newId;
+                    Settings.LastWebViewTheme = "";
+                    SetRustOpenGl(false);
+                    ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(newPage, newId); });
+                }
+            }
+            Log.Write("Native arayüzden tema içe aktarıldı: " + newId + " (" + chosenEngine + ")");
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Native arayüz tema içe aktarma hatası: " + ex);
+            MessageBox.Show(owner, ex.Message, "DiyarDesk", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    public bool RemoveThemeFromNative(string themeId, Form owner)
+    {
+        if (string.IsNullOrEmpty(themeId)) return false;
+        var th = CustomThemes.FindById(themeId);
+        if (th == null) return false;
+        string rawName = th.ContainsKey("name") ? (th["name"] as string ?? themeId) : themeId;
+        string displayName = I18n.ThemeName(themeId, rawName);
+        string title = I18n.Ui("removeThemeConfirmTitle");
+        if (string.IsNullOrEmpty(title) || title == "removeThemeConfirmTitle") title = "Remove imported theme?";
+        string body = I18n.Ui("removeThemeConfirmBody", "name", displayName);
+        if (string.IsNullOrEmpty(body) || body == "removeThemeConfirmBody")
+            body = "Remove \"" + displayName + "\"?";
+        if (MessageBox.Show(owner, body, title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return false;
+        RemoveTheme(themeId);
+        return true;
     }
 
     void RemoveTheme(string themeId)
@@ -2614,12 +2741,16 @@ class HostContext : ApplicationContext
         if (Settings.Theme == themeId)
         {
             string fallback = Themes.FirstReadyBuiltIn(pageDir);
+            if (Settings.RustOpenGl && !WallpaperForm.IsNativeGlTheme(fallback) && !WallpaperForm.IsNativeVideoTheme(fallback))
+                fallback = "papercut";
             Settings.Theme = fallback;
             string page = Themes.PageFor(pageDir, fallback);
-            if (form != null && !string.IsNullOrEmpty(page)) form.LoadPage(page);
+            ForEachWallpaper(delegate(WallpaperForm w) { w.LoadPage(page, fallback); });
         }
         SaveSoon();
-        if (settingsWin != null)
+        if (nativeSettingsWin != null && !nativeSettingsWin.IsDisposed)
+            nativeSettingsWin.ReloadThemesAndSelect(Settings.Theme);
+        if (settingsWin != null && !settingsWin.IsDisposed)
             settingsWin.Post(Json.Stringify(Json.Obj("t", "themeRemoved", "id", themeId, "active", Settings.Theme)));
         Log.Write("已移除自定义主题：" + themeId);
     }
@@ -3752,6 +3883,18 @@ class WallpaperForm : Form
     public string LastIcons { get { return lastIcons; } }
     protected override bool ShowWithoutActivation { get { return true; } }
 
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle = (cp.ExStyle & ~Native.WS_EX_APPWINDOW)
+                | Native.WS_EX_TOOLWINDOW
+                | Native.WS_EX_NOACTIVATE;
+            return cp;
+        }
+    }
+
     public WallpaperForm(string pageDir, string page, bool manualPause, bool lowMode, bool disableAutoPause = false,
         Screen targetScreen = null, bool spanAll = false, bool duplicateIcons = false)
     {
@@ -4014,7 +4157,13 @@ class WallpaperForm : Form
             || string.Equals(p, "cat-shore.html", StringComparison.OrdinalIgnoreCase)
             || string.Equals(p, "persephone.html", StringComparison.OrdinalIgnoreCase)
             || string.Equals(p, "eye-within-words.html", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(p, "cosmic-eye.html", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(p, "cosmic-eye.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ascii-clownfish.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ascii-jellyfish.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ascii-shark.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ascii-lotus.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "ascii-cat-knight.html", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "turkish-flag.html", StringComparison.OrdinalIgnoreCase);
     }
 
     static readonly HashSet<string> NativeGlThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -4023,12 +4172,14 @@ class WallpaperForm : Form
         "studio-glass", "beach", "meadow", "desert", "rosebrook", "glade", "zen-archipelago",
         "aurora", "polarnight", "quietsnow", "winter", "neumorph", "claymorph", "neobrutalism",
         "voxelcraft", "papercut", "istanbul", "software-world", "rift", "strike", "pocket", "roach",
-        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye"
+        "ai-mascots", "cat-shore", "persephone", "eye-within-words", "cosmic-eye",
+        "ascii-clownfish", "ascii-jellyfish", "ascii-shark", "ascii-lotus", "ascii-cat-knight",
+        "turkish-flag"
     };
 
     public static bool IsNativeGlTheme(string tid)
     {
-        return !string.IsNullOrEmpty(tid) && NativeGlThemes.Contains(tid);
+        return !string.IsNullOrEmpty(tid) && (NativeGlThemes.Contains(tid) || CustomThemes.IsCustomGlThemeId(tid));
     }
 
     public static bool IsNativeVideoTheme(string tid)
@@ -4057,6 +4208,7 @@ class WallpaperForm : Form
     static bool ShouldUseNativeGl(string pageName, string tid)
     {
         if (!NativeGlHost.IsAvailable()) return false;
+        if (CustomThemes.IsCustomGlThemeId(tid)) return true;
         if (IsNativeGlPage(pageName)) return true;
         if (!Settings.RustOpenGl) return false;
         return !string.IsNullOrEmpty(tid) && NativeGlThemes.Contains(tid);
@@ -4075,6 +4227,8 @@ class WallpaperForm : Form
         glHost.SetLowMode(lowMode);
         glHost.PostJson(Json.Stringify(Json.Obj("t", "lowMode", "v", lowMode)));
         glHost.PostJson(Json.Stringify(Json.Obj("t", "theme", "id", tid)));
+        string customGlMsg = CustomThemes.BuildCustomGlMessage(tid);
+        if (!string.IsNullOrEmpty(customGlMsg)) glHost.PostJson(customGlMsg);
         glHost.PostJson(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
         if (SettingsJson != null) glHost.PostJson(SettingsJson());
         SetMediaSubscribed(IsImpulseThemeId(tid));
@@ -4543,6 +4697,12 @@ class WallpaperForm : Form
     IntPtr zAnchor;                                     // 我们要紧跟在它下面的窗口（图标列表 / 图标层）
     IntPtr winEventHook;
     Native.WinEventDelegate winEventProc;               // 保持引用，防止被 GC
+    IntPtr desktopSwitchHook;
+    Native.WinEventDelegate desktopSwitchProc;
+    Guid lastVirtualDesktop = Guid.Empty;
+    System.Windows.Forms.Timer vdSettleTimer;
+    int vdSettleRemaining;
+    bool reattachingDesktop;
     IntPtr winLocHook, winStateHook;
     Native.WinEventDelegate winTrackProc;               // 实时跟踪顶层窗口移动/大小/开关
     int lastWinPollTick;
@@ -5328,90 +5488,112 @@ class WallpaperForm : Form
 
     bool AttachToDesktop()
     {
-        screen = ResolveTargetBounds();          // 进程是 DPI 感知的 → 物理像素
-        IntPtr progman = Native.FindWindow("Progman", null);
-        if (progman == IntPtr.Zero) { Log.Write("找不到 Progman"); return false; }
-        int progmanEx = Native.GetWindowLong(progman, Native.GWL_EXSTYLE);
-        Is24H2NoRedirectionBitmap = (progmanEx & Native.WS_EX_NOREDIRECTIONBITMAP) != 0;
-        IntPtr defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-        if (defView == IntPtr.Zero && Is24H2NoRedirectionBitmap)
+        if (reattachingDesktop || shuttingDown || IsDisposed) return false;
+        reattachingDesktop = true;
+        try
         {
-            RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero; });
-            defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-        }
-        string mode;
-        raised = defView != IntPtr.Zero;
+            if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
+            if (desktopSwitchHook != IntPtr.Zero) { Native.UnhookWinEvent(desktopSwitchHook); desktopSwitchHook = IntPtr.Zero; }
 
-        if (raised)
-        {
-            if (Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) == IntPtr.Zero)
-                RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) != IntPtr.Zero; });
-            IntPtr listView = Native.FindWindowEx(defView, IntPtr.Zero, "SysListView32", null);
-            if (AttachMode == "legacy" && !Is24H2NoRedirectionBitmap)
+            screen = ResolveTargetBounds();          // 进程是 DPI 感知的 → 物理像素
+            IntPtr progman = Native.FindWindow("Progman", null);
+            if (progman == IntPtr.Zero) { Log.Write("找不到 Progman"); return false; }
+            int progmanEx = Native.GetWindowLong(progman, Native.GWL_EXSTYLE);
+            Is24H2NoRedirectionBitmap = (progmanEx & Native.WS_EX_NOREDIRECTIONBITMAP) != 0;
+            IntPtr defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+            if (defView == IntPtr.Zero && Is24H2NoRedirectionBitmap)
             {
-                parentHwnd = Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
-                if (parentHwnd == IntPtr.Zero) { Log.Write("找不到 WorkerW"); return false; }
-                insertAfter = IntPtr.Zero; raised = false; mode = "24H2+ 旧做法：WorkerW 子窗口";
+                RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero; });
+                defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
             }
-            else if (AttachMode == "defview" && listView != IntPtr.Zero)
+            string mode;
+            raised = defView != IntPtr.Zero;
+
+            if (raised)
             {
-                // 实验：挂进图标层里、图标列表之下（换壁纸时不会被重排，但实测在 24H2 上画不出来）
-                parentHwnd = defView; insertAfter = listView; zAnchor = listView;
-                mode = "24H2+：图标层（DefView）的分层子窗口，位于图标列表之下";
+                if (Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) == IntPtr.Zero)
+                    RequestWorkerW(progman, delegate { return Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null) != IntPtr.Zero; });
+                IntPtr listView = Native.FindWindowEx(defView, IntPtr.Zero, "SysListView32", null);
+                if (AttachMode == "legacy" && !Is24H2NoRedirectionBitmap)
+                {
+                    parentHwnd = Native.FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+                    if (parentHwnd == IntPtr.Zero) { Log.Write("找不到 WorkerW"); return false; }
+                    insertAfter = IntPtr.Zero; raised = false; mode = "24H2+ 旧做法：WorkerW 子窗口";
+                }
+                else if (AttachMode == "defview" && listView != IntPtr.Zero)
+                {
+                    // 实验：挂进图标层里、图标列表之下（换壁纸时不会被重排，但实测在 24H2 上画不出来）
+                    parentHwnd = defView; insertAfter = listView; zAnchor = listView;
+                    mode = "24H2+：图标层（DefView）的分层子窗口，位于图标列表之下";
+                }
+                else
+                {
+                    parentHwnd = progman; insertAfter = defView; zAnchor = defView;
+                    mode = Is24H2NoRedirectionBitmap
+                        ? "Win11 24H2+ (WS_EX_NOREDIRECTIONBITMAP)：Progman 分层子窗口，位于图标层之下"
+                        : "24H2+：Progman 的分层子窗口，位于图标层之下";
+                }
             }
             else
             {
-                parentHwnd = progman; insertAfter = defView; zAnchor = defView;
-                mode = Is24H2NoRedirectionBitmap
-                    ? "Win11 24H2+ (WS_EX_NOREDIRECTIONBITMAP)：Progman 分层子窗口，位于图标层之下"
-                    : "24H2+：Progman 的分层子窗口，位于图标层之下";
+                IntPtr worker = FindClassicWorker();
+                if (worker == IntPtr.Zero)
+                {
+                    RequestWorkerW(progman, delegate { return FindClassicWorker() != IntPtr.Zero; });
+                    worker = FindClassicWorker();
+                }
+                if (worker == IntPtr.Zero) { Log.Write("找不到 WorkerW / SHELLDLL_DefView"); return false; }
+                parentHwnd = worker; insertAfter = IntPtr.Zero; zAnchor = IntPtr.Zero; mode = "经典：顶层 WorkerW 子窗口";
             }
+
+            int ex = Native.GetWindowLong(Handle, Native.GWL_EXSTYLE);
+            ex = (ex & ~Native.WS_EX_APPWINDOW) | Native.WS_EX_TOOLWINDOW | Native.WS_EX_NOACTIVATE;
+            if (raised) ex |= Native.WS_EX_LAYERED;
+            Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, ex);
+            if (raised) Native.SetLayeredWindowAttributes(Handle, 0, 255, Native.LWA_ALPHA);
+
+            int style = Native.GetWindowLong(Handle, Native.GWL_STYLE);
+            style = (style & ~(Native.WS_POPUP | Native.WS_CAPTION | Native.WS_THICKFRAME)) | Native.WS_CHILD | Native.WS_VISIBLE;
+            Native.SetWindowLong(Handle, Native.GWL_STYLE, style);
+            Native.SetParent(Handle, parentHwnd);
+
+            var pt = new Native.POINT { X = screen.X, Y = screen.Y };
+            Native.ScreenToClient(parentHwnd, ref pt);
+            Native.SetWindowPos(Handle, insertAfter, pt.X, pt.Y, screen.Width, screen.Height,
+                Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
+            lastVirtualDesktop = VirtualDesktopHelper.GetCurrentDesktopGuid();
+            EnsureWallpaperBounds();
+            EnsureZOrder();
+            StartMouseHook();
+
             if (raised)
             {
-                int ex = Native.GetWindowLong(Handle, Native.GWL_EXSTYLE);
-                Native.SetWindowLong(Handle, Native.GWL_EXSTYLE, ex | Native.WS_EX_LAYERED);
-                Native.SetLayeredWindowAttributes(Handle, 0, 255, Native.LWA_ALPHA);
+                // 资源管理器新建 / 重排壁纸层时立刻修正顺序（换壁纸时它会把新的 WorkerW 插到我们上面）
+                uint pid;
+                Native.GetWindowThreadProcessId(progman, out pid);
+                winEventProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
+                {
+                    if (idObject == 0 && !shuttingDown && IsHandleCreated) EnsureZOrder();
+                };
+                winEventHook = Native.SetWinEventHook(0x8000 /* OBJECT_CREATE */, 0x8004 /* OBJECT_REORDER */, IntPtr.Zero,
+                    winEventProc, pid, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
             }
-        }
-        else
-        {
-            IntPtr worker = FindClassicWorker();
-            if (worker == IntPtr.Zero)
+
+            desktopSwitchProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
             {
-                RequestWorkerW(progman, delegate { return FindClassicWorker() != IntPtr.Zero; });
-                worker = FindClassicWorker();
-            }
-            if (worker == IntPtr.Zero) { Log.Write("找不到 WorkerW / SHELLDLL_DefView"); return false; }
-            parentHwnd = worker; insertAfter = IntPtr.Zero; mode = "经典：顶层 WorkerW 子窗口";
-        }
-
-        int style = Native.GetWindowLong(Handle, Native.GWL_STYLE);
-        style = (style & ~(Native.WS_POPUP | Native.WS_CAPTION | Native.WS_THICKFRAME)) | Native.WS_CHILD | Native.WS_VISIBLE;
-        Native.SetWindowLong(Handle, Native.GWL_STYLE, style);
-        Native.SetParent(Handle, parentHwnd);
-
-        var pt = new Native.POINT { X = screen.X, Y = screen.Y };
-        Native.ScreenToClient(parentHwnd, ref pt);
-        Native.SetWindowPos(Handle, insertAfter, pt.X, pt.Y, screen.Width, screen.Height,
-            Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW | Native.SWP_FRAMECHANGED);
-        EnsureWallpaperBounds();
-        EnsureZOrder();
-        StartMouseHook();
-
-        if (raised)
-        {
-            // 资源管理器新建 / 重排壁纸层时立刻修正顺序（换壁纸时它会把新的 WorkerW 插到我们上面）
-            uint pid;
-            Native.GetWindowThreadProcessId(progman, out pid);
-            winEventProc = delegate(IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
-            {
-                if (idObject == 0 && !shuttingDown && IsHandleCreated) EnsureZOrder();
+                if (!shuttingDown && IsHandleCreated)
+                    PostToUi(delegate { CheckVirtualDesktopSwitch(true); });
             };
-            winEventHook = Native.SetWinEventHook(0x8000 /* OBJECT_CREATE */, 0x8004 /* OBJECT_REORDER */, IntPtr.Zero,
-                winEventProc, pid, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
+            desktopSwitchHook = Native.SetWinEventHook(Native.EVENT_SYSTEM_DESKTOPSWITCH, Native.EVENT_SYSTEM_DESKTOPSWITCH,
+                IntPtr.Zero, desktopSwitchProc, 0, 0, 0 /* WINEVENT_OUTOFCONTEXT */);
+
+            Log.Write(string.Format("已挂载（{0}），屏幕 {1}", mode, screen));
+            return true;
         }
-        Log.Write(string.Format("已挂载（{0}），屏幕 {1}", mode, screen));
-        return true;
+        finally
+        {
+            reattachingDesktop = false;
+        }
     }
 
     void EnsureWallpaperBounds()
@@ -5470,11 +5652,32 @@ class WallpaperForm : Form
     int zFixes;
     void EnsureZOrder()
     {
-        if (!raised || zAnchor == IntPtr.Zero || !Native.IsWindow(zAnchor)) return;
-        bool fixedAny = false;
-        if (Native.GetWindow(zAnchor, 2 /* GW_HWNDNEXT */) != Handle)
+        if (shuttingDown || IsDisposed || !IsHandleCreated) return;
+        if (parentHwnd == IntPtr.Zero || !Native.IsWindow(parentHwnd) || Native.GetParent(Handle) != parentHwnd)
         {
-            Native.SetWindowPos(Handle, zAnchor, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+            if (!reattachingDesktop) AttachToDesktop();
+            return;
+        }
+        if (!raised) return;
+        if (AttachMode == "progman")
+        {
+            IntPtr curDefView = Native.FindWindowEx(parentHwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+            if (curDefView != IntPtr.Zero && curDefView != zAnchor)
+            {
+                zAnchor = curDefView;
+                insertAfter = curDefView;
+            }
+        }
+        if (zAnchor == IntPtr.Zero || !Native.IsWindow(zAnchor))
+        {
+            if (!reattachingDesktop) AttachToDesktop();
+            return;
+        }
+        bool fixedAny = false;
+        if (!Native.IsWindowVisible(Handle) || Native.GetWindow(zAnchor, 2 /* GW_HWNDNEXT */) != Handle)
+        {
+            Native.SetWindowPos(Handle, zAnchor, 0, 0, 0, 0,
+                Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE | Native.SWP_SHOWWINDOW);
             fixedAny = true;
         }
         if (AttachMode == "progman")
@@ -5492,9 +5695,75 @@ class WallpaperForm : Form
         if (fixedAny && ++zFixes <= 20) Log.Write("修正了桌面层级（资源管理器重排了窗口）");
     }
 
+    void ScheduleVirtualDesktopSettle()
+    {
+        vdSettleRemaining = 3;
+        if (vdSettleTimer == null)
+        {
+            vdSettleTimer = new System.Windows.Forms.Timer();
+            vdSettleTimer.Interval = 350;
+            vdSettleTimer.Tick += delegate
+            {
+                if (shuttingDown || IsDisposed || !IsHandleCreated || vdSettleRemaining <= 0)
+                {
+                    if (vdSettleTimer != null) vdSettleTimer.Stop();
+                    return;
+                }
+                vdSettleRemaining--;
+                EnsureWallpaperBounds();
+                EnsureZOrder();
+                if (raised) Native.SetLayeredWindowAttributes(Handle, 0, 255, Native.LWA_ALPHA);
+                Native.RedrawWindow(Handle, IntPtr.Zero, IntPtr.Zero, 0x1 | 0x4 | 0x80 | 0x100);
+                if (vdSettleRemaining <= 0 && vdSettleTimer != null) vdSettleTimer.Stop();
+            };
+        }
+        vdSettleTimer.Stop();
+        vdSettleTimer.Start();
+    }
+
+    void CheckVirtualDesktopSwitch(bool forceRefresh)
+    {
+        if (shuttingDown || IsDisposed || !IsHandleCreated) return;
+        Guid cur = VirtualDesktopHelper.GetCurrentDesktopGuid();
+        bool changed = (cur != Guid.Empty && lastVirtualDesktop != Guid.Empty && cur != lastVirtualDesktop);
+        if (lastVirtualDesktop == Guid.Empty && cur != Guid.Empty)
+            lastVirtualDesktop = cur;
+
+        int cloaked = 0;
+        bool isCloaked = (Native.DwmGetWindowAttribute(Handle, Native.DWMWA_CLOAKED, out cloaked, 4) == 0 && cloaked != 0);
+        bool offDesktop = !VirtualDesktopHelper.IsWindowOnCurrentDesktop(Handle);
+
+        if (changed || forceRefresh || isCloaked || offDesktop)
+        {
+            if (cur != Guid.Empty) lastVirtualDesktop = cur;
+            if (changed)
+                Log.Write("Sanal masaüstü değişti: " + cur.ToString("B") + " (cloaked=" + isCloaked + ", offDesktop=" + offDesktop + ")");
+            if ((isCloaked || offDesktop) && !reattachingDesktop)
+            {
+                Native.SetParent(Handle, IntPtr.Zero);
+                int style = Native.GetWindowLong(Handle, Native.GWL_STYLE);
+                style = (style & ~Native.WS_CHILD) | Native.WS_POPUP;
+                Native.SetWindowLong(Handle, Native.GWL_STYLE, style);
+                VirtualDesktopHelper.MoveToCurrentDesktop(Handle, cur);
+                AttachToDesktop();
+            }
+            EnsureWallpaperBounds();
+            EnsureZOrder();
+            if (raised) Native.SetLayeredWindowAttributes(Handle, 0, 255, Native.LWA_ALPHA);
+            Native.RedrawWindow(Handle, IntPtr.Zero, IntPtr.Zero, 0x1 | 0x4 | 0x80 | 0x100);
+            if (glHost != null && glHost.IsRunning)
+                glHost.Resize((float)uiScale);
+            lastPause = -1;
+            PollForeground();
+            if (changed || forceRefresh)
+                ScheduleVirtualDesktopSettle();
+        }
+    }
+
     // ---------------------------------------------------------------- 读取桌面图标
     void PollIcons()
     {
+        CheckVirtualDesktopSwitch(false);
         EnsureWallpaperBounds();
         EnsureZOrder();
         bool glActive = glHost != null && glHost.IsRunning;
@@ -5731,6 +6000,7 @@ class WallpaperForm : Form
     // ---------------------------------------------------------------- 最大化 / 全屏 / 锁屏 / 省电时暂停
     void PollForeground()
     {
+        CheckVirtualDesktopSwitch(false);
         bool glActive = glHost != null && glHost.IsRunning;
         bool vidActive = videoHost != null && videoHost.IsRunning;
         if (!glActive && !vidActive && (web == null || web.CoreWebView2 == null)) return;
@@ -5797,6 +6067,9 @@ class WallpaperForm : Form
         StopMouseHook();
         StopWindowTrackHooks();
         iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
+        if (vdSettleTimer != null) { try { vdSettleTimer.Stop(); vdSettleTimer.Dispose(); } catch { } vdSettleTimer = null; }
+        if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
+        if (desktopSwitchHook != IntPtr.Zero) { Native.UnhookWinEvent(desktopSwitchHook); desktopSwitchHook = IntPtr.Zero; }
         StopNativeVideo();
         StopNativeGl();
         reader.ResetOrbitalPositions();
@@ -5827,7 +6100,12 @@ class WallpaperForm : Form
         StopMouseHook();
         StopWindowTrackHooks();
         if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
+        if (desktopSwitchHook != IntPtr.Zero) { Native.UnhookWinEvent(desktopSwitchHook); desktopSwitchHook = IntPtr.Zero; }
+        if (vdSettleTimer != null) { try { vdSettleTimer.Stop(); vdSettleTimer.Dispose(); } catch { } vdSettleTimer = null; }
         iconTimer.Stop(); fgTimer.Stop(); winTimer.Stop();
+        if (vdSettleTimer != null) { try { vdSettleTimer.Stop(); vdSettleTimer.Dispose(); } catch { } vdSettleTimer = null; }
+        if (winEventHook != IntPtr.Zero) { Native.UnhookWinEvent(winEventHook); winEventHook = IntPtr.Zero; }
+        if (desktopSwitchHook != IntPtr.Zero) { Native.UnhookWinEvent(desktopSwitchHook); desktopSwitchHook = IntPtr.Zero; }
         StopNativeVideo();
         StopNativeGl();
         reader.ResetOrbitalPositions();
@@ -6268,10 +6546,104 @@ class IconReader : IDisposable
     }
 }
 
+static class VirtualDesktopHelper
+{
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("a5cd92ff-29be-454c-8d04-d82879fb3f1b")]
+    interface IVirtualDesktopManager
+    {
+        [PreserveSig]
+        int IsWindowOnCurrentVirtualDesktop(IntPtr topLevelWindow, [MarshalAs(UnmanagedType.Bool)] out bool onCurrentDesktop);
+        [PreserveSig]
+        int GetWindowDesktopId(IntPtr topLevelWindow, out Guid desktopId);
+        [PreserveSig]
+        int MoveWindowToDesktop(IntPtr topLevelWindow, [In] ref Guid desktopId);
+    }
+
+    static readonly Guid ClsidVirtualDesktopManager = new Guid("aa509086-5ca9-4c25-8f95-589d3c07b48a");
+    static IVirtualDesktopManager manager;
+    static bool managerInitTried;
+
+    static IVirtualDesktopManager GetManager()
+    {
+        if (managerInitTried) return manager;
+        managerInitTried = true;
+        try
+        {
+            Type t = Type.GetTypeFromCLSID(ClsidVirtualDesktopManager, false);
+            if (t != null) manager = Activator.CreateInstance(t) as IVirtualDesktopManager;
+        }
+        catch { manager = null; }
+        return manager;
+    }
+
+    public static Guid GetCurrentDesktopGuid()
+    {
+        try
+        {
+            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops"))
+            {
+                if (rk != null)
+                {
+                    byte[] b = rk.GetValue("CurrentVirtualDesktop") as byte[];
+                    if (b != null && b.Length == 16) return new Guid(b);
+                }
+            }
+        }
+        catch { }
+        try
+        {
+            int sid = Process.GetCurrentProcess().SessionId;
+            using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\SessionInfo\" + sid + @"\VirtualDesktops"))
+            {
+                if (rk != null)
+                {
+                    byte[] b = rk.GetValue("CurrentVirtualDesktop") as byte[];
+                    if (b != null && b.Length == 16) return new Guid(b);
+                }
+            }
+        }
+        catch { }
+        return Guid.Empty;
+    }
+
+    public static bool IsWindowOnCurrentDesktop(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return true;
+        IVirtualDesktopManager m = GetManager();
+        if (m == null) return true;
+        try
+        {
+            bool onCur;
+            int hr = m.IsWindowOnCurrentVirtualDesktop(hwnd, out onCur);
+            return hr == 0 ? onCur : true;
+        }
+        catch { return true; }
+    }
+
+    public static bool MoveToCurrentDesktop(IntPtr hwnd, Guid desktopId)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+        if (desktopId == Guid.Empty) desktopId = GetCurrentDesktopGuid();
+        if (desktopId == Guid.Empty) return false;
+        IVirtualDesktopManager m = GetManager();
+        if (m == null) return false;
+        try
+        {
+            return m.MoveWindowToDesktop(hwnd, ref desktopId) == 0;
+        }
+        catch { return false; }
+    }
+}
+
 static class Native
 {
     public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x00080000, WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+    public const int WS_EX_TOOLWINDOW = 0x00000080, WS_EX_APPWINDOW = 0x00040000, WS_EX_NOACTIVATE = 0x08000000;
     public const uint LWA_ALPHA = 0x2, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOZORDER = 0x0004;
+    public const int DWMWA_CLOAKED = 14;
+    public const uint EVENT_SYSTEM_DESKTOPSWITCH = 0x0020, EVENT_OBJECT_CLOAKED = 0x8017, EVENT_OBJECT_UNCLOAKED = 0x8018;
     public const int SM_REMOTESESSION = 0x1000;
     public const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
     [StructLayout(LayoutKind.Sequential)]
@@ -6423,21 +6795,25 @@ static class InstallProfile
     // An installer may only close the instance using this exact executable path.
     public static int StopInstalled()
     {
-        foreach (Process process in Process.GetProcessesByName("Deskland"))
+        string[] procNames = new[] { "DiyarDesk", "Deskland" };
+        for (int i = 0; i < procNames.Length; i++)
         {
-            using (process)
+            foreach (Process process in Process.GetProcessesByName(procNames[i]))
             {
-                if (process.Id == Process.GetCurrentProcess().Id) continue;
-                try
+                using (process)
                 {
-                    if (!string.Equals(process.MainModule.FileName, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase)) continue;
-                    EventWaitHandle ev;
-                    if (!EventWaitHandle.TryOpenExisting(Program.ExitEventName, out ev)) return 1;
-                    using (ev) ev.Set();
-                    if (!process.WaitForExit(10000)) return 1;
+                    if (process.Id == Process.GetCurrentProcess().Id) continue;
+                    try
+                    {
+                        if (!string.Equals(process.MainModule.FileName, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase)) continue;
+                        EventWaitHandle ev;
+                        if (!EventWaitHandle.TryOpenExisting(Program.ExitEventName, out ev)) return 1;
+                        using (ev) ev.Set();
+                        if (!process.WaitForExit(10000)) return 1;
+                    }
+                    catch (InvalidOperationException) { }
+                    catch { return 1; }
                 }
-                catch (InvalidOperationException) { }
-                catch { return 1; }
             }
         }
         return 0;

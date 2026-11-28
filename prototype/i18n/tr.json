@@ -46,6 +46,11 @@
     "livePreview": "Canlı önizleme",
     "previewIcons": "Canlı önizleme · masaüstünüzdeki {n} simge kullanılıyor",
     "previewNoIcons": "Canlı önizleme · masaüstü simgeleri gizli",
+    "previewHide": "Önizlemeyi kapat",
+    "previewShow": "Önizlemeyi aç",
+    "previewOffBadge": "Önizleme kapalı · RAM tasarrufu",
+    "previewRamTip": "Canlı önizleme ek RAM ve GPU kullanır; kapatarak bellek tasarrufu yapabilirsiniz.",
+    "previewToggleTitle": "Canlı önizlemeyi aç veya kapat (kapatıldığında önizleme belleği serbest bırakılır)",
     "refresh": "Yenile",
     "refreshTitle": "Bu tema için yeni bir sahne oluştur",
     "shareImage": "Görsel paylaş",
@@ -2269,6 +2274,273 @@
           "label": "Simge Zemini",
           "hint": "Masaüstü simgelerinin arkasında okunabilirliği artıran yumuşak koyu zemin"
         }
+      }
+    },
+    "ascii-clownfish": {
+      "name": "Palyaço Balığı ve Anemon · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 etkileşimli ASCII mercan resifi duvar kağıdı: 50 canlı anemon kolu arasında kıvrılarak yüzen 3D palyaço balığı. Fareyi gezdirdiğinizde sular dalgalanır ve anemonlar parlar; tıkladığınızda balığın kovaladığı parlayan bir yem düşer, masaüstü simgeleri resif kayasına dönüşür.",
+      "groups": [
+        "ASCII Stili ve Palet",
+        "Fizik ve Etkileşim"
+      ],
+      "params": {
+        "palette": {
+          "label": "Renk Paleti",
+          "hint": "Orijinal mercan turuncusu (1:1), Safir Resif veya Biyolüminesan Neon",
+          "options": [
+            "Orijinal Mercan",
+            "Safir Resif",
+            "Neon Biyoışıma"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Hücre Boyutu",
+          "hint": "Eşit aralıklı ASCII ızgara boyutu (küçüldükçe detay artar)"
+        },
+        "glow": {
+          "label": "Parıltı Yoğunluğu",
+          "hint": "Karakter ve su altı plankton fosfor parlaklığı"
+        },
+        "speed": {
+          "label": "Yüzme Hızı",
+          "hint": "Kuyruk vuruş frekansı, anemon salınımı ve kamera akışı"
+        },
+        "mouseInteract": {
+          "label": "İmleç Akıntısı ve Yem",
+          "hint": "Fare anemon kollarını büker ve ışıldatır; tıklama balık yemi bırakır"
+        },
+        "adaptive": {
+          "label": "Simge Etkileşimi",
+          "hint": "Anemon kolları simgelerden nazikçe uzaklaşır ve arkalarında koyu zemin oluşur"
+        }
+      }
+    },
+    "ascii-jellyfish": {
+      "name": "Denizanası Kalbi · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 biyolüminesan ASCII duvar kağıdı: camgöbeği ve pembe iki denizanası sarmal dansla yükselip dokunaçlarıyla parlayan bir 3D kalp oluşturur. İmleci gezdirdikçe dokunaçlar savrulur, tıkladığınızda ışıklı kalp nabzı dalgası yayılır.",
+      "groups": [
+        "ASCII Stili ve Palet",
+        "Sarmal Dans ve Etkileşim"
+      ],
+      "params": {
+        "palette": {
+          "label": "Renk Paleti",
+          "hint": "Orijinal camgöbeği-pembe ikilisi (1:1), Zümrüt Altın veya Gün Batımı Gülü",
+          "options": [
+            "Orijinal Buz ve Orkide",
+            "Zümrüt ve Altın",
+            "Gün Batımı Gülü"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Hücre Boyutu",
+          "hint": "Eşit aralıklı ASCII ızgara boyutu (küçüldükçe detay artar)"
+        },
+        "glow": {
+          "label": "Biyo-Parıltı",
+          "hint": "Denizanası çanları ve dokunaç kurdelelerinin ışık halesi"
+        },
+        "speed": {
+          "label": "Nabız Hızı",
+          "hint": "Çan kasılma ritmi ve sarmal yükseliş hızı"
+        },
+        "mouseInteract": {
+          "label": "İmleç Girdabı ve Kalp Nabzı",
+          "hint": "Fare dokunaçları savurur ve kamerayı eğip büker; tıklama kalp dalgası yayar"
+        },
+        "adaptive": {
+          "label": "Simge Zemini",
+          "hint": "Masaüstü simgelerinin arkasında derin okyanus okunabilirlik zemini"
+        }
+      }
+    },
+    "ascii-shark": {
+      "name": "Köpekbalığı Takibi · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 hidrodinamik ASCII deniz duvar kağıdı: gün ışıklı kaustiklerin altında 80 gümüş balık sürüsü ayrılırken gerçek omurga fiziğine sahip köpekbalığı sürüyü yarar. İmleç balıkları ürkütür; tıklamak su altı şok dalgası ve kuyruk deparı tetikler.",
+      "groups": [
+        "Okyanus Işığı ve ASCII",
+        "Sürü Fiziği ve Etkileşim"
+      ],
+      "params": {
+        "palette": {
+          "label": "Deniz Tonu",
+          "hint": "Orijinal turkuaz resif suyu (1:1), Derin Lacivert veya Sıcak Lagün",
+          "options": [
+            "Orijinal Turkuaz",
+            "Derin Okyanus",
+            "Sıcak Lagün"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Hücre Boyutu",
+          "hint": "Eşit aralıklı ASCII ızgara boyutu (küçüldükçe detay artar)"
+        },
+        "glow": {
+          "label": "Gümüş Yansıma",
+          "hint": "Balık pulları ve güneş ışığı kaustiklerinin parıltısı"
+        },
+        "speed": {
+          "label": "Takip Hızı",
+          "hint": "Köpekbalığı ve 80 balıklı sürünün akış temposu"
+        },
+        "mouseInteract": {
+          "label": "Sürü Dağıtma ve Şok Dalgası",
+          "hint": "İmleç yakın balıkları kaçırır; tıklama su altı şok dalgası ve köpekbalığı deparı başlatır"
+        },
+        "adaptive": {
+          "label": "Simge Resifi",
+          "hint": "Balık sürüsü simgelerin etrafından akar ve simgeler net kalır"
+        }
+      }
+    },
+    "ascii-lotus": {
+      "name": "Yağmur Sonrası Nilüfer · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 Sobel kenar konturlu ASCII duvar kağıdı: yağmur sonrası 14 mor yapraklı nilüfer açılırken bir çiğ damlası gölete düşüp halkalar yayar ve tüylü bir bombus arısı çiçeğe konar. Fare esinti ve arı çekimi yaratır; tıklamak yeni yağmur halkaları başlatır.",
+      "groups": [
+        "Botanik Renkler ve Kontur",
+        "Esinti ve Yağmur Etkileşimi"
+      ],
+      "params": {
+        "palette": {
+          "label": "Nilüfer Paleti",
+          "hint": "Orijinal yağmur sonrası mor nilüfer (1:1 doku), Gece Çiviti veya Şafak Gül",
+          "options": [
+            "Orijinal Mor Nilüfer",
+            "Gece Çiviti",
+            "Şafak Pembesi"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Hücre Boyutu",
+          "hint": "Eşit aralıklı ASCII ızgara boyutu (küçüldükçe detay artar)"
+        },
+        "glow": {
+          "label": "Su Halkası Işıltısı",
+          "hint": "Altın polenler ve gölet dalgalarının yumuşak ışıltısı"
+        },
+        "speed": {
+          "label": "Çiçeklenme Hızı",
+          "hint": "Taç yaprakların açılışı, damla düşüşü ve arı uçuş temposu"
+        },
+        "mouseInteract": {
+          "label": "Esinti, Arı ve Yağmur Damlası",
+          "hint": "Fare çiçek yapraklarını esnetip arıyı çeker; tıklamak gölete yeni damla düşürür"
+        },
+        "adaptive": {
+          "label": "Simge Gölet Zemini",
+          "hint": "Masaüstü simgelerinin arkasında sakin koyu su okunabilirlik zemini"
+        }
+      }
+    },
+    "ascii-cat-knight": {
+      "name": "Şövalye Kedi · ASCII (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 ASCII duvar kağıdı: gümüş zırhlı yavru kedi dikey parlayan kılıcını tutarken rüzgârda Verlet kumaş fizikli pelerini dalgalanır, göz kırpar ve çimenler salınır. Fare ile göz takibi, pelerin rüzgârı ve kılıç parlaması tetiklenir.",
+      "groups": [
+        "Görünüm ve Kamera",
+        "Rüzgâr Fiziği ve Etkileşim"
+      ],
+      "params": {
+        "palette": {
+          "label": "Zırh Paleti",
+          "hint": "Orijinal sıcak gümüş parşömen, Altın Şövalye veya Ay Işığı Muhafızı",
+          "options": [
+            "Orijinal Gümüş",
+            "Altın Paladin",
+            "Ay Işığı Muhafızı"
+          ]
+        },
+        "cameraMode": {
+          "label": "Kamera Modu",
+          "hint": "Tam boy şövalye, sinematik yakınlaştırmalı döngü veya yakın portre kadrajı",
+          "options": [
+            "Tam Boy Şövalye",
+            "Sinematik Uzaklaşma",
+            "Yakın Portre"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Hücre Boyutu",
+          "hint": "Eşit aralıklı ASCII ızgara yoğunluğu (küçüldükçe detay artar)"
+        },
+        "glow": {
+          "label": "Kılıç ve Fosfor Işıltısı",
+          "hint": "Kılıç parlaması ve zırh vurgularının yumuşak fosfor ışıltısı"
+        },
+        "wind": {
+          "label": "Rüzgâr Şiddeti",
+          "hint": "Pelerin dalgalanması, tüy titreşimi ve çimen salınımı gücü"
+        },
+        "speed": {
+          "label": "Hareket Hızı",
+          "hint": "Verlet pelerin fiziği, göz kırpma ve kamera geçiş temposu"
+        },
+        "mouseInteract": {
+          "label": "Rüzgâr, Göz ve Kılıç Etkileşimi",
+          "hint": "Fare pelerine rüzgâr verir ve gözleri çeker; tıklamak kılıcı parlatıp esinti patlatır"
+        },
+        "adaptive": {
+          "label": "Simge Rüzgâr Yönlendirmesi",
+          "hint": "Pelerin kumaşı masaüstü simgelerini hisseder ve altlarında okunaklı arka plan korunur"
+        }
+      }
+    },
+    "turkish-flag": {
+      "name": "Dalgalanan Türk Bayrağı · (Rust)",
+      "desc": "Saf Rust + OpenGL 3.3 canlı masaüstü duvar kağıdı: gönderde altın alemli direği ve süzülen bulutlu gökyüzüyle (Gün Işığı, Gün Batımı, Yıldızlı Gece veya Saatle Otomatik) 2893 sayılı Türk Bayrağı Kanunu oranlarına sadık, Verlet kumaş fizikli dalgalanan Türk Bayrağı.",
+      "groups": [
+        "Gökyüzü ve Atmosfer",
+        "Bayrak ve Rüzgâr Fiziği"
+      ],
+      "params": {
+        "skyMode": {
+          "label": "Gökyüzü Modu",
+          "hint": "Güneşli gün ışığı, kızıl gün batımı, yıldızlı gece veya yerel saate göre otomatik geçiş",
+          "options": [
+            "Gün Işığı",
+            "Gün Batımı",
+            "Gece ve Yıldızlar",
+            "Otomatik (Saat)"
+          ]
+        },
+        "clouds": {
+          "label": "Bulut Yoğunluğu",
+          "hint": "Gökyüzünde süzülen yüksek ve orta katman bulutların yoğunluğu"
+        },
+        "atmosphere": {
+          "label": "Atmosfer ve Işık",
+          "hint": "Güneş/ay halesi, ufuk parıltısı ve kumaş arkadan ışık geçirgenliği"
+        },
+        "wind": {
+          "label": "Rüzgâr Şiddeti",
+          "hint": "Bayrağın gerginliği, dalga genliği ve bulutların akış hızı"
+        },
+        "speed": {
+          "label": "Dalgalanma Hızı",
+          "hint": "Verlet kumaş fiziği ve rüzgâr dalgalarının zaman temposu"
+        },
+        "fabric": {
+          "label": "Kumaş Dokusu",
+          "hint": "Parlak saten ipek, tok pamuklu dokuma veya ağır tören kadifesi",
+          "options": [
+            "İpek Saten",
+            "Pamuklu Dokuma",
+            "Tören Kadifesi"
+          ]
+        },
+        "mouseInteract": {
+          "label": "Fare Rüzgâr Etkileşimi",
+          "hint": "İmleç bayrağın üzerinde esinti oluşturur; tıklamak canlı bir rüzgâr darbesi verir"
+        },
+        "adaptive": {
+          "label": "Simge Okunabilirlik Zemini",
+          "hint": "Parlak bulutlar üzerinde masaüstü simgelerinin altında yumuşak kontrast sağlar"
+        }
+      },
+      "presets": {
+        "anatolian-sun": "Anadolu Güneşi",
+        "crimson-sunset": "Kızıl Gün Batımı",
+        "starry-night": "Yıldızlı Gece",
+        "strong-poyraz": "Sert Poyraz"
       }
     }
   }

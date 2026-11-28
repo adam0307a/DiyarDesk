@@ -22,7 +22,7 @@ from deskland_linux.native_settings import SettingsI18n, format_param_value, is_
 
 def test_should_use_native_gl_routing_preserves_html_css_js_support():
     # Native themes activate when rust_opengl=True and library is available
-    for tid in ("papercut", "meadow", "beach", "istanbul", "studio-glass", "liquidglass", "ai-mascots", "eye-within-words", "cosmic-eye"):
+    for tid in ("papercut", "meadow", "beach", "istanbul", "studio-glass", "liquidglass", "ai-mascots", "eye-within-words", "cosmic-eye", "ascii-clownfish", "ascii-jellyfish", "ascii-shark", "ascii-lotus", "ascii-cat-knight", "turkish-flag"):
         assert is_native_gl_theme(tid)
         assert should_use_native_gl(f"{tid}.html", tid, rust_opengl=True, available=True)
 
@@ -35,6 +35,12 @@ def test_should_use_native_gl_routing_preserves_html_css_js_support():
     assert is_native_gl_page("ai-mascots.html")
     assert is_native_gl_page("eye-within-words.html")
     assert is_native_gl_page("cosmic-eye.html")
+    assert is_native_gl_page("ascii-clownfish.html")
+    assert is_native_gl_page("ascii-jellyfish.html")
+    assert is_native_gl_page("ascii-shark.html")
+    assert is_native_gl_page("ascii-lotus.html")
+    assert is_native_gl_page("ascii-cat-knight.html")
+    assert is_native_gl_page("turkish-flag.html")
     assert should_use_native_gl("material-impulse-gl.html", "material-impulse-gl", rust_opengl=False, available=True)
     assert should_use_native_gl("ai-mascots.html", "ai-mascots", rust_opengl=False, available=True)
     assert should_use_native_gl("eye-within-words.html", "eye-within-words", rust_opengl=False, available=True)

@@ -33,14 +33,15 @@ class NativeSettingsForm : Form
     const uint EM_SETCUEBANNER = 0x1501;
 
     // Layout & controls
-    Panel topPanel, leftPanel, rightPanel, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel, welcomeCard;
-    FlowLayoutPanel topControlsFlow, themeGrid, categoryFlow, welcomeQuizFlow, welcomeRecsFlow;
-    Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, savedLabel, searchEmptyLabel;
+    Panel topPanel, leftPanel, rightPanel, previewCard, previewHostWrap, previewFrame, paramsWrap, searchEmptyPanel, welcomeCard;
+    FlowLayoutPanel topControlsFlow, themeGrid, categoryFlow, prevActions, welcomeQuizFlow, welcomeRecsFlow;
+    Label brandLabel, engineBadge, titleLabel, subtitleLabel, themeNameLabel, themeDescLabel, previewFootLabel, previewRamHintLabel, savedLabel, searchEmptyLabel;
+    StaticPreviewControl previewStaticCtrl;
     Label welcomeTitleLbl, welcomeBodyLbl, welcomeIconStatusLbl, welcomeRecLabel;
     TextBox searchBox;
     CheckBox chkRustGl, chkLowMode, chkDisableAutoPause, chkFocusRules, chkIconIslands, chkSystemBridge, chkSolarSync, chkWindowAware, chkAutostart, chkAdaptive;
     ComboBox cmbLang, cmbDisplay, cmbPlaylist;
-    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnWelcomeDismiss, btnSaveIcons, btnRestoreIcons;
+    Button btnSwitchWebView, btnDiag, btnPreviewPause, btnReseed, btnResetAll, btnClearSearch, btnExportPreset, btnImportPreset, btnImportTheme, btnRemoveTheme, btnWelcomeDismiss, btnSaveIcons, btnRestoreIcons;
     string activeCategory = "all", wizStyle = "icons", wizPrio = "light", baselineIconsSig = "";
     bool iconMoveCelebrated;
     readonly List<Button> categoryButtons = new List<Button>();
@@ -579,12 +580,13 @@ class NativeSettingsForm : Form
         rightPanel.BackColor = colBg;
 
         // Preview card
-        var previewCard = new Panel();
+        previewCard = new Panel();
         previewCard.Dock = DockStyle.Top;
         previewCard.AutoSize = true;
         previewCard.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         previewCard.Padding = new Padding(S(14));
         previewCard.BackColor = colSurface;
+        previewCard.Resize += delegate { SyncPreviewActionsLayout(); };
 
         var prevHead = new Panel();
         prevHead.Dock = DockStyle.Top;
@@ -626,6 +628,12 @@ class NativeSettingsForm : Form
         previewFrame = new Panel();
         previewFrame.Dock = DockStyle.Fill;
         previewFrame.BackColor = Color.FromArgb(14, 18, 24);
+
+        previewStaticCtrl = new StaticPreviewControl();
+        previewStaticCtrl.Dock = DockStyle.Fill;
+        previewStaticCtrl.Visible = false;
+        previewFrame.Controls.Add(previewStaticCtrl);
+
         previewHostWrap.Controls.Add(previewFrame);
 
         previewFootLabel = new Label();
@@ -636,11 +644,20 @@ class NativeSettingsForm : Form
         previewFootLabel.TextAlign = ContentAlignment.MiddleLeft;
         previewFootLabel.Padding = new Padding(0, S(4), 0, 0);
 
-        var prevActions = new FlowLayoutPanel();
+        previewRamHintLabel = new Label();
+        previewRamHintLabel.Dock = DockStyle.Top;
+        previewRamHintLabel.AutoSize = true;
+        previewRamHintLabel.Font = fontSmall;
+        previewRamHintLabel.ForeColor = colMuted;
+        previewRamHintLabel.MaximumSize = new Size(S(396), 0);
+        previewRamHintLabel.Padding = new Padding(0, S(3), 0, S(4));
+
+        prevActions = new FlowLayoutPanel();
         prevActions.Dock = DockStyle.Top;
-        prevActions.AutoSize = true;
-        prevActions.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        prevActions.Padding = new Padding(0, S(6), 0, 0);
+        prevActions.WrapContents = true;
+        prevActions.AutoSize = false;
+        prevActions.Height = S(68);
+        prevActions.Padding = new Padding(0, S(6), 0, S(2));
         prevActions.BackColor = Color.Transparent;
 
         btnPreviewPause = MakeGhostButton("Pause preview");
@@ -674,17 +691,27 @@ class NativeSettingsForm : Form
             host.ImportPresetFromNative(this);
         };
 
+        btnRemoveTheme = MakeGhostButton("Remove");
+        btnRemoveTheme.Visible = false;
+        btnRemoveTheme.Click += delegate
+        {
+            host.RemoveThemeFromNative(Settings.Theme, this);
+        };
+
         prevActions.Controls.Add(btnPreviewPause);
         prevActions.Controls.Add(btnReseed);
         prevActions.Controls.Add(btnResetAll);
         prevActions.Controls.Add(btnExportPreset);
         prevActions.Controls.Add(btnImportPreset);
+        prevActions.Controls.Add(btnRemoveTheme);
 
         previewCard.Controls.Add(prevActions);
+        previewCard.Controls.Add(previewRamHintLabel);
         previewCard.Controls.Add(previewFootLabel);
         previewCard.Controls.Add(previewHostWrap);
         previewCard.Controls.Add(themeDescLabel);
         previewCard.Controls.Add(prevHead);
+        SyncPreviewActionsLayout();
 
         var spacer = new Panel();
         spacer.Dock = DockStyle.Top;
@@ -724,8 +751,15 @@ class NativeSettingsForm : Form
         subtitleLabel.ForeColor = colMuted;
         subtitleLabel.Location = new Point(0, S(26));
 
+        btnImportTheme = MakeGhostButton("+ Import theme");
+        btnImportTheme.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnImportTheme.Click += delegate
+        {
+            host.ImportThemeFromNative(this);
+        };
+
         searchBox = new TextBox();
-        searchBox.Width = S(200);
+        searchBox.Width = S(185);
         searchBox.Font = fontBody;
         searchBox.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         searchBox.BorderStyle = BorderStyle.FixedSingle;
@@ -733,13 +767,11 @@ class NativeSettingsForm : Form
         searchBox.HandleCreated += delegate { ApplySearchCue(); };
         searchBox.TextChanged += delegate { FilterThemeCards(searchBox.Text); };
 
-        leftHead.Resize += delegate
-        {
-            searchBox.Location = new Point(Math.Max(S(240), leftHead.ClientSize.Width - searchBox.Width - S(4)), S(12));
-        };
+        leftHead.Resize += delegate { PositionLeftHeadControls(leftHead); };
 
         leftHead.Controls.Add(titleLabel);
         leftHead.Controls.Add(subtitleLabel);
+        leftHead.Controls.Add(btnImportTheme);
         leftHead.Controls.Add(searchBox);
 
         categoryFlow = new FlowLayoutPanel();
@@ -986,7 +1018,9 @@ class NativeSettingsForm : Form
             {
                 var b = (Button)c;
                 b.BackColor = colCard;
-                b.ForeColor = colText;
+                b.ForeColor = b == btnRemoveTheme
+                    ? (darkTheme ? Color.FromArgb(248, 113, 113) : Color.FromArgb(185, 28, 28))
+                    : colText;
                 b.FlatAppearance.BorderColor = colBorder;
                 b.FlatAppearance.MouseOverBackColor = colCardHover;
             }
@@ -1072,7 +1106,7 @@ class NativeSettingsForm : Form
         {
             var th = custom[i];
             string id = th.ContainsKey("id") ? th["id"] as string : null;
-            if (!string.IsNullOrEmpty(id) && WallpaperForm.IsNativeVideoTheme(id))
+            if (!string.IsNullOrEmpty(id) && (WallpaperForm.IsNativeGlTheme(id) || WallpaperForm.IsNativeVideoTheme(id)))
             {
                 allThemes.Add(th);
             }
@@ -1144,9 +1178,26 @@ class NativeSettingsForm : Form
                 btnImportPreset.Text = I18n.Ui("importPreset");
                 tip.SetToolTip(btnImportPreset, I18n.Ui("importPresetTitle"));
             }
-            btnPreviewPause.Text = previewPaused ? "▶ " + I18n.Ui("livePreview") : "⏸ " + I18n.Ui("livePreview");
+            if (btnImportTheme != null)
+            {
+                string impTxt = I18n.Ui("importTheme");
+                if (string.IsNullOrEmpty(impTxt) || impTxt == "importTheme") impTxt = "Import theme";
+                btnImportTheme.Text = "+ " + impTxt;
+                tip.SetToolTip(btnImportTheme, I18n.Ui("importThemeTitle"));
+                if (btnImportTheme.Parent != null) PositionLeftHeadControls(btnImportTheme.Parent);
+            }
+            if (btnRemoveTheme != null)
+            {
+                string remTxt = I18n.Ui("removeTheme");
+                if (string.IsNullOrEmpty(remTxt) || remTxt == "removeTheme") remTxt = "Remove";
+                btnRemoveTheme.Text = remTxt;
+                tip.SetToolTip(btnRemoveTheme, I18n.Ui("removeThemeTitle"));
+            }
+            if (previewRamHintLabel != null) previewRamHintLabel.Text = I18n.Ui("previewRamTip");
+            tip.SetToolTip(btnPreviewPause, I18n.Ui("previewToggleTitle"));
             savedLabel.Text = I18n.Ui("autosave");
-            previewFootLabel.Text = "● " + I18n.Ui("livePreview") + " (Rust OpenGL 3.3)";
+            UpdatePreviewUiState();
+            SyncPreviewActionsLayout();
 
             cmbDisplay.Items.Clear();
             cmbDisplay.Items.AddRange(new object[] {
@@ -1416,10 +1467,18 @@ class NativeSettingsForm : Form
             if (m.Success) relPath = m.Groups[1].Value.Trim();
         }
         string fullPath = null;
-        if (!string.IsNullOrEmpty(relPath) && !relPath.StartsWith("__custom/", StringComparison.Ordinal))
+        if (!string.IsNullOrEmpty(relPath))
         {
-            string candidate = Path.Combine(pageDir, relPath.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(candidate)) fullPath = candidate;
+            if (relPath.StartsWith("__custom/", StringComparison.Ordinal))
+            {
+                string mime;
+                if (!CustomThemes.ResolveFile(relPath, out fullPath, out mime)) fullPath = null;
+            }
+            else
+            {
+                string candidate = Path.Combine(pageDir, relPath.Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(candidate)) fullPath = candidate;
+            }
         }
         if (fullPath == null && !string.IsNullOrEmpty(id))
         {
@@ -1563,6 +1622,11 @@ class NativeSettingsForm : Form
             string name = I18n.ThemeName(id, rawName);
             string thumb = th.ContainsKey("thumb") ? th["thumb"] as string : "";
             string cat = th.ContainsKey("category") ? (th["category"] as string ?? "art") : (id.StartsWith("custom-") ? "custom" : "art");
+            string eng = th.ContainsKey("engine") ? ((th["engine"] as string ?? "").Trim().ToLowerInvariant()) : "";
+            string mediaType = th.ContainsKey("mediaType") ? ((th["mediaType"] as string ?? "").Trim().ToLowerInvariant()) : "";
+            string cardReadyBadge = eng == "opengl-rust"
+                ? "Rust Plugin"
+                : (eng == "opengl-glsl" ? "GLSL · GL" : (mediaType == "video" ? "Native Video" : readyBadge));
             string memTier = th.ContainsKey("memoryTier") ? (th["memoryTier"] as string ?? "") : "";
             string tierLabel = string.Equals(memTier, "light", StringComparison.OrdinalIgnoreCase)
                 ? I18n.Ui("ramTierLight")
@@ -1572,7 +1636,7 @@ class NativeSettingsForm : Form
             Color[] grad = ParseThumbGradient(thumb);
             Bitmap thumbBmp = LoadThumbBitmap(id, thumb);
 
-            var card = new ThemeCardControl(id, name, cat, grad, thumbBmp, activeBadge, readyBadge, memTier, tierLabel, fontBold, fontSmall);
+            var card = new ThemeCardControl(id, name, cat, grad, thumbBmp, activeBadge, cardReadyBadge, memTier, tierLabel, fontBold, fontSmall);
             card.Size = new Size(cardW, cardH);
             card.Margin = new Padding(0, 0, S(10), S(10));
             card.SetPalette(colCard, colCardHover, colBorder, colText, colMuted, colAccent, colAccentSoft);
@@ -1658,6 +1722,24 @@ class NativeSettingsForm : Form
         }
     }
 
+    void PositionLeftHeadControls(Control leftHead)
+    {
+        if (leftHead == null || searchBox == null) return;
+        int right = leftHead.ClientSize.Width - S(4);
+        searchBox.Location = new Point(Math.Max(S(240), right - searchBox.Width), S(12));
+        if (btnImportTheme != null)
+            btnImportTheme.Location = new Point(Math.Max(S(120), searchBox.Left - btnImportTheme.Width - S(8)), S(9));
+    }
+
+    public void ReloadThemesAndSelect(string themeId)
+    {
+        if (IsDisposed) return;
+        LoadThemes();
+        RebuildCategoryBar();
+        RebuildThemeCards();
+        SelectThemeUi(themeId);
+    }
+
     public void SelectThemeUi(string themeId)
     {
         var th = FindTheme(themeId);
@@ -1671,6 +1753,27 @@ class NativeSettingsForm : Form
         string rawDesc = th.ContainsKey("desc") ? th["desc"] as string : "";
         themeNameLabel.Text = I18n.ThemeName(id, rawName);
         themeDescLabel.Text = I18n.ThemeDesc(id, rawDesc);
+
+        if (btnRemoveTheme != null)
+            btnRemoveTheme.Visible = th.ContainsKey("imported") && th["imported"] is bool && (bool)th["imported"];
+        SyncPreviewActionsLayout();
+
+        if (previewFootLabel != null)
+        {
+            if (previewPaused)
+            {
+                previewFootLabel.Text = "○ " + I18n.Ui("previewOffBadge");
+            }
+            else
+            {
+                string eng = th.ContainsKey("engine") ? ((th["engine"] as string ?? "").Trim().ToLowerInvariant()) : "";
+                string engTag = eng == "opengl-rust"
+                    ? "Rust OpenGL 3.3 · Rust Plugin"
+                    : (eng == "opengl-glsl" ? "Rust OpenGL 3.3 · GLSL" : "Rust OpenGL 3.3");
+                previewFootLabel.Text = "● " + I18n.Ui("livePreview") + " (" + engTag + ")";
+            }
+        }
+        if (previewPaused) UpdatePreviewStaticContent();
 
         bool supportsAdaptive = th.ContainsKey("adaptive") && th["adaptive"] is bool && (bool)th["adaptive"];
         suppressEvents = true;
@@ -2129,11 +2232,28 @@ class NativeSettingsForm : Form
         btnAudioPlay.Text = play == 1 ? I18n.Ui("audioPause") : I18n.Ui("audioPlay");
     }
 
+    void SyncPreviewActionsLayout()
+    {
+        if (previewCard == null || prevActions == null || IsDisposed) return;
+        int availW = previewCard.ClientSize.Width - previewCard.Padding.Horizontal;
+        if (availW < S(220)) availW = S(396);
+        if (previewRamHintLabel != null) previewRamHintLabel.MaximumSize = new Size(availW, 0);
+        prevActions.MaximumSize = new Size(availW, 0);
+        Size pref = prevActions.GetPreferredSize(new Size(availW, 0));
+        int targetH = Math.Max(S(36), pref.Height + S(4));
+        if (prevActions.Height != targetH) prevActions.Height = targetH;
+        prevActions.PerformLayout();
+        previewCard.PerformLayout();
+        if (rightPanel != null) rightPanel.PerformLayout();
+    }
+
     // --- Live Rust OpenGL 3.3 Preview ---
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        StartPreviewGl();
+        SyncPreviewActionsLayout();
+        if (!previewPaused) StartPreviewGl();
+        UpdatePreviewUiState();
         UpdateEngineBadge();
     }
 
@@ -2169,6 +2289,8 @@ class NativeSettingsForm : Form
         previewGl.SetLowMode(Settings.LowMode);
         previewGl.PostJson(Json.Stringify(Json.Obj("t", "lowMode", "v", Settings.LowMode)));
         previewGl.PostJson(Json.Stringify(Json.Obj("t", "theme", "id", tid)));
+        string customGlMsg = CustomThemes.BuildCustomGlMessage(tid);
+        if (!string.IsNullOrEmpty(customGlMsg)) previewGl.PostJson(customGlMsg);
         previewGl.PostJson(EnvironmentHelper.BuildSolarMessage(Settings.SolarSync));
         previewGl.PostJson(Json.Stringify(Json.Obj("t", "settings", "v", Settings.For(tid))));
         PushScaledIconsToPreview(string.IsNullOrEmpty(lastIconsJson) ? host.GetLastIconsJson() : lastIconsJson);
@@ -2247,11 +2369,72 @@ class NativeSettingsForm : Form
         previewGl.PostJson(Json.Stringify(Json.Obj("t", "icons", "vis", vis, "r", scaled)));
     }
 
+    void StopPreviewGl()
+    {
+        if (previewGl != null)
+        {
+            try { previewGl.Dispose(); } catch { }
+            previewGl = null;
+        }
+    }
+
+    void UpdatePreviewStaticContent()
+    {
+        if (previewStaticCtrl == null || IsDisposed) return;
+        var th = FindTheme(Settings.Theme);
+        string id = th != null && th.ContainsKey("id") ? (th["id"] as string ?? "") : (Settings.Theme ?? "");
+        string thumb = th != null && th.ContainsKey("thumb") ? (th["thumb"] as string ?? "") : "";
+        Bitmap bmp = LoadThumbBitmap(id, thumb);
+        Color[] grad = ParseThumbGradient(thumb);
+        previewStaticCtrl.SetContent(bmp, grad, I18n.Ui("previewOffBadge"), fontSmall);
+    }
+
+    void UpdatePreviewUiState()
+    {
+        if (IsDisposed) return;
+        if (btnPreviewPause != null)
+            btnPreviewPause.Text = previewPaused ? I18n.Ui("previewShow") : I18n.Ui("previewHide");
+        if (previewFootLabel != null)
+        {
+            if (previewPaused)
+            {
+                previewFootLabel.Text = "○ " + I18n.Ui("previewOffBadge");
+            }
+            else
+            {
+                var th = FindTheme(Settings.Theme);
+                string eng = th != null && th.ContainsKey("engine") ? ((th["engine"] as string ?? "").Trim().ToLowerInvariant()) : "";
+                string engTag = eng == "opengl-rust"
+                    ? "Rust OpenGL 3.3 · Rust Plugin"
+                    : (eng == "opengl-glsl" ? "Rust OpenGL 3.3 · GLSL" : "Rust OpenGL 3.3");
+                previewFootLabel.Text = "● " + I18n.Ui("livePreview") + " (" + engTag + ")";
+            }
+        }
+        if (previewStaticCtrl != null)
+        {
+            previewStaticCtrl.Visible = previewPaused;
+            if (previewPaused)
+            {
+                UpdatePreviewStaticContent();
+                previewStaticCtrl.BringToFront();
+            }
+        }
+        SyncPreviewActionsLayout();
+    }
+
     void TogglePreviewPause()
     {
         previewPaused = !previewPaused;
-        if (previewGl != null && previewGl.IsRunning) previewGl.SetPaused(previewPaused);
-        btnPreviewPause.Text = previewPaused ? "▶ " + I18n.Ui("livePreview") : "⏸ " + I18n.Ui("livePreview");
+        if (previewPaused)
+        {
+            StopPreviewGl();
+        }
+        else
+        {
+            if (previewStaticCtrl != null) previewStaticCtrl.Visible = false;
+            StartPreviewGl();
+        }
+        UpdatePreviewUiState();
     }
 
     protected override void OnResize(EventArgs e)
@@ -2655,6 +2838,113 @@ class NativeSettingsForm : Form
                     fPen.DashStyle = DashStyle.Dot;
                     g.DrawRectangle(fPen, 1, 1, Math.Max(2, Width - 3), Math.Max(2, Height - 3));
                 }
+            }
+        }
+    }
+
+    sealed class StaticPreviewControl : Control
+    {
+        Bitmap image;
+        Color[] gradColors;
+        string badgeText = "";
+        Font badgeFont;
+
+        public StaticPreviewControl()
+        {
+            DoubleBuffered = true;
+            TabStop = false;
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        }
+
+        public void SetContent(Bitmap img, Color[] grad, string badge, Font font)
+        {
+            image = img;
+            gradColors = grad;
+            badgeText = badge ?? "";
+            badgeFont = font;
+            Invalidate();
+        }
+
+        static GraphicsPath RoundedRectPath(Rectangle r, int rad)
+        {
+            var p = new GraphicsPath();
+            int d = Math.Max(2, rad * 2);
+            p.AddArc(r.X, r.Y, d, d, 180, 90);
+            p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            p.CloseFigure();
+            return p;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            Rectangle dst = ClientRectangle;
+            if (dst.Width <= 1 || dst.Height <= 1) return;
+
+            if (image != null && image.Width > 0 && image.Height > 0)
+            {
+                float dstAsp = (float)dst.Width / dst.Height;
+                float srcAsp = (float)image.Width / image.Height;
+                RectangleF src;
+                if (srcAsp > dstAsp)
+                {
+                    float sw = image.Height * dstAsp;
+                    src = new RectangleF((image.Width - sw) * 0.5f, 0f, sw, image.Height);
+                }
+                else
+                {
+                    float sh = image.Width / dstAsp;
+                    src = new RectangleF(0f, (image.Height - sh) * 0.5f, image.Width, sh);
+                }
+                g.DrawImage(image, dst, src, GraphicsUnit.Pixel);
+            }
+            else if (gradColors != null && gradColors.Length >= 2)
+            {
+                using (var br = new LinearGradientBrush(dst, gradColors[0], gradColors[gradColors.Length - 1], 135f))
+                    g.FillRectangle(br, dst);
+            }
+            else if (gradColors != null && gradColors.Length == 1)
+            {
+                using (var br = new SolidBrush(gradColors[0]))
+                    g.FillRectangle(br, dst);
+            }
+            else
+            {
+                g.Clear(Color.FromArgb(14, 18, 24));
+            }
+
+            // Subtle bottom gradient vignette so badge remains crisp on bright themes
+            int vigH = Math.Min(dst.Height, Math.Max(44, dst.Height / 3));
+            Rectangle vigRect = new Rectangle(0, dst.Height - vigH, dst.Width, vigH);
+            using (var vig = new LinearGradientBrush(vigRect, Color.FromArgb(0, 8, 12, 18), Color.FromArgb(140, 8, 12, 18), LinearGradientMode.Vertical))
+                g.FillRectangle(vig, vigRect);
+
+            if (!string.IsNullOrEmpty(badgeText))
+            {
+                Font f = badgeFont ?? Font;
+                SizeF txtSz = g.MeasureString(badgeText, f);
+                int padX = 10, padY = 5;
+                int pw = (int)Math.Ceiling(txtSz.Width) + padX * 2;
+                int ph = (int)Math.Ceiling(txtSz.Height) + padY * 2;
+                int bx = 12;
+                int by = Math.Max(8, dst.Height - ph - 12);
+                Rectangle pill = new Rectangle(bx, by, Math.Min(dst.Width - 24, pw), ph);
+                using (var path = RoundedRectPath(pill, ph / 2))
+                {
+                    using (var fill = new SolidBrush(Color.FromArgb(196, 8, 12, 18)))
+                        g.FillPath(fill, path);
+                    using (var pen = new Pen(Color.FromArgb(52, 255, 255, 255), 1f))
+                        g.DrawPath(pen, path);
+                }
+                using (var txtBr = new SolidBrush(Color.FromArgb(238, 245, 255)))
+                using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+                    g.DrawString(badgeText, f, txtBr, pill, sf);
             }
         }
     }

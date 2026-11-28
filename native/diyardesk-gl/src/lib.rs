@@ -1,6 +1,8 @@
 mod ai_mascots;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 mod android_jni;
+mod ascii_cat_knight;
+mod ascii_lab;
 mod audio_reactive;
 mod aurora;
 mod beach;
@@ -37,6 +39,7 @@ mod studio_glass;
 mod text;
 mod themes;
 mod thinking_orbs;
+mod turkish_flag;
 mod zen_archipelago;
 mod voxelcraft;
 mod winter;
@@ -94,6 +97,12 @@ pub const NATIVE_GL_THEMES: &[&str] = &[
     "persephone",
     "eye-within-words",
     "cosmic-eye",
+    "ascii-clownfish",
+    "ascii-jellyfish",
+    "ascii-shark",
+    "ascii-lotus",
+    "ascii-cat-knight",
+    "turkish-flag",
 ];
 
 fn apply_low_mode_to_state(st: &mut AppState, is_low: bool) {
@@ -109,6 +118,12 @@ fn apply_low_mode_to_state(st: &mut AppState, is_low: bool) {
     st.persephone.set_low_mode(is_low);
     st.eye_within_words.set_low_mode(is_low);
     st.cosmic_eye.set_low_mode(is_low);
+    st.ascii_clownfish.set_low_mode(is_low);
+    st.ascii_jellyfish.set_low_mode(is_low);
+    st.ascii_shark.set_low_mode(is_low);
+    st.ascii_lotus.set_low_mode(is_low);
+    st.ascii_cat_knight.set_low_mode(is_low);
+    st.turkish_flag.set_low_mode(is_low);
 }
 
 fn flip_rgba_vertical(src: &[u8], dst: &mut [u8], width: usize, height: usize) {
@@ -2865,6 +2880,9 @@ mod linux_tests {
             check_renderer!("persephone", crate::persephone::PersephoneRenderer);
             check_renderer!("eye-within-words", crate::eye_within_words::EyeWithinWordsRenderer);
             check_renderer!("cosmic-eye", crate::cosmic_eye::CosmicEyeRenderer);
+            check_renderer!("ascii-lab", crate::ascii_lab::AsciiLabRenderer);
+            check_renderer!("ascii-cat-knight", crate::ascii_cat_knight::AsciiCatKnightRenderer);
+            check_renderer!("turkish-flag", crate::turkish_flag::TurkishFlagRenderer);
             check_renderer!("custom-glsl", crate::custom_glsl::CustomGlslRenderer);
 
             // 3. Resolved fallback shaders for all themes under GLSL ES 3.00
@@ -3081,6 +3099,12 @@ mod linux_tests {
                 "roach",
                 "eye-within-words",
                 "cosmic-eye",
+                "ascii-clownfish",
+                "ascii-jellyfish",
+                "ascii-shark",
+                "ascii-lotus",
+                "ascii-cat-knight",
+                "turkish-flag",
             ];
             let mut rgba = vec![0u8; (ew * eh * 4) as usize];
             for tid in fallback_sensitive {
@@ -3161,5 +3185,206 @@ mod linux_tests {
         assert!(s4.starts_with("#version 300 es\nprecision highp float;"));
         assert!(s4.contains("precision highp usampler2D;"));
         assert!(s4.contains("void main(){}"));
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod thumb_gen_tests {
+    use super::*;
+    use crate::gl::*;
+    use crate::renderer::Renderer;
+    use crate::state::AppState;
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleA;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        CreateWindowExA, DefWindowProcA, DestroyWindow, RegisterClassA, WNDCLASSA, WS_POPUP,
+    };
+
+    #[test]
+    #[ignore]
+    fn render_missing_rust_theme_thumbs() {
+        let out_dir = std::env::var_os("DIYARDESK_THUMB_OUT_DIR")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::env::temp_dir().join("ddgl_thumbs"));
+        std::fs::create_dir_all(&out_dir).expect("create thumb out dir");
+
+        let only_filter: Option<Vec<String>> = std::env::var("DIYARDESK_THUMB_ONLY")
+            .ok()
+            .map(|s| {
+                s.split(',')
+                    .map(|p| p.trim().to_string())
+                    .filter(|p| !p.is_empty())
+                    .collect()
+            })
+            .filter(|v: &Vec<String>| !v.is_empty());
+
+        let targets: &[(&str, usize, &str)] = &[
+            ("cat-shore", 40, r#"{"t":"settings","v":{"notchMode":"off"}}"#),
+            ("persephone", 290, ""),
+            ("eye-within-words", 1, ""),
+            ("cosmic-eye", 144, ""),
+            ("ascii-clownfish", 40, ""),
+            ("ascii-jellyfish", 50, ""),
+            ("ascii-shark", 40, ""),
+            ("ascii-lotus", 50, ""),
+            ("ascii-cat-knight", 50, ""),
+            ("turkish-flag", 36, r#"{"t":"settings","v":{"wind":1.15}}"#),
+        ];
+
+        unsafe {
+            let hinst = GetModuleHandleA(std::ptr::null());
+            let cls = b"DiyarThumbGenTest\0";
+            let wc = WNDCLASSA {
+                style: 0x0020,
+                lpfnWndProc: Some(DefWindowProcA),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: hinst,
+                hIcon: std::ptr::null_mut(),
+                hCursor: std::ptr::null_mut(),
+                hbrBackground: std::ptr::null_mut(),
+                lpszMenuName: std::ptr::null(),
+                lpszClassName: cls.as_ptr(),
+            };
+            RegisterClassA(&wc);
+            let (pw, ph) = (1280i32, 720i32);
+            let hwnd = CreateWindowExA(
+                0,
+                cls.as_ptr(),
+                b"thumbgen\0".as_ptr(),
+                WS_POPUP,
+                0,
+                0,
+                64,
+                64,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                hinst,
+                std::ptr::null(),
+            );
+            assert!(!hwnd.is_null(), "CreateWindowExA failed");
+            let ctx = WglContext::create(hwnd).expect("WglContext::create failed");
+            assert!(ctx.make_current(), "make_current failed");
+            let gl = GlFns::load().expect("GlFns::load failed");
+
+            let mut fbo = 0u32;
+            let mut tex = 0u32;
+            let mut depth_rb = 0u32;
+            (gl.GenFramebuffers)(1, &mut fbo);
+            (gl.GenTextures)(1, &mut tex);
+            (gl.BindTexture)(GL_TEXTURE_2D, tex);
+            (gl.TexImage2D)(
+                GL_TEXTURE_2D,
+                0,
+                GL_RGBA8 as GLint,
+                pw,
+                ph,
+                0,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+            (gl.TexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR as GLint);
+            (gl.TexParameteri)(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR as GLint);
+            (gl.GenRenderbuffers)(1, &mut depth_rb);
+            (gl.BindRenderbuffer)(GL_RENDERBUFFER, depth_rb);
+            (gl.RenderbufferStorage)(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, pw, ph);
+            (gl.BindFramebuffer)(GL_FRAMEBUFFER, fbo);
+            (gl.FramebufferTexture2D)(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+            (gl.FramebufferRenderbuffer)(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rb);
+            assert_eq!((gl.CheckFramebufferStatus)(GL_FRAMEBUFFER), GL_FRAMEBUFFER_COMPLETE);
+
+            let mut renderer = Renderer::new(&gl).expect("Renderer::new failed");
+            let mut raw = vec![0u8; (pw * ph * 4) as usize];
+            let mut flipped = vec![0u8; (pw * ph * 4) as usize];
+
+            for &(tid, steps, extra_json) in targets {
+                if let Some(ref flt) = only_filter {
+                    if !flt.iter().any(|x| x == tid) {
+                        continue;
+                    }
+                }
+                while (gl.GetError)() != GL_NO_ERROR {}
+
+                let mut st = AppState::new(pw, ph, 1.0);
+                st.set_theme(tid);
+                st.handle_json(r#"{"t":"icons","vis":false,"r":[]}"#);
+                if !extra_json.is_empty() {
+                    st.handle_json(extra_json);
+                }
+
+                if tid == "eye-within-words" {
+                    let mut ready = false;
+                    for _ in 0..40 {
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        st.step(0.05);
+                        {
+                            let _guard = DefaultFboGuard::new(fbo);
+                            (gl.BindFramebuffer)(GL_FRAMEBUFFER, 0);
+                            renderer.render(&gl, &mut st);
+                            let err = (gl.GetError)();
+                            assert_eq!(err, GL_NO_ERROR, "GL error 0x{:X} on {tid}", err);
+                            (gl.Finish)();
+                            (gl.ReadPixels)(
+                                0,
+                                0,
+                                pw,
+                                ph,
+                                GL_RGBA,
+                                GL_UNSIGNED_BYTE,
+                                raw.as_mut_ptr() as *mut std::ffi::c_void,
+                            );
+                        }
+                        let mut bright_eye = 0usize;
+                        for y in 220..500usize {
+                            let row_off = y * (pw as usize);
+                            for x in 360..920usize {
+                                let i = (row_off + x) * 4;
+                                if raw[i + 1] >= 180 || raw[i + 2] >= 200 {
+                                    bright_eye += 1;
+                                }
+                            }
+                        }
+                        if bright_eye > 800 {
+                            ready = true;
+                            break;
+                        }
+                    }
+                    assert!(ready, "eye-within-words baker did not produce bright eye typography in time");
+                } else {
+                    for _ in 0..steps {
+                        st.step(0.05);
+                    }
+                    let _guard = DefaultFboGuard::new(fbo);
+                    (gl.BindFramebuffer)(GL_FRAMEBUFFER, 0);
+                    renderer.render(&gl, &mut st);
+                    let err = (gl.GetError)();
+                    assert_eq!(err, GL_NO_ERROR, "GL error 0x{:X} on {tid}", err);
+                    (gl.Finish)();
+                    (gl.ReadPixels)(
+                        0,
+                        0,
+                        pw,
+                        ph,
+                        GL_RGBA,
+                        GL_UNSIGNED_BYTE,
+                        raw.as_mut_ptr() as *mut std::ffi::c_void,
+                    );
+                }
+
+                crate::flip_rgba_vertical(&raw, &mut flipped, pw as usize, ph as usize);
+                let out_path = out_dir.join(format!("{tid}.png"));
+                image::save_buffer(&out_path, &flipped, pw as u32, ph as u32, image::ColorType::Rgba8)
+                    .unwrap_or_else(|e| panic!("save {tid}.png failed: {e}"));
+                eprintln!("[thumb-gen] wrote {}", out_path.display());
+            }
+
+            renderer.destroy(&gl);
+            (gl.BindFramebuffer)(GL_FRAMEBUFFER, 0);
+            (gl.DeleteRenderbuffers)(1, &depth_rb);
+            (gl.DeleteTextures)(1, &tex);
+            (gl.DeleteFramebuffers)(1, &fbo);
+            drop(ctx);
+            DestroyWindow(hwnd);
+        }
     }
 }

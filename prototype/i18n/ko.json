@@ -2172,6 +2172,214 @@
           "hint": "바탕화면 아이콘 뒤 가독성을 높이는 부드러운 어두운 배경"
         }
       }
+    },
+    "ascii-clownfish": {
+      "name": "Clownfish & Anemone · ASCII (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 interactive ASCII coral reef wallpaper: a 3D tail-driven clownfish weaves through 50 spring-simulated anemone tentacles. Move the mouse to stir water and light up tentacles, click to drop glowing food pellets, and watch icons act as reef boulders.",
+      "groups": [
+        "ASCII Style & Palette",
+        "Physics & Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Color Palette",
+          "hint": "Original warm clownfish orange (1:1), Sapphire Reef, or Bio Neon",
+          "options": [
+            "Original Coral",
+            "Sapphire Reef",
+            "Bio Neon"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Cell Size",
+          "hint": "Monospace ASCII grid density (smaller = finer detail)"
+        },
+        "glow": {
+          "label": "Phosphor Glow",
+          "hint": "Intensity of bioluminescent tips and terminal bloom"
+        },
+        "speed": {
+          "label": "Swim Pace",
+          "hint": "Tail-beat frequency, reef surge, and camera orbit speed"
+        },
+        "mouseInteract": {
+          "label": "Cursor Current & Feed",
+          "hint": "Move pointer to bend & illuminate anemone arms; click to drop glowing fish food"
+        },
+        "adaptive": {
+          "label": "Icon Avoidance & Scrim",
+          "hint": "Anemone arms part gently around desktop icons with readable dark backing"
+        }
+      }
+    },
+    "ascii-jellyfish": {
+      "name": "Jellyfish Heart · ASCII (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 bioluminescent ASCII wallpaper: twin cyan and orchid jellyfish spiral upward together, weaving their tentacles into a glowing 3D heart. Move the cursor to part trailing tendrils and tilt the camera; click to send a pulsing heart wave.",
+      "groups": [
+        "ASCII Style & Palette",
+        "Orbital Dance & Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Color Palette",
+          "hint": "Original cyan & orchid heart (1:1), Emerald Gold, or Sunset Rose",
+          "options": [
+            "Original Ice & Orchid",
+            "Emerald Gold",
+            "Sunset Rose"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Cell Size",
+          "hint": "Monospace ASCII grid density (smaller = finer detail)"
+        },
+        "glow": {
+          "label": "Bioluminescence",
+          "hint": "Soft glow halo around jellyfish bells and oral ribbons"
+        },
+        "speed": {
+          "label": "Pulse Tempo",
+          "hint": "Bell contraction cadence and upward orbital spiral speed"
+        },
+        "mouseInteract": {
+          "label": "Cursor Vortex & Pulse",
+          "hint": "Move mouse to swirl trailing strands and tilt view; click to emit a glowing heart wave"
+        },
+        "adaptive": {
+          "label": "Icon Backing",
+          "hint": "Soft abyssal scrim behind desktop icons for crisp text contrast"
+        }
+      }
+    },
+    "ascii-shark": {
+      "name": "Shark Intercept · ASCII (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 hydrodynamic ASCII ocean wallpaper: a silver school of 80 fish parts beneath sunlit water caustics while an articulated reef shark banks through the shoal. Move the mouse to ripple water and scatter fish; click to unleash a shockwave and shark sprint.",
+      "groups": [
+        "Ocean Light & ASCII",
+        "Shoal Physics & Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Ocean Palette",
+          "hint": "Original turquoise sunlit reef (1:1), Deep Indigo, or Warm Lagoon",
+          "options": [
+            "Original Turquoise",
+            "Deep Indigo",
+            "Warm Lagoon"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Cell Size",
+          "hint": "Monospace ASCII grid density (smaller = finer detail)"
+        },
+        "glow": {
+          "label": "Silver Shimmer",
+          "hint": "Bloom intensity on silver fish flanks and water caustics"
+        },
+        "speed": {
+          "label": "Pursuit Speed",
+          "hint": "Pace of shark tail thrust and schooling fish maneuvers"
+        },
+        "mouseInteract": {
+          "label": "Scatter & Shockwave",
+          "hint": "Move pointer to scatter nearby fish; click for an underwater shockwave & shark burst"
+        },
+        "adaptive": {
+          "label": "Shoal Icon Avoidance",
+          "hint": "Schooling fish stream around desktop icons with subtle contrast scrims"
+        }
+      }
+    },
+    "ascii-lotus": {
+      "name": "Lotus After Rain · ASCII (Rust)",
+      "desc": "Native Rust + OpenGL 3.3 Sobel-contoured ASCII wallpaper: a 14-petal purple lotus blooms after rain while a glistening dewdrop rolls into the pond and a bumblebee arrives to forage. Move the mouse for breeze and bee curiosity; click to drop new raindrops.",
+      "groups": [
+        "Botanical Palette & Contours",
+        "Breeze & Rain Interaction"
+      ],
+      "params": {
+        "palette": {
+          "label": "Petal Palette",
+          "hint": "Original purple lotus (1:1 UV pigments), Midnight Indigo, or Dawn Rose",
+          "options": [
+            "Original Purple",
+            "Midnight Indigo",
+            "Dawn Rose"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII Cell Size",
+          "hint": "Monospace ASCII grid density (smaller = finer detail)"
+        },
+        "glow": {
+          "label": "Ripple & Pollen Glow",
+          "hint": "Subtle shimmer on golden stamens and pond water rings"
+        },
+        "speed": {
+          "label": "Bloom Pace",
+          "hint": "Speed of petal uncurling, dewdrop roll, and bumblebee flight"
+        },
+        "mouseInteract": {
+          "label": "Breeze, Bee & Raindrops",
+          "hint": "Move pointer to sweep a breeze and lure the bee; click pond water for concentric ripples"
+        },
+        "adaptive": {
+          "label": "Pond Icon Backing",
+          "hint": "Calm dark-water scrim behind desktop icons for crisp legibility"
+        }
+      }
+    },
+    "ascii-cat-knight": {
+      "name": "고양이 기사 · ASCII (Rust)",
+      "desc": "네이티브 Rust + OpenGL 3.3 ASCII 배경화면: 빛나는 대검을 든 은빛 갑옷 아기 고양이, 바람에 휘날리는 Verlet 천 망토, 눈 깜빡임과 흔들리는 풀잎을 구현합니다.",
+      "groups": [
+        "외형 및 카메라",
+        "바람 물리 및 상호작용"
+      ],
+      "params": {
+        "palette": {
+          "label": "갑옷 팔레트",
+          "hint": "오리지널 은빛, 황금 성기사 또는 달빛 수호자",
+          "options": [
+            "오리지널 실버",
+            "황금 팔라딘",
+            "달빛 수호자"
+          ]
+        },
+        "cameraMode": {
+          "label": "카메라 모드",
+          "hint": "전체 기사 구도, 시네마틱 줌아웃 또는 클로즈업 초상화",
+          "options": [
+            "전체 기사",
+            "시네마틱 줌아웃",
+            "근접 초상화"
+          ]
+        },
+        "charSize": {
+          "label": "ASCII 셀 크기",
+          "hint": "고정폭 ASCII 그리드 밀도"
+        },
+        "glow": {
+          "label": "검광 및 발광",
+          "hint": "칼날 반사와 갑옷 하이라이트의 은은한 발광"
+        },
+        "wind": {
+          "label": "바람 세기",
+          "hint": "망토 물결과 풀잎 흔들림 강도"
+        },
+        "speed": {
+          "label": "애니메이션 속도",
+          "hint": "천 물리 및 눈 깜빡임 속도"
+        },
+        "mouseInteract": {
+          "label": "바람, 시선 및 검광 반응",
+          "hint": "마우스 이동으로 바람과 시선을 유도하고 클릭으로 검광을 발동합니다"
+        },
+        "adaptive": {
+          "label": "아이콘 회피 바람",
+          "hint": "망토가 바탕화면 아이콘 주변을 자연스럽게 피해 흐릅니다"
+        }
+      }
     }
   }
 }

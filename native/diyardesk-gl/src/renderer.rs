@@ -1,4 +1,6 @@
 use crate::ai_mascots::AiMascotsRenderer;
+use crate::ascii_cat_knight::AsciiCatKnightRenderer;
+use crate::ascii_lab::AsciiLabRenderer;
 use crate::aurora::AuroraRenderer;
 use crate::beach::BeachRenderer;
 use crate::cat_shore::CatShoreRenderer;
@@ -33,6 +35,7 @@ use crate::studio_glass::StudioGlassRenderer;
 use crate::text::TextRenderer;
 use crate::themes::resolve_shader_and_params;
 use crate::thinking_orbs::ThinkingOrbsRenderer;
+use crate::turkish_flag::TurkishFlagRenderer;
 use crate::winter::WinterRenderer;
 use chrono::{DateTime, Datelike, Local, NaiveDate, Timelike};
 use std::collections::HashMap;
@@ -128,6 +131,12 @@ pub struct Renderer {
     eye_within_words_failed: bool,
     cosmic_eye_renderer: Option<CosmicEyeRenderer>,
     cosmic_eye_failed: bool,
+    ascii_lab_renderer: Option<AsciiLabRenderer>,
+    ascii_lab_failed: bool,
+    ascii_cat_knight_renderer: Option<AsciiCatKnightRenderer>,
+    ascii_cat_knight_failed: bool,
+    turkish_flag_renderer: Option<TurkishFlagRenderer>,
+    turkish_flag_failed: bool,
     custom_glsl_renderer: Option<CustomGlslRenderer>,
     custom_plugin_renderer: Option<CustomPluginRenderer>,
     active_theme_id: String,
@@ -203,6 +212,12 @@ impl Renderer {
             eye_within_words_failed: false,
             cosmic_eye_renderer: None,
             cosmic_eye_failed: false,
+            ascii_lab_renderer: None,
+            ascii_lab_failed: false,
+            ascii_cat_knight_renderer: None,
+            ascii_cat_knight_failed: false,
+            turkish_flag_renderer: None,
+            turkish_flag_failed: false,
             custom_glsl_renderer: None,
             custom_plugin_renderer: None,
             active_theme_id: String::new(),
@@ -303,6 +318,15 @@ impl Renderer {
         }
         if let Some(mut cr) = self.cosmic_eye_renderer.take() {
             cr.destroy(gl);
+        }
+        if let Some(mut ar) = self.ascii_lab_renderer.take() {
+            ar.destroy(gl);
+        }
+        if let Some(mut ack) = self.ascii_cat_knight_renderer.take() {
+            ack.destroy(gl);
+        }
+        if let Some(mut tfr) = self.turkish_flag_renderer.take() {
+            tfr.destroy(gl);
         }
         if let Some(mut cgr) = self.custom_glsl_renderer.take() {
             cgr.destroy(gl);
@@ -553,6 +577,9 @@ impl Renderer {
             self.persephone_renderer.is_some(),
             self.eye_within_words_renderer.is_some(),
             self.cosmic_eye_renderer.is_some(),
+            self.ascii_lab_renderer.is_some(),
+            self.ascii_cat_knight_renderer.is_some(),
+            self.turkish_flag_renderer.is_some(),
             self.custom_glsl_renderer.is_some(),
             self.custom_plugin_renderer.is_some(),
         ];
@@ -607,6 +634,9 @@ impl Renderer {
             evict_slot!(persephone_renderer, st.is_persephone_theme());
             evict_slot!(eye_within_words_renderer, st.is_eye_within_words_theme());
             evict_slot!(cosmic_eye_renderer, st.is_cosmic_eye_theme());
+            evict_slot!(ascii_lab_renderer, st.is_ascii_lab_theme());
+            evict_slot!(ascii_cat_knight_renderer, st.is_ascii_cat_knight_theme());
+            evict_slot!(turkish_flag_renderer, st.is_turkish_flag_theme());
 
             if !st.is_impulse_theme() {
                 self.scene_fbo.destroy(gl);
@@ -1022,6 +1052,51 @@ impl Renderer {
             }
             if let Some(cr) = self.cosmic_eye_renderer.as_mut() {
                 cr.render(gl, st);
+                return;
+            }
+        }
+        if st.is_ascii_lab_theme() {
+            if self.ascii_lab_renderer.is_none() && !self.ascii_lab_failed {
+                match AsciiLabRenderer::new(gl) {
+                    Ok(ar) => self.ascii_lab_renderer = Some(ar),
+                    Err(err) => {
+                        eprintln!("DiyarDeskGl: ascii-lab init failed: {err}");
+                        self.ascii_lab_failed = true;
+                    }
+                }
+            }
+            if let Some(ar) = self.ascii_lab_renderer.as_mut() {
+                ar.render(gl, st);
+                return;
+            }
+        }
+        if st.is_ascii_cat_knight_theme() {
+            if self.ascii_cat_knight_renderer.is_none() && !self.ascii_cat_knight_failed {
+                match AsciiCatKnightRenderer::new(gl) {
+                    Ok(ack) => self.ascii_cat_knight_renderer = Some(ack),
+                    Err(err) => {
+                        eprintln!("DiyarDeskGl: ascii-cat-knight init failed: {err}");
+                        self.ascii_cat_knight_failed = true;
+                    }
+                }
+            }
+            if let Some(ack) = self.ascii_cat_knight_renderer.as_mut() {
+                ack.render(gl, st);
+                return;
+            }
+        }
+        if st.is_turkish_flag_theme() {
+            if self.turkish_flag_renderer.is_none() && !self.turkish_flag_failed {
+                match TurkishFlagRenderer::new(gl) {
+                    Ok(tfr) => self.turkish_flag_renderer = Some(tfr),
+                    Err(err) => {
+                        eprintln!("DiyarDeskGl: turkish-flag init failed: {err}");
+                        self.turkish_flag_failed = true;
+                    }
+                }
+            }
+            if let Some(tfr) = self.turkish_flag_renderer.as_mut() {
+                tfr.render(gl, st);
                 return;
             }
         }

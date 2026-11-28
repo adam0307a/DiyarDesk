@@ -1,4 +1,10 @@
 use crate::ai_mascots::{AiMascotsParams, AiMascotsState};
+use crate::ascii_cat_knight::{AsciiCatKnightParams, AsciiCatKnightState};
+use crate::ascii_lab::clownfish::AsciiClownfishState;
+use crate::ascii_lab::jellyfish::AsciiJellyfishState;
+use crate::ascii_lab::lotus::AsciiLotusState;
+use crate::ascii_lab::shark::AsciiSharkState;
+use crate::ascii_lab::AsciiLabParams;
 use crate::audio_reactive::AudioReactiveState;
 use crate::aurora::{AuroraParams, AuroraState};
 use crate::beach::{BeachParams, BeachState};
@@ -28,6 +34,7 @@ use crate::solar_system::{SolarSystemParams, SolarSystemState};
 use crate::strike::{StrikeParams, StrikeState};
 use crate::studio_glass::StudioGlassState;
 use crate::thinking_orbs::{ThinkingOrbsParams, ThinkingOrbsState};
+use crate::turkish_flag::{TurkishFlagParams, TurkishFlagState};
 use crate::voxelcraft::{VoxelcraftParams, VoxelcraftState};
 use crate::winter::{WinterParams, WinterState};
 use crate::themes::common::str_index;
@@ -498,6 +505,12 @@ pub struct AppState {
     pub persephone: PersephoneState,
     pub eye_within_words: EyeWithinWordsState,
     pub cosmic_eye: CosmicEyeState,
+    pub ascii_clownfish: AsciiClownfishState,
+    pub ascii_jellyfish: AsciiJellyfishState,
+    pub ascii_shark: AsciiSharkState,
+    pub ascii_lotus: AsciiLotusState,
+    pub ascii_cat_knight: AsciiCatKnightState,
+    pub turkish_flag: TurkishFlagState,
     /// When true (headless/snapshot/tests), heavy CPU-baked themes block until
     /// their baked layers are ready on the first frame; interactive hosts leave
     /// this false so baking runs asynchronously off the UI/render thread.
@@ -665,6 +678,12 @@ impl AppState {
             persephone: PersephoneState::default(),
             eye_within_words: EyeWithinWordsState::default(),
             cosmic_eye: CosmicEyeState::default(),
+            ascii_clownfish: AsciiClownfishState::default(),
+            ascii_jellyfish: AsciiJellyfishState::default(),
+            ascii_shark: AsciiSharkState::default(),
+            ascii_lotus: AsciiLotusState::default(),
+            ascii_cat_knight: AsciiCatKnightState::default(),
+            turkish_flag: TurkishFlagState::default(),
             sync_bake: false,
             custom_gl: CustomGlSpec::default(),
             custom_plugin_inbox: VecDeque::new(),
@@ -849,6 +868,37 @@ impl AppState {
 
     pub fn is_cosmic_eye_theme(&self) -> bool {
         self.theme_id == "cosmic-eye"
+    }
+
+    pub fn is_ascii_clownfish_theme(&self) -> bool {
+        self.theme_id == "ascii-clownfish"
+    }
+
+    pub fn is_ascii_jellyfish_theme(&self) -> bool {
+        self.theme_id == "ascii-jellyfish"
+    }
+
+    pub fn is_ascii_shark_theme(&self) -> bool {
+        self.theme_id == "ascii-shark"
+    }
+
+    pub fn is_ascii_lotus_theme(&self) -> bool {
+        self.theme_id == "ascii-lotus"
+    }
+
+    pub fn is_ascii_cat_knight_theme(&self) -> bool {
+        self.theme_id == "ascii-cat-knight"
+    }
+
+    pub fn is_turkish_flag_theme(&self) -> bool {
+        self.theme_id == "turkish-flag"
+    }
+
+    pub fn is_ascii_lab_theme(&self) -> bool {
+        self.is_ascii_clownfish_theme()
+            || self.is_ascii_jellyfish_theme()
+            || self.is_ascii_shark_theme()
+            || self.is_ascii_lotus_theme()
     }
 
     pub fn is_custom_glsl_theme(&self) -> bool {
@@ -1064,6 +1114,49 @@ impl AppState {
             self.cosmic_eye.resize(self.css_w(), self.css_h(), self.dpi_scale);
             if !self.effective_icons.is_empty() {
                 self.cosmic_eye.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_ascii_clownfish_theme() {
+            self.ascii_clownfish.set_low_mode(self.low_mode);
+            self.ascii_clownfish.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.ascii_clownfish.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_ascii_jellyfish_theme() {
+            self.ascii_jellyfish.set_low_mode(self.low_mode);
+            self.ascii_jellyfish.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.ascii_jellyfish.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_ascii_shark_theme() {
+            self.ascii_shark.set_low_mode(self.low_mode);
+            self.ascii_shark.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.ascii_shark.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_ascii_lotus_theme() {
+            self.ascii_lotus.set_low_mode(self.low_mode);
+            self.ascii_lotus.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.ascii_lotus.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_ascii_cat_knight_theme() {
+            self.ascii_cat_knight.set_low_mode(self.low_mode);
+            self.ascii_cat_knight.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.ascii_cat_knight.set_icons(&self.effective_icons, true);
+            }
+        }
+        if self.is_turkish_flag_theme() {
+            self.turkish_flag.set_low_mode(self.low_mode);
+            self.turkish_flag.set_env_hour(self.env_hour);
+            self.turkish_flag.resize(self.css_w(), self.css_h(), self.dpi_scale);
+            if !self.effective_icons.is_empty() {
+                self.turkish_flag.set_icons(&self.effective_icons, true);
             }
         }
         self.set_active_field(TextField::None);
@@ -1446,6 +1539,12 @@ impl AppState {
                     self.persephone.set_low_mode(b);
                     self.eye_within_words.set_low_mode(b);
                     self.cosmic_eye.set_low_mode(b);
+                    self.ascii_clownfish.set_low_mode(b);
+                    self.ascii_jellyfish.set_low_mode(b);
+                    self.ascii_shark.set_low_mode(b);
+                    self.ascii_lotus.set_low_mode(b);
+                    self.ascii_cat_knight.set_low_mode(b);
+                    self.turkish_flag.set_low_mode(b);
                 }
             }
             "settings" => {
@@ -1544,6 +1643,24 @@ impl AppState {
                 }
                 if self.is_cosmic_eye_theme() {
                     self.cosmic_eye.sync_params(CosmicEyeParams::default());
+                }
+                if self.is_ascii_clownfish_theme() {
+                    self.ascii_clownfish.sync_params(AsciiLabParams::default());
+                }
+                if self.is_ascii_jellyfish_theme() {
+                    self.ascii_jellyfish.sync_params(AsciiLabParams::default());
+                }
+                if self.is_ascii_shark_theme() {
+                    self.ascii_shark.sync_params(AsciiLabParams::default());
+                }
+                if self.is_ascii_lotus_theme() {
+                    self.ascii_lotus.sync_params(AsciiLabParams::default());
+                }
+                if self.is_ascii_cat_knight_theme() {
+                    self.ascii_cat_knight.sync_params(AsciiCatKnightParams::default());
+                }
+                if self.is_turkish_flag_theme() {
+                    self.turkish_flag.sync_params(TurkishFlagParams::default());
                 }
                 if let Some(obj) = v.get("v").and_then(|x| x.as_object()) {
                     self.apply_params(obj);
@@ -2221,6 +2338,30 @@ impl AppState {
             self.cosmic_eye
                 .sync_params(CosmicEyeParams::from_raw_params(&self.raw_params));
         }
+        if self.is_ascii_clownfish_theme() {
+            self.ascii_clownfish
+                .sync_params(AsciiLabParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_ascii_jellyfish_theme() {
+            self.ascii_jellyfish
+                .sync_params(AsciiLabParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_ascii_shark_theme() {
+            self.ascii_shark
+                .sync_params(AsciiLabParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_ascii_lotus_theme() {
+            self.ascii_lotus
+                .sync_params(AsciiLabParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_ascii_cat_knight_theme() {
+            self.ascii_cat_knight
+                .sync_params(AsciiCatKnightParams::from_raw_params(&self.raw_params));
+        }
+        if self.is_turkish_flag_theme() {
+            self.turkish_flag
+                .sync_params(TurkishFlagParams::from_raw_params(&self.raw_params));
+        }
         self.recompute_layout();
     }
 
@@ -2275,6 +2416,12 @@ impl AppState {
         self.persephone.set_icons(&self.effective_icons, vis);
         self.eye_within_words.set_icons(&self.effective_icons, vis);
         self.cosmic_eye.set_icons(&self.effective_icons, vis);
+        self.ascii_clownfish.set_icons(&self.effective_icons, vis);
+        self.ascii_jellyfish.set_icons(&self.effective_icons, vis);
+        self.ascii_shark.set_icons(&self.effective_icons, vis);
+        self.ascii_lotus.set_icons(&self.effective_icons, vis);
+        self.ascii_cat_knight.set_icons(&self.effective_icons, vis);
+        self.turkish_flag.set_icons(&self.effective_icons, vis);
     }
 
     pub fn step(&mut self, dt: f32) {
@@ -2438,6 +2585,31 @@ impl AppState {
         if self.is_cosmic_eye_theme() {
             self.cosmic_eye.set_low_mode(self.low_mode);
             self.cosmic_eye.step(dt);
+        }
+        if self.is_ascii_clownfish_theme() {
+            self.ascii_clownfish.set_low_mode(self.low_mode);
+            self.ascii_clownfish.step(dt);
+        }
+        if self.is_ascii_jellyfish_theme() {
+            self.ascii_jellyfish.set_low_mode(self.low_mode);
+            self.ascii_jellyfish.step(dt);
+        }
+        if self.is_ascii_shark_theme() {
+            self.ascii_shark.set_low_mode(self.low_mode);
+            self.ascii_shark.step(dt);
+        }
+        if self.is_ascii_lotus_theme() {
+            self.ascii_lotus.set_low_mode(self.low_mode);
+            self.ascii_lotus.step(dt);
+        }
+        if self.is_ascii_cat_knight_theme() {
+            self.ascii_cat_knight.set_low_mode(self.low_mode);
+            self.ascii_cat_knight.step(dt);
+        }
+        if self.is_turkish_flag_theme() {
+            self.turkish_flag.set_low_mode(self.low_mode);
+            self.turkish_flag.set_env_hour(self.env_hour);
+            self.turkish_flag.step(dt);
         }
     }
 
@@ -2653,6 +2825,12 @@ impl AppState {
             self.persephone.handle_mouse(3, 0.0, 0.0);
             self.eye_within_words.handle_mouse(3, 0.0, 0.0);
             self.cosmic_eye.handle_mouse(3, 0.0, 0.0);
+            self.ascii_clownfish.handle_mouse(3, 0.0, 0.0);
+            self.ascii_jellyfish.handle_mouse(3, 0.0, 0.0);
+            self.ascii_shark.handle_mouse(3, 0.0, 0.0);
+            self.ascii_lotus.handle_mouse(3, 0.0, 0.0);
+            self.ascii_cat_knight.handle_mouse(3, 0.0, 0.0);
+            self.turkish_flag.handle_mouse(3, 0.0, 0.0);
             return false;
         }
         self.pointer_x = x;
@@ -2796,6 +2974,24 @@ impl AppState {
         }
         if self.is_cosmic_eye_theme() {
             return self.cosmic_eye.handle_mouse(kind, x, y);
+        }
+        if self.is_ascii_clownfish_theme() {
+            return self.ascii_clownfish.handle_mouse(kind, x, y);
+        }
+        if self.is_ascii_jellyfish_theme() {
+            return self.ascii_jellyfish.handle_mouse(kind, x, y);
+        }
+        if self.is_ascii_shark_theme() {
+            return self.ascii_shark.handle_mouse(kind, x, y);
+        }
+        if self.is_ascii_lotus_theme() {
+            return self.ascii_lotus.handle_mouse(kind, x, y);
+        }
+        if self.is_ascii_cat_knight_theme() {
+            return self.ascii_cat_knight.handle_mouse(kind, x, y);
+        }
+        if self.is_turkish_flag_theme() {
+            return self.turkish_flag.handle_mouse(kind, x, y);
         }
 
         if kind == 0 {
