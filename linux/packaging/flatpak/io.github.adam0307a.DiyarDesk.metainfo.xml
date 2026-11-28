@@ -60,6 +60,19 @@
   </screenshots>
 
   <releases>
+    <release version="0.5.7" date="2026-11-28">
+      <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.7</url>
+      <description>
+        <ul>
+          <li>Added Waving Turkish Flag (turkish-flag) native Rust + OpenGL 3.3 theme with Verlet cloth simulation, golden finial, 4 sky moods, and live mouse hover/click/drag interaction</li>
+          <li>Added ASCII Cat Knight (ascii-cat-knight) and ASCII Shader Suite (ascii-clownfish, ascii-jellyfish, ascii-shark, ascii-lotus), bringing built-in themes to 38 with .webp thumbnails for all 38</li>
+          <li>Fixed Windows Virtual Desktops persistence so the single wallpaper engine stays visible across all virtual desktops with constant O(1) RAM scaling</li>
+          <li>Renamed Windows executable to DiyarDesk.exe (with automatic legacy upgrade cleanup in the NSIS installer) and fixed Settings action button row layout</li>
+          <li>Added live preview off/on toggle with static .webp preview fallback and memory savings notice across both native Rust OpenGL and WebView2 Settings UIs</li>
+          <li>Upgraded README storefront with feature showcase hero banner, engine comparison table, and real Windows Task Manager RAM benchmarks (605 MB vs 2,132 MB)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.6" date="2026-11-27">
       <url type="details">https://github.com/adam0307a/DiyarDesk/releases/tag/v0.5.6</url>
       <description>

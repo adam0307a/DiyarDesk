@@ -9,7 +9,7 @@
 [![Platforms](https://img.shields.io/badge/Platforms-Win%20%C2%B7%20Linux%20%C2%B7%20macOS%20%C2%B7%20Tablet-6e56cf.svg)](#quick-install--download)
 [![Privacy: Zero Telemetry](https://img.shields.io/badge/Telemetry-Zero%20%C2%B7%20100%25%20Offline-1f6feb.svg)](#features)
 
-**English** · [Türkçe](#türkçe) · [Download (v0.5.6)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Why DiyarDesk?](#why-diyardesk-comparison) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [38 Themes](#included-themes-38-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
+**English** · [Türkçe](#türkçe) · [Download (v0.5.7)](https://github.com/adam0307a/DiyarDesk/releases/latest) · [Why DiyarDesk?](#why-diyardesk-comparison) · [Rust OpenGL Mode](#native-rust--opengl-33-mode-zero-webview2) · [38 Themes](#included-themes-38-built-in) · [Linux](#linux-setup) · [Windows](#windows-build) · [macOS](#macos-build) · [Android Tablets](#android-tablets-sw600dp)
 
 ![DiyarDesk — Adaptive Wallpaper Showcase](docs/images/showcase-hero.webp)
 
@@ -19,7 +19,7 @@ DiyarDesk turns the space around your desktop icons into a living interactive la
 
 ## Quick Install & Download
 
-Download prebuilt installers from **[GitHub Releases (v0.5.6)](https://github.com/adam0307a/DiyarDesk/releases/latest)**:
+Download prebuilt installers from **[GitHub Releases (v0.5.7)](https://github.com/adam0307a/DiyarDesk/releases/latest)**:
 
 - **Windows (x64):** `DiyarDesk-*-win-x64-Setup.exe` *(NSIS installer; `winget` package `DiyarDesk.DiyarDesk` submitted at [`microsoft/winget-pkgs#488642`](https://github.com/microsoft/winget-pkgs/pull/488642))*
 - **Linux:** `.deb` (Debian/Ubuntu), `.pkg.tar.zst` (Arch), `.rpm` (Fedora/RHEL), or portable `.tar.gz`
@@ -249,7 +249,7 @@ If you enjoy DiyarDesk, starring the repository helps more people discover it �
 
 ## Türkçe
 
-[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.6)](https://github.com/adam0307a/DiyarDesk/releases/latest)
+[English](#diyardesk) · **Türkçe** · [Sürümleri İndir (v0.5.7)](https://github.com/adam0307a/DiyarDesk/releases/latest)
 
 **Masaüstü simgelerinizi manzaranın bir parçasına dönüştüren uyarlanabilir duvar kağıdı — WebView2'siz yerel Rust + OpenGL 3.3 Core motoruyla.**
 
