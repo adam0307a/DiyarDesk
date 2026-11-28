@@ -266,7 +266,12 @@
     "dropPresetApplied": "プリセット適用: {name}",
     "dropThemeImported": "テーマをインポート: {name}",
     "lanPushBtn": "PC へ送信",
-    "lanPushDone": "テーマと Impulse 状態をデスクトップへ送信しました。"
+    "lanPushDone": "テーマと Impulse 状態をデスクトップへ送信しました。",
+    "previewOffBadge": "プレビュー無効 · RAM 節約中",
+    "previewHide": "プレビューを無効化",
+    "previewShow": "プレビューを有効化",
+    "previewRamTip": "ライブプレビューは追加の RAM と GPU を使用します。オフにするとメモリを節約できます。",
+    "previewToggleTitle": "ライブプレビューを切り替え（オフにするとプレビュー用メモリを解放します）"
   },
   "host": {
     "traySettings": "設定…",

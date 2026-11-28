@@ -266,7 +266,12 @@
     "dropPresetApplied": "Preset angewendet: {name}",
     "dropThemeImported": "Thema importiert: {name}",
     "lanPushBtn": "An Desktop senden",
-    "lanPushDone": "Thema & Impulse-Daten an Desktop gesendet."
+    "lanPushDone": "Thema & Impulse-Daten an Desktop gesendet.",
+    "previewOffBadge": "Vorschau aus · RAM gespart",
+    "previewHide": "Vorschau deaktivieren",
+    "previewShow": "Vorschau aktivieren",
+    "previewRamTip": "Die Live-Vorschau benötigt zusätzlichen RAM und GPU-Speicher; zum Sparen deaktivieren.",
+    "previewToggleTitle": "Live-Vorschau umschalten (Deaktivieren gibt Vorschau-Speicher frei)"
   },
   "host": {
     "traySettings": "Einstellungen…",

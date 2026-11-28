@@ -266,7 +266,12 @@
     "dropPresetApplied": "已套用預設：{name}",
     "dropThemeImported": "已匯入主題：{name}",
     "lanPushBtn": "傳送到桌面端",
-    "lanPushDone": "已將主題與 Impulse 狀態傳送至桌面端。"
+    "lanPushDone": "已將主題與 Impulse 狀態傳送至桌面端。",
+    "previewOffBadge": "預覽已關閉 · 節省記憶體",
+    "previewHide": "關閉預覽",
+    "previewShow": "開啟預覽",
+    "previewRamTip": "即時預覽會佔用額外記憶體與顯示卡記憶體，關閉可節省資源。",
+    "previewToggleTitle": "切換即時預覽（關閉後立即釋放預覽記憶體）"
   },
   "host": {
     "traySettings": "設定…",

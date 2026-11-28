@@ -266,7 +266,12 @@
     "dropPresetApplied": "Préréglage appliqué : {name}",
     "dropThemeImported": "Thème importé : {name}",
     "lanPushBtn": "Envoyer vers le PC",
-    "lanPushDone": "Thème et état Impulse envoyés au bureau."
+    "lanPushDone": "Thème et état Impulse envoyés au bureau.",
+    "previewOffBadge": "Aperçu désactivé · RAM économisée",
+    "previewHide": "Désactiver l’aperçu",
+    "previewShow": "Activer l’aperçu",
+    "previewRamTip": "L’aperçu en direct consomme de la RAM et du GPU supplémentaires ; désactivez-le pour économiser de la mémoire.",
+    "previewToggleTitle": "Activer ou désactiver l’aperçu en direct (libère la mémoire d’aperçu)"
   },
   "host": {
     "traySettings": "Paramètres…",
